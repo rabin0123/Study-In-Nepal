@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, router } from '@inertiajs/react';
 
 type CourseDetailRow = {
@@ -24,11 +24,31 @@ type Props = {
 
 export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
+    const isFirstRender = useRef(true);
 
-    const handleSearch = (e: FormEvent) => {
-        e.preventDefault();
-        router.get('/course-details', { search: search || undefined }, { preserveState: true });
-    };
+    useEffect(() => {
+        // Skip the initial render so we don't trigger an unnecessary request on page load
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
+
+        // Debounce the search input to prevent firing a request on every keystroke
+        const debounceTimer = setTimeout(() => {
+            router.get(
+                '/course-details',
+                { search: search || undefined },
+                { 
+                    preserveState: true, 
+                    preserveScroll: true, // Keeps the user's scroll position intact
+                    replace: true         // Prevents filling the browser history with search states
+                }
+            );
+        }, 300); // 300ms delay
+
+        // Cleanup the timer if the user types again before the 300ms is up
+        return () => clearTimeout(debounceTimer);
+    }, [search]);
 
     return (
         <div className="min-h-screen bg-[#fafafa] py-12 px-4 sm:px-6 lg:px-8 font-sans">
@@ -47,26 +67,25 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                     </Link>
                 </div>
 
-                {/* Search Bar - styled like the Newsletter input */}
+                {/* Search Bar - Auto Search implementation */}
                 <div className="bg-white p-6 md:p-8 rounded-none shadow-sm border border-gray-100">
-                    <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4 items-center">
+                    <div className="relative max-w-3xl mx-auto">
                         <label className="sr-only" htmlFor="search">Search</label>
+                        {/* Search Icon */}
+                        <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                            <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
+                            </svg>
+                        </div>
                         <input
                             id="search"
                             type="text"
-                            className="flex-1 block w-full px-6 py-3 border border-gray-200 bg-gray-50 rounded-full focus:ring-[#008AE6] focus:border-[#008AE6] sm:text-sm outline-none transition-colors"
+                            className="block w-full pl-12 pr-6 py-4 border border-gray-200 bg-gray-50 rounded-full focus:ring-[#008AE6] focus:border-[#008AE6] sm:text-sm outline-none transition-colors"
                             placeholder="Search by university, college, or course name..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
-                        <button 
-                            type="submit" 
-                            className="inline-flex items-center justify-center px-8 py-3 border border-transparent shadow-sm text-xs font-bold uppercase tracking-widest rounded-full text-white bg-[#008AE6] hover:bg-[#0071bf] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#008AE6] transition-colors w-full sm:w-auto"
-                        >
-                            Search
-                            <span className="ml-2 font-normal text-lg leading-none">→</span>
-                        </button>
-                    </form>
+                    </div>
                 </div>
 
                 {/* Table Card */}
