@@ -13,7 +13,7 @@ use Inertia\Response;
 class AgencyApiController extends Controller
 {
     /**
-     * Display the Agenc
+     * Display the Agen
      * 
      *
      */
