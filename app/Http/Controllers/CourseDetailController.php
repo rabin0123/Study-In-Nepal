@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Support\Facades\DB;
 
 class CourseDetailController extends Controller
 {
@@ -37,31 +38,72 @@ class CourseDetailController extends Controller
     }
 
     /**
-     * Standalone create form — no university lookup, just free-text
-     * University/College/Course fields plus the detail content.
+     * Standalone create form.
      */
     public function create(): Response
     {
         return Inertia::render('courses/create');
     }
 
+    /**
+     * Store a newly created resource in storage.
+     * Updated to handle multiple institutions sharing the same course mapping.
+     */
     public function store(Request $request): JsonResponse
     {
-        $validated = $this->validated($request, forCreate: true);
+        // 1. Validate the new multi-institution payload
+        $validated = $request->validate([
+            'course_name'                                  => 'required|string|max:255',
+            'summary'                                      => 'nullable|string',
+            'careers_summary'                              => 'nullable|string', // Replaced careers array with HTML string
+            
+            'fees'                                         => 'nullable|array',
+            'fees.*.year'                                  => 'required_with:fees|integer|min:1',
+            'fees.*.amount'                                => 'nullable|string|max:100',
+            'fees.*.currency'                              => 'nullable|string|max:10',
+            'fees.*.note'                                  => 'nullable|string|max:255',
+            
+            'institutions'                                 => 'required|array|min:1',
+            'institutions.*.university_name'               => 'required|string|max:255',
+            'institutions.*.college_name'                  => 'required|string|max:255',
+            'institutions.*.year_wise_modules'             => 'nullable|array',
+            'institutions.*.year_wise_modules.*.year'      => 'required_with:institutions.*.year_wise_modules|integer|min:1',
+            'institutions.*.year_wise_modules.*.title'     => 'nullable|string|max:255',
+            'institutions.*.year_wise_modules.*.modules'   => 'nullable|array',
+            'institutions.*.year_wise_modules.*.modules.*' => 'string|max:255',
+        ]);
 
-        $courseDetail = CourseDetail::create($validated);
-        // Linking to a matching universities row (if one already exists)
-        // happens automatically in CourseDetail::booted()'s created hook.
+        $firstCreated = null;
+
+        // 2. Loop through each selected institution and create a CourseDetail record
+        DB::transaction(function () use ($validated, &$firstCreated) {
+            foreach ($validated['institutions'] as $inst) {
+                $courseDetail = CourseDetail::create([
+                    'course_name'       => $validated['course_name'],
+                    'summary'           => $validated['summary'] ?? null,
+                    'careers_summary'   => $validated['careers_summary'] ?? null,
+                    'fees'              => $validated['fees'] ?? null,
+                    
+                    'university_name'   => $inst['university_name'],
+                    'college_name'      => $inst['college_name'],
+                    'year_wise_modules' => $inst['year_wise_modules'] ?? null,
+                ]);
+
+                // Store the first one to return in the JSON response so the frontend can redirect to it
+                if (!$firstCreated) {
+                    $firstCreated = $courseDetail;
+                }
+            }
+        });
 
         return response()->json([
-            'message'      => 'Course details saved successfully.',
-            'courseDetail' => $courseDetail,
+            'message'      => 'Course details saved successfully for selected institutions.',
+            'courseDetail' => $firstCreated,
         ], 201);
     }
 
     /**
-     * Public detail page — /course-details/{courseDetail:uuid}.
-     * Works whether or not this row has been linked to a universities row.
+     * Public detail page.
      */
     public function show(CourseDetail $courseDetail): Response
     {
@@ -72,6 +114,9 @@ class CourseDetailController extends Controller
         ]);
     }
 
+    /**
+     * Show edit form for a single Course Detail.
+     */
     public function edit(CourseDetail $courseDetail): Response
     {
         return Inertia::render('course-details/edit', [
@@ -79,9 +124,33 @@ class CourseDetailController extends Controller
         ]);
     }
 
+    /**
+     * Update a SINGLE existing resource in storage.
+     * Since edit usually modifies one specific row, it uses a flat validation structure.
+     */
     public function update(Request $request, CourseDetail $courseDetail): JsonResponse
     {
-        $validated = $this->validated($request, forCreate: false);
+        // For individual updates, we expect the flat structure
+        $validated = $request->validate([
+            'university_name'                   => 'sometimes|required|string|max:255',
+            'college_name'                      => 'sometimes|required|string|max:255',
+            'course_name'                       => 'sometimes|required|string|max:255',
+
+            'summary'                           => 'nullable|string',
+            'careers_summary'                   => 'nullable|string', // Note the switch from 'careers' to 'careers_summary'
+
+            'year_wise_modules'                 => 'nullable|array',
+            'year_wise_modules.*.year'          => 'required_with:year_wise_modules|integer|min:1',
+            'year_wise_modules.*.title'         => 'nullable|string|max:255',
+            'year_wise_modules.*.modules'       => 'nullable|array',
+            'year_wise_modules.*.modules.*'     => 'string|max:255',
+
+            'fees'                              => 'nullable|array',
+            'fees.*.year'                       => 'required_with:fees|integer|min:1',
+            'fees.*.amount'                     => 'nullable|string|max:100',
+            'fees.*.currency'                   => 'nullable|string|max:10',
+            'fees.*.note'                       => 'nullable|string|max:255',
+        ]);
 
         $courseDetail->update($validated);
 
@@ -91,6 +160,9 @@ class CourseDetailController extends Controller
         ]);
     }
 
+    /**
+     * Remove the specified resource from storage.
+     */
     public function destroy(CourseDetail $courseDetail): JsonResponse
     {
         $courseDetail->delete();
@@ -98,34 +170,6 @@ class CourseDetailController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Course details deleted successfully.',
-        ]);
-    }
-
-    private function validated(Request $request, bool $forCreate): array
-    {
-        $nameRules = $forCreate ? 'required|string|max:255' : 'sometimes|required|string|max:255';
-
-        return $request->validate([
-            'university_name'                   => $nameRules,
-            'college_name'                       => $nameRules,
-            'course_name'                         => $nameRules,
-
-            'summary'                          => 'nullable|string',
-
-            'year_wise_modules'                 => 'nullable|array',
-            'year_wise_modules.*.year'           => 'required_with:year_wise_modules|integer|min:1',
-            'year_wise_modules.*.title'          => 'nullable|string|max:255',
-            'year_wise_modules.*.modules'        => 'nullable|array',
-            'year_wise_modules.*.modules.*'      => 'string|max:255',
-
-            'fees'                              => 'nullable|array',
-            'fees.*.year'                        => 'required_with:fees|integer|min:1',
-            'fees.*.amount'                      => 'nullable|string|max:100',
-            'fees.*.currency'                    => 'nullable|string|max:10',
-            'fees.*.note'                        => 'nullable|string|max:255',
-
-            'careers'                           => 'nullable|array',
-            'careers.*'                          => 'string|max:255',
         ]);
     }
 }
