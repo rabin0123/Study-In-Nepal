@@ -437,8 +437,11 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     content: '';
                     position: absolute;
                     inset: 0;
-                    background: linear-gradient(0deg, rgba(3, 105, 161, 0.65) 0%, rgba(3, 105, 161, 0.20) 100%);
-                    pointer-events: none;
+                    background: linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0.9) 0%,
+    rgba(3, 105, 161, 0.75) 100%
+);                    pointer-events: none;
                 }
 
                 /* Hero Top Left Container */
