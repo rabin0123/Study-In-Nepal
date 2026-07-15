@@ -605,7 +605,7 @@ export default function CourseSearch() {
                               transition: "all 0.2s"
                             }}
                           >
-                            <span>Inquire Now</span>
+                            <span>Apply Now</span>
                             <iconify-icon icon="solar:arrow-right-linear" style={{ fontSize: "14px" }} />
                           </button>
                         </a>
