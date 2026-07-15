@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import type { CSSProperties } from "react";
 
 // ── Design Tokens (Matching Homepage Aesthetic) ───────────────────────────
 const P = "#008ce3";         // Bright Sky Blue (Primary)
@@ -34,7 +33,6 @@ const getStreamImage = (stream: string, id: number): string => {
 };
 
 // ── Data Standardization & Sanitization Helpers ────────────────────────────
-// The \uFFFD detects the  symbol. \u2013 and \u2014 detect special copy-pasted dashes.
 const standardizeLevel = (level: string | null | undefined): string => {
   if (!level) return "";
   let l = level.trim();
@@ -51,7 +49,7 @@ const standardizeLevel = (level: string | null | undefined): string => {
 const standardizeName = (name: string | null | undefined): string => {
   if (!name) return "";
   let n = name.trim();
-  n = n.replace(/[\uFFFD\u2013\u2014]/g, '-'); // Fix  character
+  n = n.replace(/[\uFFFD\u2013\u2014]/g, '-'); // Fix missing/corrupted symbol character
   n = n.replace(/\s*-\s*/g, ' - '); // Clean spacing around hyphen
   n = n.replace(/,\s*U\.?S\.?A\.?/gi, ' (USA)');
   n = n.replace(/,\s*U\.?K\.?/gi, ' (UK)');
@@ -60,11 +58,53 @@ const standardizeName = (name: string | null | undefined): string => {
   return n.replace(/\s+/g, ' ').trim();
 };
 
+// Cleans common typos and standardizes stream names for the UI and filtering
+const standardizeStream = (stream: string | null | undefined): string => {
+  if (!stream) return "";
+  let s = stream.trim();
+  s = s.replace(/[\uFFFD\u2013\u2014]/g, '-');
+
+  const corrections: Record<string, string> = {
+    "Fashion Desinging": "Fashion Designing",
+    "Artificial Intellgance": "Artificial Intelligence",
+    "Mass Communciation": "Mass Communication",
+    "Interior Desinging": "Interior Designing",
+    "Pharmecy": "Pharmacy",
+    "Comuter Engineering": "Computer Engineering",
+    "Information Systerm Engineering": "Information System Engineering",
+    "Nurition": "Nutrition",
+    "Veternariy Science": "Veterinary Science",
+    "Electical Engineering": "Electrical Engineering",
+    "Electronics and Commucation Engineering": "Electronics & Communication Engineering",
+    "Physiotheraphy": "Physiotherapy",
+    "Geomtics Engineering": "Geomatics Engineering",
+    "Transporation Engineering": "Transportation Engineering",
+    "Chinease Language": "Chinese Language",
+    "Carpentory": "Carpentry",
+    "Reserch": "Research",
+    "Toursim Management": "Tourism Management",
+    "Toursim": "Tourism",
+    "Envrironment Science": "Environmental Science",
+    "Budhism": "Buddhism",
+    "Rular Development": "Rural Development",
+    "Medcine": "Medicine",
+    "Labotary Technology": "Laboratory Technology",
+    "Travel and Toursim": "Travel & Tourism"
+  };
+
+  if (corrections[s]) {
+    return corrections[s];
+  }
+
+  s = s.replace(/\b([a-z])([A-Za-z]*)\b/g, (match, p1, p2) => p1.toUpperCase() + p2);
+  return s.replace(/\s+/g, ' ').trim();
+};
+
 const standardizeCourse = (course: string | null | undefined): string => {
   if (!course) return "";
   let c = course.trim();
-  c = c.replace(/[\uFFFD\u2013\u2014]/g, '-'); // Fix  character
-  c = c.replace(/\s*-\s*/g, ' - '); // Ensure nice spacing around the hyphen
+  c = c.replace(/[\uFFFD\u2013\u2014]/g, '-'); // Fix missing/corrupted character
+  c = c.replace(/\s*-\s*/g, ' - '); // Spacing around hyphen
   return c.replace(/\s+/g, ' ').trim();
 };
 
@@ -250,15 +290,17 @@ export default function CourseSearch() {
   const fetchUniversities = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/university", {
+      // Changed fetch url directly to the absolute API endpoint
+      const res = await fetch("https://admin.studyinnepal.com/api/university", {
         headers: { "Accept": "application/json" }
       });
       if (res.ok) {
         const json = await res.json();
+        // Fallback checks to cover cases where the array is direct or nested
         setData(json.data || json);
       }
     } catch (error) {
-      console.error("Failed to load records", error);
+      console.error("Failed to load records from api", error);
     } finally {
       setLoading(false);
     }
@@ -288,9 +330,9 @@ export default function CourseSearch() {
     const resultData: UniversityEntry[] = [];
 
     data.forEach(item => {
-      // Data is sanitized here to remove broken  symbols before being used
+      // Data is sanitized and standardized here
       const stdLevel = standardizeLevel(item.level);
-      const stdStream = standardizeName(item.stream);
+      const stdStream = standardizeStream(item.stream);
       const stdCourse = standardizeCourse(item.Course);
       const stdUni = standardizeName(item.University);
       const stdCol = standardizeName(item.College);
@@ -484,13 +526,12 @@ export default function CourseSearch() {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             {filteredData.map(item => {
-              // Ensure sanitized output renders inside the cards as well!
               const stdLevel = standardizeLevel(item.level);
               const stdUni = standardizeName(item.University);
               const stdCol = standardizeName(item.College);
               const stdLoc = standardizeName(item.Location);
-              const stdStream = standardizeName(item.stream);
-              const stdCourse = standardizeCourse(item.Course); // Sanitized
+              const stdStream = standardizeStream(item.stream);
+              const stdCourse = standardizeCourse(item.Course);
 
               const collegeLogo = validUrl(item.college_logo_url);
               const universityLogo = validUrl(item.university_logo_url);
