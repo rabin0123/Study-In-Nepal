@@ -1,4 +1,4 @@
-import React, { useState, useEffect, CSSProperties, FormEvent } from "react";
+import React, { useState, useEffect, FormEvent } from "react";
 import { useForm, Link, usePage } from "@inertiajs/react";
 
 // ── design tokens ──
@@ -293,7 +293,8 @@ export default function RoleCreatePage({ editingRole = null }: RoleCreatePagePro
         }
       `}</style>
 
-      <div className="container px-3 px-md-4 px-lg-5 py-4 py-lg-5" style={{ maxWidth: 760, margin: "0 auto" }}>
+      {/* Increased container max-width to 1280px for a wider dashboard layout */}
+      <div className="container px-3 px-md-4 px-lg-5 py-4 py-lg-5" style={{ maxWidth: 1280, margin: "0 auto" }}>
         
         {/* Header & Back Action */}
         <div className="d-flex align-items-center justify-content-between mb-4 pb-2">
@@ -385,7 +386,8 @@ export default function RoleCreatePage({ editingRole = null }: RoleCreatePagePro
                         </button>
                       </div>
 
-                      <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+                      {/* Configured to handle a 4-column split cleanly with the wider 1280px container boundary */}
+                      <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-3">
                         {modulePermissions.map((permission) => {
                           const isChecked = data.permissions.includes(permission.name);
                           return (
@@ -450,7 +452,7 @@ export default function RoleCreatePage({ editingRole = null }: RoleCreatePagePro
         </Card>
       </div>
 
-      {/* Dynamic Toast Notifications matching your Profile/Admin Toast styles */}
+      {/* Dynamic Toast Notifications */}
       <div style={{
         position: "fixed", bottom: "2rem", right: "2rem", zIndex: 1050,
         display: "flex", flexDirection: "column", gap: "1rem", pointerEvents: "none"

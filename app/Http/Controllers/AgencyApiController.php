@@ -15,7 +15,7 @@ class AgencyApiController extends Controller
     /**
      * Display the Agency Directory page.
      * 
-     * Maile file ma change gareko dekhnu bhayo cha, aba agency ko list dekhauna ko lagi yo controller le kam garxa.
+     *
      */
     public function index(Request $request): Response
     {

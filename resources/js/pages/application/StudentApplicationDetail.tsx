@@ -64,6 +64,11 @@ interface ApplicationComment {
   author_id?: number | null;
   comment: string;
   created_at: string;
+  avatar_url?: string;
+  author_avatar_url?: string;
+  author?: {
+    avatar_url?: string;
+  } | null;
 }
 
 interface ActivityLog {
@@ -95,9 +100,6 @@ const countriesList = Object.entries(en).map(([code, name]) => ({
   name,
 })).sort((a, b) => a.name.localeCompare(b.name));
 
-// Map from country display name -> ISO 3166-1 alpha-2 code, built from the
-// same locale data used to populate the country <select>, so the flag
-// shown always matches the option the user actually picked.
 const countryNameToCode: Record<string, string> = Object.entries(en).reduce(
   (acc, [code, name]) => {
     acc[name] = code;
@@ -106,8 +108,6 @@ const countryNameToCode: Record<string, string> = Object.entries(en).reduce(
   {} as Record<string, string>
 );
 
-// Converts an ISO 3166-1 alpha-2 code (e.g. "NP") into its flag emoji by
-// shifting each letter into the Unicode "Regional Indicator Symbol" range.
 function flagFromCountryCode(code?: string) {
   if (!code || code.length !== 2) return null;
   const codePoints = code
@@ -172,7 +172,6 @@ function initialsFromName(name: string) {
     .join("");
 }
 
-/* Shared card shell, mirrors the MaterialM `.card` used across the index page */
 function Card({
   children,
   className = "",
@@ -258,7 +257,6 @@ export default function StudentApplicationDetail({ application: initialApplicati
   const [postingComment, setPostingComment] = useState(false);
   const [commentError, setCommentError] = useState<string | null>(null);
 
-  // --- Assignment state -----------------------------------------------------
   const [canManageAssignment, setCanManageAssignment] = useState(false);
   const [assignableUsers, setAssignableUsers] = useState<AssignableUser[]>([]);
   const [editingAssignee, setEditingAssignee] = useState(false);
@@ -269,7 +267,6 @@ export default function StudentApplicationDetail({ application: initialApplicati
   const activeRowRef = useRef<HTMLDivElement | null>(null);
   const statusRef = useRef<HTMLDivElement | null>(null);
 
-  // Measures the left sidebar column so the remarks card on the right can match its height exactly
   const leftColumnRef = useRef<HTMLDivElement | null>(null);
   const [leftColumnHeight, setLeftColumnHeight] = useState<number | null>(null);
 
@@ -750,7 +747,6 @@ export default function StudentApplicationDetail({ application: initialApplicati
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [editingField, editValue, editingStatus, statusValue, editingAssignee, assigneeValue]);
 
-  // ── Field-row renderer: label with an icon + double-click-to-edit value ──
   const renderSidebarEditableField = (
     label: string,
     fieldName: string,
@@ -1002,11 +998,8 @@ export default function StudentApplicationDetail({ application: initialApplicati
 
       <style>
         {`
-          /* Force field values to a neutral ink color — some theme
-             cascades tint .text-dark toward the brand accent, which
-             makes plain data values read like links. */
           .sad-value {
-            color: #1e2633 !important;
+            color: var(--bs-heading-color, var(--bs-emphasis-color, #1e2633)) !important;
           }
           .sad-label {
             letter-spacing: 0.06em;
@@ -1020,6 +1013,15 @@ export default function StudentApplicationDetail({ application: initialApplicati
           }
           .sad-icon-chip iconify-icon {
             font-size: 18px;
+          }
+          /* Custom adaptive theme toggle buttons */
+          .btn-toggle-custom {
+            background-color: var(--bs-body-secondary-bg, #f8f9fa) !important;
+            color: var(--bs-body-color, #6c757d) !important;
+            border: 1px solid var(--bs-border-color, rgba(0, 0, 0, 0.1)) !important;
+          }
+          .btn-toggle-custom:hover {
+            background-color: var(--bs-body-tertiary-bg, #e9ecef) !important;
           }
         `}
       </style>
@@ -1053,7 +1055,7 @@ export default function StudentApplicationDetail({ application: initialApplicati
       </div>
 
       <div className="row g-6">
-        {/* ══ Left column: identity, view switcher, About / Academic / Agency / Assignment ══ */}
+        {/* ══ Left column ══ */}
         <div className="col-12 col-lg-4" ref={leftColumnRef}>
           <div className="d-flex flex-column gap-6">
 
@@ -1118,9 +1120,9 @@ export default function StudentApplicationDetail({ application: initialApplicati
                   </div>
                 </div>
 
-                {/* Identifier grid: Student ID / Passport / DOB */}
+                {/* Identifier grid */}
                 <div className="row g-3 mt-4 pt-4 border-top">
-                  <div className="col-4">
+                  <div className="col-6">
                     <span className="fs-2 fw-semibold text-uppercase text-body-secondary d-flex align-items-center gap-1 mb-1">
                       <iconify-icon icon="solar:hashtag-square-line-duotone" className="fs-4"></iconify-icon>
                       App ID
@@ -1130,43 +1132,8 @@ export default function StudentApplicationDetail({ application: initialApplicati
                     </p>
                   </div>
 
-                  {editingField === "passport_number" ? (
-                    <div ref={activeRowRef} className="col-4" onDoubleClick={(e) => e.stopPropagation()}>
-                      <span className="fs-2 fw-semibold text-uppercase text-body-secondary d-block mb-1">Passport</span>
-                      <input
-                        autoFocus
-                        type="text"
-                        className="form-control form-control-sm"
-                        value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSaveField("passport_number", editValue, "Passport Number");
-                          if (e.key === "Escape") { setEditingField(null); setLocalErrors({}); }
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <div
-                      className={`col-4 ${canUpdate ? 'cursor-pointer' : ''}`}
-                      onDoubleClick={() => {
-                        if (canUpdate) {
-                          setEditingField("passport_number");
-                          setEditValue(student?.passport_number || "");
-                        }
-                      }}
-                    >
-                      <span className="fs-2 fw-semibold text-uppercase text-body-secondary d-flex align-items-center gap-1 mb-1">
-                        <iconify-icon icon="solar:passport-line-duotone" className="fs-4"></iconify-icon>
-                        Passport
-                      </span>
-                      <p className="sad-value fs-3 fw-semibold mb-0 text-truncate">
-                        {student?.passport_number || <span className="text-body-secondary fw-normal fst-italic">Not set</span>}
-                      </p>
-                    </div>
-                  )}
-
                   {editingField === "date_of_birth" ? (
-                    <div ref={activeRowRef} className="col-4" onDoubleClick={(e) => e.stopPropagation()}>
+                    <div ref={activeRowRef} className="col-6" onDoubleClick={(e) => e.stopPropagation()}>
                       <span className="fs-2 fw-semibold text-uppercase text-body-secondary d-block mb-1">DOB</span>
                       <input
                         autoFocus
@@ -1182,7 +1149,7 @@ export default function StudentApplicationDetail({ application: initialApplicati
                     </div>
                   ) : (
                     <div
-                      className={`col-4 ${canUpdate ? 'cursor-pointer' : ''}`}
+                      className={`col-6 ${canUpdate ? 'cursor-pointer' : ''}`}
                       onDoubleClick={() => {
                         if (canUpdate) {
                           setEditingField("date_of_birth");
@@ -1203,13 +1170,13 @@ export default function StudentApplicationDetail({ application: initialApplicati
               </div>
             </div>
 
-            {/* View switcher — moved here from the page header, controls the right-hand panel */}
+            {/* View switcher */}
             <div className="card">
               <div className="card-body d-flex gap-2 p-2">
                 <button
                   onClick={() => setViewMode("overview")}
                   className={`btn flex-grow-1 d-inline-flex align-items-center justify-content-center gap-2 ${
-                    viewMode === "overview" ? "btn-primary" : "btn-light text-body-secondary"
+                    viewMode === "overview" ? "btn-primary" : "btn-toggle-custom"
                   }`}
                 >
                   <iconify-icon icon="solar:document-text-line-duotone" className="fs-5"></iconify-icon>
@@ -1218,7 +1185,7 @@ export default function StudentApplicationDetail({ application: initialApplicati
                 <button
                   onClick={() => setViewMode("timeline")}
                   className={`btn flex-grow-1 d-inline-flex align-items-center justify-content-center gap-2 ${
-                    viewMode === "timeline" ? "btn-primary" : "btn-light text-body-secondary"
+                    viewMode === "timeline" ? "btn-primary" : "btn-toggle-custom"
                   }`}
                 >
                   <iconify-icon icon="solar:clock-circle-line-duotone" className="fs-5"></iconify-icon>
@@ -1234,8 +1201,6 @@ export default function StudentApplicationDetail({ application: initialApplicati
                   <SectionHeading icon="solar:user-circle-line-duotone">About Student</SectionHeading>
                   <div>
                     {renderSidebarEditableField("Student Name", "student_name", student?.student_name, "solar:user-line-duotone", "text")}
-                    {renderSidebarEditableField("Email Address", "email", student?.email, "solar:letter-line-duotone", "text")}
-                    {renderSidebarEditableField("Contact Number", "phone_number", phoneValue || "", "solar:phone-line-duotone", "phone")}
                     {renderSidebarEditableField("Country of Origin", "country", student?.country, "solar:global-line-duotone", "country")}
                     {renderSidebarEditableField("Street / Physical Address", "address", student?.address, "solar:map-point-line-duotone", "text")}
                   </div>
@@ -1275,7 +1240,6 @@ export default function StudentApplicationDetail({ application: initialApplicati
                   <div className="row g-3 pb-3 mb-1 border-bottom">
                     <div className="col-6">
                       <span className="fs-2 fw-semibold text-uppercase text-body-secondary d-flex align-items-center gap-1 mb-1">
-                        
                         Managing Agent
                       </span>
                       <p className="sad-value fs-3 fw-semibold mb-0 text-truncate">
@@ -1284,7 +1248,6 @@ export default function StudentApplicationDetail({ application: initialApplicati
                     </div>
                     <div className="col-6">
                       <span className="fs-2 fw-semibold text-uppercase text-body-secondary d-flex align-items-center gap-1 mb-1">
-                        
                         Created By
                       </span>
                       <p className="sad-value fs-3 fw-semibold mb-0 text-truncate">
@@ -1296,8 +1259,6 @@ export default function StudentApplicationDetail({ application: initialApplicati
                   {renderSidebarEditableField("Reference / Agency Notes", "agency_reference_notes", student?.agency_reference_notes || "", "solar:notes-line-duotone", "textarea")}
                 </Card>
 
-                {/* Assignment — visible only to Main-agent / Main-agent-staff roles.
-                    Backend still independently enforces who may actually change this. */}
                 {canManageAssignment && (
                   <Card>
                     <SectionHeading icon="solar:user-hand-up-line-duotone">Assignment</SectionHeading>
@@ -1311,7 +1272,7 @@ export default function StudentApplicationDetail({ application: initialApplicati
                       }}
                       className="d-flex gap-3 align-items-start cursor-pointer"
                     >
-                      <span className="d-flex align-items-center justify-content-center bg-light rounded-2 flex-shrink-0" style={{ width: 34, height: 34 }}>
+                      <span className="d-flex align-items-center justify-content-center bg-body-secondary rounded-2 flex-shrink-0" style={{ width: 34, height: 34 }}>
                         <iconify-icon icon="solar:user-check-line-duotone" className="fs-5 text-body-secondary"></iconify-icon>
                       </span>
                       <div className="flex-grow-1 min-w-0">
@@ -1358,7 +1319,7 @@ export default function StudentApplicationDetail({ application: initialApplicati
                 )}
               </>
             ) : (
-              /* Activity Timeline — now lives in the left column alongside the switcher */
+              /* Activity Timeline (Fixed Height & Scrollable) */
               <Card>
                 <div className="d-flex align-items-center justify-content-between pb-4 mb-1 border-bottom">
                   <div className="d-flex align-items-center gap-3">
@@ -1388,54 +1349,56 @@ export default function StudentApplicationDetail({ application: initialApplicati
                     No logged activity events found.
                   </div>
                 ) : (
-                  <div className="position-relative border-start ms-3 ps-6 pt-5" style={{ borderColor: 'var(--bs-border-color)' }}>
-                    {activities.map((activity) => {
-                      let badgeColor = "bg-info-subtle text-info";
-                      let badgeLabel = "Updated";
-                      let iconBg = "bg-info";
-                      let iconName = "solar:file-text-line-duotone";
+                  <div className="overflow-auto px-1" style={{ maxHeight: "1500px" }}>
+                    <div className="position-relative border-start ms-3 ps-6 pt-5" style={{ borderColor: 'var(--bs-border-color)' }}>
+                      {activities.map((activity) => {
+                        let badgeColor = "bg-info-subtle text-info";
+                        let badgeLabel = "Updated";
+                        let iconBg = "bg-info";
+                        let iconName = "solar:file-text-line-duotone";
 
-                      if (activity.type === "creation") {
-                        badgeColor = "bg-success-subtle text-success";
-                        badgeLabel = "Creation";
-                        iconBg = "bg-success";
-                        iconName = "solar:add-circle-line-duotone";
-                      } else if (activity.type === "status_change") {
-                        badgeColor = "bg-danger-subtle text-danger";
-                        badgeLabel = "Activity";
-                        iconBg = "bg-danger";
-                        iconName = "solar:bolt-line-duotone";
-                      }
+                        if (activity.type === "creation") {
+                          badgeColor = "bg-success-subtle text-success";
+                          badgeLabel = "Creation";
+                          iconBg = "bg-success";
+                          iconName = "solar:add-circle-line-duotone";
+                        } else if (activity.type === "status_change") {
+                          badgeColor = "bg-danger-subtle text-danger";
+                          badgeLabel = "Activity";
+                          iconBg = "bg-danger";
+                          iconName = "solar:bolt-line-duotone";
+                        }
 
-                      return (
-                        <div key={activity.id} className="position-relative pb-6">
-                          <span
-                            className={`position-absolute d-flex align-items-center justify-content-center rounded-circle text-white ${iconBg}`}
-                            style={{ width: 28, height: 28, left: -37, top: 2, border: '3px solid var(--bs-card-bg, #fff)' }}
-                          >
-                            <iconify-icon icon={iconName} className="fs-3"></iconify-icon>
-                          </span>
+                        return (
+                          <div key={activity.id} className="position-relative pb-6">
+                            <span
+                              className={`position-absolute d-flex align-items-center justify-content-center rounded-circle text-white ${iconBg}`}
+                              style={{ width: 28, height: 28, left: -37, top: 2, border: '3px solid var(--bs-card-bg, #fff)' }}
+                            >
+                              <iconify-icon icon={iconName} className="fs-3"></iconify-icon>
+                            </span>
 
-                          <div className="bg-light rounded-3 p-3">
-                            <div className="d-flex align-items-center gap-2 mb-2">
-                              <span className={`badge ${badgeColor} fs-1 fw-semibold`}>{badgeLabel}</span>
-                              <span className="fs-1 fw-semibold text-body-secondary text-uppercase">{formatDate(activity.created_at)}</span>
-                            </div>
+                            <div className="bg-body-secondary rounded-3 p-3">
+                              <div className="d-flex align-items-center gap-2 mb-2">
+                                <span className={`badge ${badgeColor} fs-1 fw-semibold`}>{badgeLabel}</span>
+                                <span className="fs-1 fw-semibold text-body-secondary text-uppercase">{formatDate(activity.created_at)}</span>
+                              </div>
 
-                            <p className="sad-value fs-3 fw-semibold mb-2">{activity.description}</p>
+                              <p className="sad-value fs-3 fw-semibold mb-2">{activity.description}</p>
 
-                            <div className="d-flex align-items-center gap-3 fs-1 fw-semibold text-body-secondary text-uppercase">
-                              <span className="d-flex align-items-center gap-1">
-                                <iconify-icon icon="solar:user-line-duotone" className="fs-3"></iconify-icon> {activity.user_name}
-                              </span>
-                              <span className="d-flex align-items-center gap-1">
-                                <iconify-icon icon="solar:clock-circle-line-duotone" className="fs-3"></iconify-icon> {formatTimeOnly(activity.created_at)}
-                              </span>
+                              <div className="d-flex align-items-center gap-3 fs-1 fw-semibold text-body-secondary text-uppercase">
+                                <span className="d-flex align-items-center gap-1">
+                                  <iconify-icon icon="solar:user-line-duotone" className="fs-3"></iconify-icon> {activity.user_name}
+                                </span>
+                                <span className="d-flex align-items-center gap-1">
+                                  <iconify-icon icon="solar:clock-circle-line-duotone" className="fs-3"></iconify-icon> {formatTimeOnly(activity.created_at)}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </Card>
@@ -1443,7 +1406,7 @@ export default function StudentApplicationDetail({ application: initialApplicati
           </div>
         </div>
 
-        {/* ══ Right column: Remarks thread, height-matched to the left column ══ */}
+        {/* ══ Right column: Remarks thread with dynamic system avatars ══ */}
         <div className="col-12 col-lg-8">
           <div
             className="card d-flex flex-column"
@@ -1473,7 +1436,7 @@ export default function StudentApplicationDetail({ application: initialApplicati
             </div>
 
             <div className="flex-shrink-0 px-6 pt-5">
-              <div className="bg-light rounded-3 p-4">
+              <div className="bg-body-secondary rounded-3 p-4">
                 <textarea
                   className="form-control mb-3"
                   rows={3}
@@ -1520,7 +1483,7 @@ export default function StudentApplicationDetail({ application: initialApplicati
               </div>
             </div>
 
-            {/* Scrollable remark list — the only region that scrolls within the height-matched card */}
+            {/* Scrollable remark list */}
             <div className="flex-grow-1 overflow-auto px-6 py-4" style={{ minHeight: 0 }}>
               {loadingComments ? (
                 <div className="d-flex align-items-center justify-content-center gap-2 py-8 fs-2 fw-semibold text-body-secondary text-uppercase">
@@ -1531,7 +1494,7 @@ export default function StudentApplicationDetail({ application: initialApplicati
                 <div className="d-flex flex-column align-items-center justify-content-center text-center py-10">
                   <span
                     className="d-flex align-items-center justify-content-center rounded-circle mb-3"
-                    style={{ width: 56, height: 56, background: 'var(--bs-light, #f4f6f9)' }}
+                    style={{ width: 56, height: 56, background: 'var(--bs-body-secondary-bg, #f4f6f9)' }}
                   >
                     <iconify-icon icon="solar:chat-round-line-line-duotone" className="fs-6 text-body-secondary"></iconify-icon>
                   </span>
@@ -1545,22 +1508,38 @@ export default function StudentApplicationDetail({ application: initialApplicati
                   {comments
                     .slice()
                     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                    .map((c) => (
-                      <div key={c.id} className="d-flex gap-3 bg-light rounded-3 p-4">
-                        <span className="flex-shrink-0 d-flex align-items-center justify-content-center rounded-circle bg-white border fw-semibold fs-2" style={{ width: 32, height: 32 }}>
-                          {initialsFromName(c.author_name || "?")}
-                        </span>
-                        <div className="flex-grow-1 min-w-0">
-                          <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-1 mb-1">
-                            <span className="sad-value fw-semibold fs-2 text-uppercase">{c.author_name || "Advisor"}</span>
-                            <span className="fs-1 fw-semibold text-body-secondary text-uppercase">{formatDateTime(c.created_at)}</span>
+                    .map((c) => {
+                      const avatarUrl = c.avatar_url || c.author_avatar_url || c.author?.avatar_url;
+
+                      return (
+                        <div key={c.id} className="d-flex gap-3 bg-body-secondary rounded-3 p-4">
+                          <div className="flex-shrink-0 rounded-circle overflow-hidden border" style={{ width: 40, height: 40 }}>
+                            {avatarUrl ? (
+                              <img
+                                src={avatarUrl}
+                                alt={c.author_name}
+                                className="w-100 h-100"
+                                style={{ objectFit: 'cover' }}
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <Avatar name={c.author_name || "Advisor"} size={40} />
+                            )}
                           </div>
-                          <p className="fs-3 fw-normal text-body-secondary mb-0" style={{ wordBreak: 'break-word' }}>
-                            {c.comment}
-                          </p>
+                          <div className="flex-grow-1 min-w-0">
+                            <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-1 mb-1">
+                              <span className="sad-value fw-semibold fs-2 text-uppercase">{c.author_name || "Advisor"}</span>
+                              <span className="fs-1 fw-semibold text-body-secondary text-uppercase">{formatDateTime(c.created_at)}</span>
+                            </div>
+                            <p className="fs-3 fw-normal text-body-secondary mb-0" style={{ wordBreak: 'break-word' }}>
+                              {c.comment}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                 </div>
               )}
             </div>
