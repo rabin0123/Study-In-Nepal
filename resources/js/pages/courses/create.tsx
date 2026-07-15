@@ -1,11 +1,10 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, useMemo, useRef, type FormEvent } from 'react';
 import { router } from '@inertiajs/react';
-import AppSidebarLayout from '@/layouts/app/app-sidebar-layout';
 
+// ── interfaces ──
 type YearModule = { year: number; title: string; modules: string[] };
 type YearFee = { year: number; amount: string; currency: string; note: string };
 
-// Structure based on the JSON sample you provided
 interface ApiDataRow {
     id: number;
     University: string;
@@ -14,12 +13,91 @@ interface ApiDataRow {
     [key: string]: any;
 }
 
+interface ComboboxInputProps {
+    placeholder?: string;
+    value: string;
+    onChange: (val: string) => void;
+    options: string[];
+    disabled?: boolean;
+    error?: string;
+}
+
+// ── Helpers ──
 function nextYear(existing: { year: number }[]): number {
-    return existing.length === 0 ? 1 : Math.max(...existing.map((e) => e.year)) + 1;
+    return !existing || existing.length === 0 ? 1 : Math.max(...existing.map((e) => e.year)) + 1;
 }
 
 function csrfToken(): string {
     return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
+}
+
+// ---------------------------------------------------------------------------
+// ComboboxInput — Searchable dropdown combined with text input
+// ---------------------------------------------------------------------------
+function ComboboxInput({ placeholder, value, onChange, options, disabled, error }: ComboboxInputProps) {
+    const [isOpen, setIsOpen] = useState(false);
+    const [query, setQuery] = useState(value);
+    const wrapperRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        setQuery(value);
+    }, [value]);
+
+    const filteredOptions = useMemo(() => {
+        return options.filter((opt) => opt.toLowerCase().includes((query || '').toLowerCase()));
+    }, [options, query]);
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+                setQuery(value);
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [value]);
+
+    return (
+        <div ref={wrapperRef} className="position-relative">
+            <input
+                type="text"
+                placeholder={placeholder}
+                value={query}
+                disabled={disabled}
+                onChange={(e) => {
+                    setQuery(e.target.value);
+                    onChange(e.target.value);
+                    setIsOpen(true);
+                }}
+                onFocus={() => setIsOpen(true)}
+                className={`form-control ${error ? 'is-invalid' : ''}`}
+                autoComplete="off"
+            />
+            {isOpen && filteredOptions.length > 0 && !disabled && (
+                <ul
+                    className="dropdown-menu show w-100 p-2 mt-1 shadow-sm border"
+                    style={{ maxHeight: 240, overflowY: 'auto', position: 'absolute', zIndex: 1000 }}
+                >
+                    {filteredOptions.map((opt, idx) => (
+                        <li key={idx}>
+                            <a
+                                href="javascript:void(0)"
+                                onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    onChange(opt);
+                                    setIsOpen(false);
+                                }}
+                                className="dropdown-item rounded"
+                            >
+                                {opt}
+                            </a>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </div>
+    );
 }
 
 // ----------------------------------------------------------------------
@@ -92,23 +170,22 @@ export default function CourseDetailsCreate() {
     // Master data from the API
     const [masterData, setMasterData] = useState<ApiDataRow[]>([]);
 
-    // Dropdown Selection States (controls the cascade)
-    const [selectedDropdownUniv, setSelectedDropdownUniv] = useState('');
-    const [selectedDropdownCol, setSelectedDropdownCol] = useState('');
-    const [selectedDropdownCourse, setSelectedDropdownCourse] = useState('');
-
-    // Actual Text Input States (locked until dropdown selected, then editable)
-    const [universityName, setUniversityName] = useState('');
-    const [collegeName, setCollegeName] = useState('');
+    // 1. Course Selection
     const [courseName, setCourseName] = useState('');
 
-    // Content fields supporting HTML Templates
+    // 2. Institutions Selection (Multiple Checkboxes)
+    // We store a combined string "UniversityName|||CollegeName" to ensure uniqueness
+    const [selectedInstKeys, setSelectedInstKeys] = useState<string[]>([]);
+
+    // Content fields
     const [summaryHtml, setSummaryHtml] = useState('');
     const [careersHtml, setCareersHtml] = useState('');
-
-    // Repeaters
-    const [yearModules, setYearModules] = useState<YearModule[]>([{ year: 1, title: 'Year 1', modules: [''] }]);
     const [fees, setFees] = useState<YearFee[]>([{ year: 1, amount: '', currency: '', note: '' }]);
+
+    // 3. Modules (Tabbed per College)
+    // Structure: { "Uni|||College": [ { year: 1, modules: [] } ] }
+    const [collegeModules, setCollegeModules] = useState<Record<string, YearModule[]>>({});
+    const [activeTabKey, setActiveTabKey] = useState<string>('');
 
     // UI States
     const [saving, setSaving] = useState(false);
@@ -122,7 +199,7 @@ export default function CourseDetailsCreate() {
         return () => clearTimeout(t);
     }, [savedMessage]);
 
-    // Fetch the single "flat" list from API once on mount
+    // Fetch master list on mount
     useEffect(() => {
         fetch('https://www.admin.studyinnepal.com/api/university')
             .then((res) => {
@@ -130,82 +207,106 @@ export default function CourseDetailsCreate() {
                 return res.json();
             })
             .then((data) => {
-                // Ensure data is an array to prevent .map errors
-                if (Array.isArray(data)) {
-                    setMasterData(data);
-                } else {
-                    console.error('API did not return an array:', data);
-                    setMasterData([]);
-                }
+                if (Array.isArray(data)) setMasterData(data);
+                else setMasterData([]);
             })
             .catch((err) => console.error('Error fetching university data:', err));
     }, []);
 
-    // Extract unique Universities, Colleges, and Courses dynamically
-    const uniqueUniversities = Array.from(new Set(masterData.map((item) => item.University).filter(Boolean)));
+    // ── Dynamic Options ──
+    const uniqueCourses = useMemo(() => {
+        return Array.from(new Set(masterData.map((item) => item.Course).filter(Boolean)));
+    }, [masterData]);
 
-    const uniqueColleges = Array.from(
-        new Set(
-            masterData
-                .filter((item) => item.University === selectedDropdownUniv)
-                .map((item) => item.College)
-                .filter(Boolean)
-        )
-    );
+    // Find all institutions that teach the currently typed/selected course
+    const availableInstitutions = useMemo(() => {
+        if (!courseName) return [];
+        const matches = masterData.filter((d) => d.Course?.toLowerCase() === courseName.toLowerCase());
+        const unique = new Map();
+        matches.forEach((m) => {
+            if (m.University && m.College) {
+                const key = `${m.University}|||${m.College}`;
+                if (!unique.has(key)) {
+                    unique.set(key, { university: m.University, college: m.College, key });
+                }
+            }
+        });
+        return Array.from(unique.values());
+    }, [masterData, courseName]);
 
-    const uniqueCourses = Array.from(
-        new Set(
-            masterData
-                .filter((item) => item.University === selectedDropdownUniv && item.College === selectedDropdownCol)
-                .map((item) => item.Course)
-                .filter(Boolean)
-        )
-    );
+    // Keep active tab valid
+    useEffect(() => {
+        if (selectedInstKeys.length > 0 && !selectedInstKeys.includes(activeTabKey)) {
+            setActiveTabKey(selectedInstKeys[0]);
+        } else if (selectedInstKeys.length === 0) {
+            setActiveTabKey('');
+        }
+    }, [selectedInstKeys, activeTabKey]);
 
-    // ---- Handlers for Cascading Dropdowns ----
-    const handleUniversitySelect = (val: string) => {
-        setSelectedDropdownUniv(val);
-        setUniversityName(val); // Populate input
-
-        // Reset downstream selections
-        setSelectedDropdownCol('');
-        setCollegeName('');
-        setSelectedDropdownCourse('');
-        setCourseName('');
+    // ── Handlers ──
+    const toggleInstitution = (key: string) => {
+        setSelectedInstKeys((prev) => {
+            if (prev.includes(key)) {
+                return prev.filter((k) => k !== key);
+            } else {
+                // Initialize default modules for this new college if it doesn't exist yet
+                setCollegeModules((cm) => ({
+                    ...cm,
+                    [key]: cm[key] || [{ year: 1, title: 'Year 1', modules: [''] }],
+                }));
+                return [...prev, key];
+            }
+        });
     };
 
-    const handleCollegeSelect = (val: string) => {
-        setSelectedDropdownCol(val);
-        setCollegeName(val); // Populate input
-
-        // Reset downstream selections
-        setSelectedDropdownCourse('');
-        setCourseName('');
+    // ---- Tabbed Repeaters Handlers ----
+    const addYear = (instKey: string) => {
+        setCollegeModules((prev) => {
+            const current = prev[instKey] || [];
+            return { ...prev, [instKey]: [...current, { year: nextYear(current), title: '', modules: [''] }] };
+        });
     };
 
-    const handleCourseSelect = (val: string) => {
-        setSelectedDropdownCourse(val);
-        setCourseName(val); // Populate input
+    const removeYear = (instKey: string, index: number) => {
+        setCollegeModules((prev) => ({
+            ...prev,
+            [instKey]: prev[instKey].filter((_, i) => i !== index),
+        }));
     };
 
-    // ---- Repeaters Handlers ----
-    const addYear = () => setYearModules((prev) => [...prev, { year: nextYear(prev), title: '', modules: [''] }]);
-    const removeYear = (index: number) => setYearModules((prev) => prev.filter((_, i) => i !== index));
-    const updateYear = (index: number, patch: Partial<YearModule>) =>
-        setYearModules((prev) => prev.map((y, i) => (i === index ? { ...y, ...patch } : y)));
-    const addModuleLine = (yearIndex: number) =>
-        setYearModules((prev) => prev.map((y, i) => (i === yearIndex ? { ...y, modules: [...y.modules, ''] } : y)));
-    const updateModuleLine = (yearIndex: number, moduleIndex: number, value: string) =>
-        setYearModules((prev) =>
-            prev.map((y, i) =>
-                i === yearIndex ? { ...y, modules: y.modules.map((m, mi) => (mi === moduleIndex ? value : m)) } : y,
+    const updateYear = (instKey: string, index: number, patch: Partial<YearModule>) => {
+        setCollegeModules((prev) => ({
+            ...prev,
+            [instKey]: prev[instKey].map((y, i) => (i === index ? { ...y, ...patch } : y)),
+        }));
+    };
+
+    const addModuleLine = (instKey: string, yearIndex: number) => {
+        setCollegeModules((prev) => ({
+            ...prev,
+            [instKey]: prev[instKey].map((y, i) => (i === yearIndex ? { ...y, modules: [...y.modules, ''] } : y)),
+        }));
+    };
+
+    const updateModuleLine = (instKey: string, yearIndex: number, moduleIndex: number, value: string) => {
+        setCollegeModules((prev) => ({
+            ...prev,
+            [instKey]: prev[instKey].map((y, i) =>
+                i === yearIndex ? { ...y, modules: y.modules.map((m, mi) => (mi === moduleIndex ? value : m)) } : y
             ),
-        );
-    const removeModuleLine = (yearIndex: number, moduleIndex: number) =>
-        setYearModules((prev) =>
-            prev.map((y, i) => (i === yearIndex ? { ...y, modules: y.modules.filter((_, mi) => mi !== moduleIndex) } : y)),
-        );
+        }));
+    };
 
+    const removeModuleLine = (instKey: string, yearIndex: number, moduleIndex: number) => {
+        setCollegeModules((prev) => ({
+            ...prev,
+            [instKey]: prev[instKey].map((y, i) =>
+                i === yearIndex ? { ...y, modules: y.modules.filter((_, mi) => mi !== moduleIndex) } : y
+            ),
+        }));
+    };
+
+    // ---- Fees Handlers ----
     const addFeeYear = () => setFees((prev) => [...prev, { year: nextYear(prev), amount: '', currency: '', note: '' }]);
     const removeFeeYear = (index: number) => setFees((prev) => prev.filter((_, i) => i !== index));
     const updateFeeYear = (index: number, patch: Partial<YearFee>) =>
@@ -214,22 +315,42 @@ export default function CourseDetailsCreate() {
     // ---- Form Submission ----
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
+        
+        if (!courseName.trim()) {
+            setErrors({ course_name: 'Course name is required.' });
+            return;
+        }
+        if (selectedInstKeys.length === 0) {
+            setErrors({ institutions: 'Please select at least one institution.' });
+            return;
+        }
+
         setSaving(true);
         setErrors({});
 
+        // Map selected keys back into objects, attaching their specific modules
+        const institutionsPayload = selectedInstKeys.map((key) => {
+            const [uni, col] = key.split('|||');
+            const instModules = collegeModules[key] || [];
+            
+            return {
+                university_name: uni,
+                college_name: col,
+                year_wise_modules: instModules
+                    .filter((y) => y.year)
+                    .map((y) => ({
+                        year: y.year,
+                        title: y.title.trim() || null,
+                        modules: y.modules.map((m) => m.trim()).filter(Boolean),
+                    })),
+            };
+        });
+
         const payload = {
-            university_name: universityName.trim(),
-            college_name: collegeName.trim(),
             course_name: courseName.trim(),
             summary: summaryHtml.trim() || null,
             careers_summary: careersHtml.trim() || null,
-            year_wise_modules: yearModules
-                .filter((y) => y.year)
-                .map((y) => ({
-                    year: y.year,
-                    title: y.title.trim() || null,
-                    modules: y.modules.map((m) => m.trim()).filter(Boolean),
-                })),
+            institutions: institutionsPayload,
             fees: fees
                 .filter((f) => f.year)
                 .map((f) => ({
@@ -256,25 +377,20 @@ export default function CourseDetailsCreate() {
                     throw new Error(data.message || 'Failed to save');
                 }
                 setSavedMessage(data.message || 'Saved successfully.');
-                setTimeout(() => router.visit(`/course-details/${data.courseDetail.uuid}`), 800);
+                setTimeout(() => router.visit(`/course-details/${data.courseDetail?.uuid || ''}`), 800);
             })
             .catch((err) => console.error('Failed to save course details', err))
             .finally(() => setSaving(false));
     };
 
     return (
-        <AppSidebarLayout
-            breadcrumbs={[
-                { title: 'Course Details', href: '/course-details' },
-                { title: 'New', href: '/course-details/create' },
-            ]}
-        >
+        <div className="container-fluid py-4">
             <form onSubmit={handleSubmit}>
-                <div className="d-flex align-items-center justify-content-between mb-4 mt-3">
+                <div className="d-flex align-items-center justify-content-between mb-4 mt-2">
                     <div>
                         <h4 className="mb-1 fw-semibold">New Course Details</h4>
                         <p className="mb-0 text-body-secondary">
-                            Fill out the rich template definitions and metadata for this course mapping.
+                            Define a course once and link it to multiple colleges with unique module structures.
                         </p>
                     </div>
                     <button type="submit" className="btn btn-primary" disabled={saving}>
@@ -283,214 +399,227 @@ export default function CourseDetailsCreate() {
                 </div>
 
                 {savedMessage && <div className="alert alert-success">{savedMessage}</div>}
+                {errors.institutions && <div className="alert alert-danger">{errors.institutions}</div>}
 
-                {/* Identity / Cascading Dropdowns */}
+                {/* 1. Course Selection */}
                 <div className="card mb-4">
                     <div className="card-body">
-                        <h5 className="fw-semibold mb-3">Course Identity</h5>
-                        <p className="text-body-secondary fs-6 mb-4">
-                            Select the relationships below. The input fields will unlock for modifications only after an initial dropdown selection is made.
+                        <h5 className="fw-semibold mb-3">1. Select Course</h5>
+                        <p className="text-body-secondary fs-6 mb-3">
+                            Select a Course first to automatically load the Universities and Colleges where it is taught.
                         </p>
-                        <div className="row g-4">
-                            {/* University */}
-                            <div className="col-md-4">
-                                <label className="form-label fw-bold">1. Select University</label>
-                                <select
-                                    className="form-select mb-2"
-                                    value={selectedDropdownUniv}
-                                    onChange={(e) => handleUniversitySelect(e.target.value)}
-                                    required
-                                >
-                                    <option value="">-- Choose University --</option>
-                                    {uniqueUniversities.map((u, i) => (
-                                        <option key={i} value={u}>
-                                            {u}
-                                        </option>
-                                    ))}
-                                </select>
-                                <input
-                                    type="text"
-                                    className={`form-control ${errors.university_name ? 'is-invalid' : ''}`}
-                                    placeholder="University Name"
-                                    value={universityName}
-                                    onChange={(e) => setUniversityName(e.target.value)}
-                                    disabled={!selectedDropdownUniv}
-                                    required
-                                />
-                                {errors.university_name && <div className="invalid-feedback d-block">{errors.university_name}</div>}
-                            </div>
-
-                            {/* College */}
-                            <div className="col-md-4">
-                                <label className="form-label fw-bold">2. Select College</label>
-                                <select
-                                    className="form-select mb-2"
-                                    value={selectedDropdownCol}
-                                    onChange={(e) => handleCollegeSelect(e.target.value)}
-                                    disabled={!selectedDropdownUniv || uniqueColleges.length === 0}
-                                    required
-                                >
-                                    <option value="">-- Choose College --</option>
-                                    {uniqueColleges.map((c, i) => (
-                                        <option key={i} value={c}>
-                                            {c}
-                                        </option>
-                                    ))}
-                                </select>
-                                <input
-                                    type="text"
-                                    className={`form-control ${errors.college_name ? 'is-invalid' : ''}`}
-                                    placeholder="College Name"
-                                    value={collegeName}
-                                    onChange={(e) => setCollegeName(e.target.value)}
-                                    disabled={!selectedDropdownCol}
-                                    required
-                                />
-                                {errors.college_name && <div className="invalid-feedback d-block">{errors.college_name}</div>}
-                            </div>
-
-                            {/* Course */}
-                            <div className="col-md-4">
-                                <label className="form-label fw-bold">3. Select Course</label>
-                                <select
-                                    className="form-select mb-2"
-                                    value={selectedDropdownCourse}
-                                    onChange={(e) => handleCourseSelect(e.target.value)}
-                                    disabled={!selectedDropdownCol || uniqueCourses.length === 0}
-                                    required
-                                >
-                                    <option value="">-- Choose Course --</option>
-                                    {uniqueCourses.map((c, i) => (
-                                        <option key={i} value={c}>
-                                            {c}
-                                        </option>
-                                    ))}
-                                </select>
-                                <input
-                                    type="text"
-                                    className={`form-control ${errors.course_name ? 'is-invalid' : ''}`}
-                                    placeholder="Course Name"
+                        <div className="row">
+                            <div className="col-md-6">
+                                <label className="form-label fw-bold">Course Name <span className="text-danger">*</span></label>
+                                <ComboboxInput
+                                    placeholder="Type or select a Course"
                                     value={courseName}
-                                    onChange={(e) => setCourseName(e.target.value)}
-                                    disabled={!selectedDropdownCourse}
-                                    required
+                                    onChange={setCourseName}
+                                    options={uniqueCourses}
+                                    error={errors.course_name}
                                 />
-                                {errors.course_name && <div className="invalid-feedback d-block">{errors.course_name}</div>}
+                                {errors.course_name && <div className="text-danger small mt-1">{errors.course_name}</div>}
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Course Summary (HTML Supported) */}
+                {/* 2. College & University Multi-Select */}
                 <div className="card mb-4">
                     <div className="card-body">
-                        <h5 className="fw-semibold mb-3">Course Summary (HTML Supported)</h5>
-                        <HtmlField
-                            value={summaryHtml}
-                            onChange={setSummaryHtml}
-                            placeholder="<p>Give an overview of what this course covers, who it's for, and what makes it distinct...</p>"
-                            error={errors.summary}
-                            rows={6}
-                        />
-                    </div>
-                </div>
-
-                {/* Careers Summary (HTML Supported) */}
-                <div className="card mb-4">
-                    <div className="card-body">
-                        <h5 className="fw-semibold mb-3">Careers After This Course (HTML Supported)</h5>
-                        <p className="text-muted small mb-2">Write a detailed HTML summary covering career prospects and job titles.</p>
-                        <HtmlField
-                            value={careersHtml}
-                            onChange={setCareersHtml}
-                            placeholder="<ul><li>Software Engineer</li><li>Data Analyst</li></ul>"
-                            error={errors.careers_summary}
-                            rows={6}
-                        />
-                    </div>
-                </div>
-
-                {/* Year-wise modules */}
-                <div className="card mb-4">
-                    <div className="card-body">
-                        <div className="d-flex align-items-center justify-content-between mb-3">
-                            <h5 className="fw-semibold mb-0">Year-wise Course Modules</h5>
-                            <button type="button" className="btn btn-sm btn-outline-primary" onClick={addYear}>
-                                + Add year
-                            </button>
-                        </div>
-
-                        {yearModules.map((yearBlock, yearIndex) => (
-                            <div key={yearIndex} className="border rounded p-3 mb-3 bg-light bg-opacity-50">
-                                <div className="row g-2 align-items-center mb-3">
-                                    <div className="col-auto">
-                                        <label className="form-label mb-0 small text-body-secondary fw-bold">Year</label>
-                                        <input
-                                            type="number"
-                                            min={1}
-                                            className="form-control"
-                                            style={{ width: 90 }}
-                                            value={yearBlock.year}
-                                            onChange={(e) => updateYear(yearIndex, { year: Number(e.target.value) || 1 })}
-                                        />
-                                    </div>
-                                    <div className="col">
-                                        <label className="form-label mb-0 small text-body-secondary fw-bold">Title (optional)</label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            placeholder={`e.g. Year ${yearBlock.year} Fundamentals`}
-                                            value={yearBlock.title}
-                                            onChange={(e) => updateYear(yearIndex, { title: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="col-auto align-self-end">
-                                        {yearModules.length > 1 && (
-                                            <button
-                                                type="button"
-                                                className="btn btn-sm btn-outline-danger"
-                                                onClick={() => removeYear(yearIndex)}
-                                            >
-                                                Remove year
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <label className="form-label small text-body-secondary fw-bold">Modules List</label>
-                                {yearBlock.modules.map((moduleValue, moduleIndex) => (
-                                    <div key={moduleIndex} className="d-flex gap-2 mb-2">
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            placeholder={`Module ${moduleIndex + 1}`}
-                                            value={moduleValue}
-                                            onChange={(e) => updateModuleLine(yearIndex, moduleIndex, e.target.value)}
-                                        />
-                                        {yearBlock.modules.length > 1 && (
-                                            <button
-                                                type="button"
-                                                className="btn btn-outline-danger"
-                                                onClick={() => removeModuleLine(yearIndex, moduleIndex)}
-                                            >
-                                                ×
-                                            </button>
-                                        )}
+                        <h5 className="fw-semibold mb-3">2. Select Institutions</h5>
+                        <p className="text-body-secondary fs-6 mb-3">
+                            Select which colleges (and their associated universities) this course mapping applies to.
+                        </p>
+                        
+                        {!courseName ? (
+                            <div className="p-3 bg-light rounded text-muted text-center border border-dashed">
+                                Please select a course above to see available institutions.
+                            </div>
+                        ) : availableInstitutions.length === 0 ? (
+                            <div className="p-3 bg-light rounded text-muted text-center border border-dashed">
+                                No institutions found for <strong>{courseName}</strong> in the master list.
+                            </div>
+                        ) : (
+                            <div className="row g-3">
+                                {availableInstitutions.map((inst) => (
+                                    <div key={inst.key} className="col-md-6">
+                                        <div 
+                                            className={`border rounded p-3 cursor-pointer ${selectedInstKeys.includes(inst.key) ? 'border-primary bg-primary-subtle' : ''}`}
+                                            onClick={() => toggleInstitution(inst.key)}
+                                            style={{ cursor: 'pointer' }}
+                                        >
+                                            <div className="form-check m-0 d-flex align-items-center gap-2">
+                                                <input 
+                                                    className="form-check-input mt-0" 
+                                                    type="checkbox" 
+                                                    checked={selectedInstKeys.includes(inst.key)}
+                                                    onChange={() => {}} // Handled by parent div click
+                                                />
+                                                <div>
+                                                    <div className="fw-bold">{inst.college}</div>
+                                                    <div className="small text-muted">{inst.university}</div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 ))}
-                                <button type="button" className="btn btn-sm btn-light border mt-1" onClick={() => addModuleLine(yearIndex)}>
-                                    + Add module line
-                                </button>
                             </div>
-                        ))}
+                        )}
                     </div>
                 </div>
 
-                {/* Fees */}
+                {/* 3. Course Summary & Careers (HTML Supported) */}
+                <div className="card mb-4">
+                    <div className="card-body">
+                        <h5 className="fw-semibold mb-3">3. Global Course Information</h5>
+                        <div className="mb-4">
+                            <label className="form-label fw-bold">Course Summary (HTML Supported)</label>
+                            <HtmlField
+                                value={summaryHtml}
+                                onChange={setSummaryHtml}
+                                placeholder="<p>Give an overview of what this course covers, who it's for, and what makes it distinct...</p>"
+                                error={errors.summary}
+                                rows={5}
+                            />
+                        </div>
+                        <div>
+                            <label className="form-label fw-bold">Careers After This Course (HTML Supported)</label>
+                            <HtmlField
+                                value={careersHtml}
+                                onChange={setCareersHtml}
+                                placeholder="<ul><li>Software Engineer</li><li>Data Analyst</li></ul>"
+                                error={errors.careers_summary}
+                                rows={4}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* 4. Tabbed Year-wise modules */}
+                <div className="card mb-4">
+                    <div className="card-body">
+                        <h5 className="fw-semibold mb-1">4. College-Specific Modules</h5>
+                        <p className="text-body-secondary fs-6 mb-4">
+                            Define the year-by-year modules. Use the tabs to adjust the curriculum for each specific college if they differ.
+                        </p>
+
+                        {selectedInstKeys.length === 0 ? (
+                            <div className="p-4 bg-light rounded text-muted text-center border border-dashed">
+                                Select at least one institution above to define course modules.
+                            </div>
+                        ) : (
+                            <div>
+                                {/* Bootstrap Tabs Header */}
+                                <ul className="nav nav-tabs mb-4">
+                                    {selectedInstKeys.map((key) => {
+                                        const [, col] = key.split('|||');
+                                        return (
+                                            <li className="nav-item" key={key}>
+                                                <button
+                                                    type="button"
+                                                    className={`nav-link ${activeTabKey === key ? 'active fw-bold' : ''}`}
+                                                    onClick={() => setActiveTabKey(key)}
+                                                >
+                                                    {col}
+                                                </button>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+
+                                {/* Tabs Content (Repeater for the active institution) */}
+                                <div className="tab-content">
+                                    {selectedInstKeys.map((key) => {
+                                        if (key !== activeTabKey) return null; // Render only active tab
+                                        
+                                        const instModules = collegeModules[key] || [];
+
+                                        return (
+                                            <div key={key} className="tab-pane show active animate-fade-in">
+                                                <div className="d-flex align-items-center justify-content-end mb-3">
+                                                    <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => addYear(key)}>
+                                                        + Add year for this college
+                                                    </button>
+                                                </div>
+
+                                                {instModules.map((yearBlock, yearIndex) => (
+                                                    <div key={yearIndex} className="border rounded p-3 mb-3 bg-light bg-opacity-50">
+                                                        <div className="row g-2 align-items-center mb-3">
+                                                            <div className="col-auto">
+                                                                <label className="form-label mb-0 small text-body-secondary fw-bold">Year</label>
+                                                                <input
+                                                                    type="number"
+                                                                    min={1}
+                                                                    className="form-control"
+                                                                    style={{ width: 90 }}
+                                                                    value={yearBlock.year}
+                                                                    onChange={(e) => updateYear(key, yearIndex, { year: Number(e.target.value) || 1 })}
+                                                                />
+                                                            </div>
+                                                            <div className="col">
+                                                                <label className="form-label mb-0 small text-body-secondary fw-bold">Title (optional)</label>
+                                                                <input
+                                                                    type="text"
+                                                                    className="form-control"
+                                                                    placeholder={`e.g. Year ${yearBlock.year} Fundamentals`}
+                                                                    value={yearBlock.title}
+                                                                    onChange={(e) => updateYear(key, yearIndex, { title: e.target.value })}
+                                                                />
+                                                            </div>
+                                                            <div className="col-auto align-self-end">
+                                                                {instModules.length > 1 && (
+                                                                    <button
+                                                                        type="button"
+                                                                        className="btn btn-sm btn-outline-danger"
+                                                                        onClick={() => removeYear(key, yearIndex)}
+                                                                    >
+                                                                        Remove year
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        <label className="form-label small text-body-secondary fw-bold">Modules List</label>
+                                                        {yearBlock.modules.map((moduleValue, moduleIndex) => (
+                                                            <div key={moduleIndex} className="d-flex gap-2 mb-2">
+                                                                <input
+                                                                    type="text"
+                                                                    className="form-control"
+                                                                    placeholder={`Module ${moduleIndex + 1}`}
+                                                                    value={moduleValue}
+                                                                    onChange={(e) => updateModuleLine(key, yearIndex, moduleIndex, e.target.value)}
+                                                                />
+                                                                {yearBlock.modules.length > 1 && (
+                                                                    <button
+                                                                        type="button"
+                                                                        className="btn btn-outline-danger"
+                                                                        onClick={() => removeModuleLine(key, yearIndex, moduleIndex)}
+                                                                    >
+                                                                        ×
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                        <button type="button" className="btn btn-sm btn-light border mt-1" onClick={() => addModuleLine(key, yearIndex)}>
+                                                            + Add module line
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* 5. Fees */}
                 <div className="card mb-4">
                     <div className="card-body">
                         <div className="d-flex align-items-center justify-content-between mb-3">
-                            <h5 className="fw-semibold mb-0">Fee Summary (per year)</h5>
+                            <h5 className="fw-semibold mb-0">5. Global Fee Summary (per year)</h5>
                             <button type="button" className="btn btn-sm btn-outline-primary" onClick={addFeeYear}>
                                 + Add fee year
                             </button>
@@ -558,6 +687,6 @@ export default function CourseDetailsCreate() {
                     </button>
                 </div>
             </form>
-        </AppSidebarLayout>
+        </div>
     );
 }
