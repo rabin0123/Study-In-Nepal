@@ -456,12 +456,14 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
                                                                     (n.data.student_name ?? 'A').slice(0, 2).toUpperCase()
                                                                 )}
                                                             </span>
-                                                            <div className="w-75 d-inline-block v-middle">
-                                                                <div className="d-flex align-items-center justify-content-between">
-                                                                    <h6 className={`mb-1 ${!n.read_at ? 'fw-bold' : 'fw-semibold'}`}>{n.data.message}</h6>
-                                                                </div>
-                                                                <span className="d-block fs-2">{timeAgo(n.created_at)}</span>
-                                                            </div>
+                                                           <div className="w-75 d-inline-block v-middle" style={{ minWidth: 0 }}>
+    <div className="d-flex align-items-center justify-content-between" style={{ minWidth: 0 }}>
+        <h6 className={`mb-1 notif-message ${!n.read_at ? 'fw-bold' : 'fw-semibold'}`}>
+            {n.data.message}
+        </h6>
+    </div>
+    <span className="d-block fs-2">{timeAgo(n.created_at)}</span>
+</div>
                                                         </a>
                                                     ))}
                                                 </div>
