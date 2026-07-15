@@ -307,13 +307,33 @@ export default function UsersIndex({
                         overflow-x: hidden;
                         width: 100%;
                     }
+                    .users-table {
+                        min-width: 100%;
+                    }
                     .users-table thead th {
                         padding-top: 0.85rem;
                         padding-bottom: 0.85rem;
+                        white-space: nowrap;
                     }
                     .users-table tbody td {
                         padding-top: 0.65rem;
                         padding-bottom: 0.65rem;
+                    }
+
+                    /* Small screens: allow horizontal scroll since columns can no longer
+                       compress enough to fit content (table-layout: auto sizes to content) */
+                    @media (max-width: 991.98px) {
+                        .users-table-scroll {
+                            overflow-x: auto;
+                        }
+                        .users-table {
+                            min-width: 900px;
+                        }
+                    }
+                    @media (max-width: 575.98px) {
+                        .users-table {
+                            min-width: 760px;
+                        }
                     }
                 `}
             </style>
