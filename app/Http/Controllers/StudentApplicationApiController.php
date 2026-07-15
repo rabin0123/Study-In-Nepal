@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreStudentApplicationRequest;
 use App\Models\StudentApplication;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -79,6 +78,227 @@ class StudentApplicationApiController extends Controller
             'success' => true,
             'data' => $applications,
         ]);
+    }
+
+    /**
+     * GET /api/agent/applications/search-students?q=...
+     *
+     * Live search for existing students (StudentApplication records) by
+     * student_name or app_id, so an agent can pick an existing student
+     * and apply them to a new university/college/course.
+     *
+     * Scoped to the same agency-visibility rules as index().
+     */
+    public function searchStudents(Request $request): JsonResponse
+    {
+        $user = $request->user() ?? auth()->user();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated.'
+            ], 401);
+        }
+
+        if (!$user->hasPermissionTo('view.application')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This action is unauthorized.'
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'q' => 'required|string|min:1|max:255',
+        ]);
+
+        $q = trim($validated['q']);
+
+        $query = StudentApplication::query()->with('creator');
+
+        $isInternalUser = $user->hasAnyRole(['developer', 'main-agent', 'main-agent-staff']);
+
+        if (!$isInternalUser) {
+            $agencyName = $user->agency_name;
+            $query->whereHas('creator', function ($query) use ($agencyName) {
+                $query->where('agency_name', $agencyName);
+            });
+        }
+
+        $query->where(function ($sub) use ($q) {
+            $sub->where('student_name', 'like', "%{$q}%")
+                ->orWhere('app_id', 'like', "%{$q}%");
+        });
+
+        // Since each student can have multiple application rows (one per
+        // course/university applied to), de-duplicate to one result per
+        // student by picking their most recently updated record.
+        $matches = $query->latest('updated_at')->limit(50)->get();
+
+        $seen = [];
+        $results = [];
+
+        foreach ($matches as $application) {
+            // app_id identifies the student across their applications.
+            $key = $application->app_id;
+
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+
+            $results[] = [
+                'id' => $application->id,
+                'app_id' => $application->app_id,
+                'student_name' => $application->student_name,
+                'email' => $application->email,
+                'phone_number' => $application->phone_number,
+                'country' => $application->country,
+                'avatar_url' => $application->avatar_url,
+                'university_name' => $application->university_name,
+                'college_name' => $application->college_name,
+                'course_name' => $application->course_name,
+                'status' => $application->status,
+            ];
+
+            if (count($results) >= 20) {
+                break;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $results,
+        ]);
+    }
+
+    /**
+     * POST /api/agent/applications/{application}/apply-to-course
+     *
+     * Given an existing student's application record (found via
+     * searchStudents), create a NEW StudentApplication that carries over
+     * all of that student's profile fields, but targets the given
+     * university/college/course. This represents the student applying to
+     * an additional program.
+     */
+    public function applyToCourse(Request $request, StudentApplication $application): JsonResponse
+    {
+        $user = $request->user() ?? auth()->user();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated.'
+            ], 401);
+        }
+
+        if (!$user->hasPermissionTo('create.application')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This action is unauthorized.'
+            ], 403);
+        }
+
+        $isInternalUser = $user->hasAnyRole(['developer', 'main-agent', 'main-agent-staff']);
+
+        if (!$isInternalUser && $application->creator->agency_name !== $user->agency_name) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This action is unauthorized.'
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'university_name' => 'required|string|max:255',
+            'college_name' => 'required|string|max:255',
+            'course_name' => 'required|string|max:255',
+        ]);
+
+        // Prevent an accidental duplicate: same student, same course/college/university.
+        $duplicate = StudentApplication::where('app_id', $application->app_id)
+            ->where('university_name', $validated['university_name'])
+            ->where('college_name', $validated['college_name'])
+            ->where('course_name', $validated['course_name'])
+            ->exists();
+
+        if ($duplicate) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This student already has an application for this course at this college.',
+            ], 422);
+        }
+
+        $assignedUser = \App\Models\User::mainAgents()->inRandomOrder()->first();
+
+        // Carry over every available student profile field, then overwrite
+        // the study-plan fields with the newly selected course details.
+        $carriedOverData = collect($application->only([
+            'student_name',
+            'phone_number',
+            'email',
+            'country',
+            'date_of_birth',
+            'passport_number',
+            'address_line_1',
+            'address_line_2',
+            'city',
+            'state_province_region',
+            'postal_code',
+            'agency_reference_notes',
+        ]))->toArray();
+
+        // Keep the same app_id so this new row is recognized as belonging
+        // to the same student across their multiple course applications.
+        $newApplication = StudentApplication::create($carriedOverData + [
+            'app_id'          => $application->app_id,
+            'university_name' => $validated['university_name'],
+            'college_name'    => $validated['college_name'],
+            'course_name'     => $validated['course_name'],
+            'status'          => StudentApplication::STATUSES[0],
+            'created_by'      => $user->id,
+            'assigned_to'     => $assignedUser?->id,
+            'ip_address'      => $request->ip(),
+            'user_agent'      => (string) $request->userAgent(),
+        ]);
+
+        // The boot() creating hook overwrites app_id with a freshly
+        // generated one, so re-apply the student's original app_id and save.
+        $newApplication->app_id = $application->app_id;
+        $newApplication->save();
+
+        $this->logActivity(
+            $user,
+            $newApplication,
+            "applied existing student '{$newApplication->student_name}' ({$newApplication->app_id}) to '{$validated['course_name']}' at '{$validated['college_name']}'",
+            [
+                'action' => 'created_application',
+                'old'    => null,
+                'new'    => [
+                    'student_name'    => $newApplication->student_name,
+                    'app_id'          => $newApplication->app_id,
+                    'university_name' => $newApplication->university_name,
+                    'college_name'    => $newApplication->college_name,
+                    'course_name'     => $newApplication->course_name,
+                    'status'          => $newApplication->status,
+                    'assigned_to'     => $assignedUser?->id,
+                ],
+            ]
+        );
+
+        $user->notify(new \App\Notifications\ApplicationSubmitted($newApplication));
+
+        if ($assignedUser) {
+            $assignedUser->notify(new \App\Notifications\NewApplicationAssigned($newApplication));
+        } else {
+            \Illuminate\Support\Facades\Log::warning(
+                'No main_agent/main_agent_staff user available to assign application ' . $newApplication->id
+            );
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Student applied to course successfully.',
+            'data' => $newApplication->load('creator', 'assignedAgent'),
+        ], 201);
     }
 
     /**
