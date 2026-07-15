@@ -119,7 +119,7 @@ class CourseDetailController extends Controller
      */
     public function edit(CourseDetail $courseDetail): Response
     {
-        return Inertia::render('course-details/edit', [
+        return Inertia::render('courses/edit', [
             'courseDetail' => $courseDetail,
         ]);
     }
