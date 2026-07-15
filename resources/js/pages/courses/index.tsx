@@ -60,7 +60,7 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                         Course Details
                     </h1>
                     <Link 
-                        href="/course-details/create" 
+                        href="/course/create" 
                         className="inline-flex items-center justify-center px-6 py-3 bg-[#008AE6] hover:bg-[#0071bf] text-white text-xs font-bold uppercase tracking-widest rounded-full shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#008AE6]"
                     >
                         + New Course Details
