@@ -363,11 +363,11 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 }
 
                 .gcu-wrap {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 40px;
-    width: 100%;
-}
+                    max-width: 1140px;
+                    margin: 0 auto;
+                    padding: 0 24px;
+                    width: 100%;
+                }
 
                 .gcu-top-nav {
                     background: var(--color-white);
@@ -711,11 +711,10 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 }
 
                 .gcu-row {
-    display: grid;
-    grid-template-columns: 280px 1fr;
-    gap: 60px;
-    max-width: 1200px; /* keeps text line-length readable even though wrap is wider */
-}
+                    display: grid;
+                    grid-template-columns: 280px 1fr;
+                    gap: 40px;
+                }
                 .gcu-col-title {
                     font-size: 1.5rem;
                 }
