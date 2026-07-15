@@ -67,7 +67,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 <div 
                     className="gcu-header__bg"
                     style={{
-                        backgroundImage: `url(${courseDetail.hero_image_url || 'https://https://www.studyinnepal.com/images/event_hallway.png'})`
+                        backgroundImage: `url(${courseDetail.hero_image_url || 'https://www.studyinnepal.com/images/event_hallway.png'})`
                     }}
                 />
                 
@@ -391,6 +391,11 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     width: 100%;
                     padding-top: 32px;
                     z-index: 20;
+                }
+                .gcu-hero-top-left .gcu-wrap,
+                .gcu-subnav .gcu-wrap {
+                    padding-left: 0;
+                    padding-right: 0;
                 }
                 
                 /* Breadcrumbs restyled for Dark Hero Background */
