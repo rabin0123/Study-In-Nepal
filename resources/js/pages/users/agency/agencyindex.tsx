@@ -137,7 +137,7 @@ export default function AgencyIndex({ agencies, search }: Props) {
                         background-color: rgba(255, 255, 255, 0.3);
                     }
 
-                    /* Agencies table sizing */
+                    /* Agencies table sizing and scrolling */
                     .agencies-table-scroll {
                         height: 520px;
                         overflow-y: auto;
@@ -282,6 +282,7 @@ export default function AgencyIndex({ agencies, search }: Props) {
                 {/* Table Container Card */}
                 <div className="card">
                     <div className="card-body p-0">
+                        {/* Scroll container with slim scrollbar styling */}
                         <div className="table-responsive slim-scroll agencies-table-scroll">
                             <table className="table agencies-table mb-0 align-middle" style={{ tableLayout: 'auto', width: '100%' }}>
                                 <thead className="text-dark fs-4" style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bs-card-bg, #fff)' }}>
@@ -386,42 +387,11 @@ export default function AgencyIndex({ agencies, search }: Props) {
                             </table>
                         </div>
 
-                        {/* Pagination Footer */}
-                        {agencies.total > 0 && (
-                            <div className="d-flex flex-column flex-sm-row align-items-center justify-content-between border-top px-6 py-3 gap-3">
+                        {/* Simplified Record Count Footer (Matches Users Directory format) */}
+                        {agencies.data.length > 0 && (
+                            <div className="d-flex align-items-center justify-content-between border-top px-6 py-3">
                                 <div className="text-body-secondary fs-3">
-                                    Showing <strong className="text-dark">{agencies.from}</strong>–<strong className="text-dark">{agencies.to}</strong> of <strong className="text-dark">{agencies.total}</strong> agencies
-                                </div>
-                                <div className="d-flex align-items-center gap-1 flex-wrap">
-                                    {agencies.links.map((link, i) => {
-                                        const isPrevious = link.label.includes('Previous');
-                                        const isNext = link.label.includes('Next');
-                                        return (
-                                            <button
-                                                key={i}
-                                                disabled={!link.url}
-                                                onClick={() => link.url && router.get(link.url, {}, { preserveState: true })}
-                                                className={`btn btn-sm d-flex align-items-center justify-content-center font-bold px-3 ${
-                                                    link.active ? 'btn-primary' : 'btn-outline-secondary'
-                                                }`}
-                                                style={{
-                                                    minWidth: 38,
-                                                    height: 38,
-                                                    borderRadius: '0.375rem',
-                                                    opacity: link.url ? 1 : 0.5,
-                                                    pointerEvents: link.url ? 'auto' : 'none',
-                                                }}
-                                            >
-                                                {isPrevious ? (
-                                                    <iconify-icon icon="solar:alt-arrow-left-line-duotone" className="fs-4" />
-                                                ) : isNext ? (
-                                                    <iconify-icon icon="solar:alt-arrow-right-line-duotone" className="fs-4" />
-                                                ) : (
-                                                    <span dangerouslySetInnerHTML={{ __html: link.label }} />
-                                                )}
-                                            </button>
-                                        );
-                                    })}
+                                    Showing <strong className="text-dark">{agencies.total}</strong> agency{agencies.total === 1 ? '' : 'ies'}
                                 </div>
                             </div>
                         )}
