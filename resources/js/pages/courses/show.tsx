@@ -32,10 +32,74 @@ function sortByYear<T extends { year: number }>(items: T[] | null | undefined): 
     return [...items].sort((a, b) => a.year - b.year);
 }
 
+interface ExternalUniversityRecord {
+    id: number;
+    University: string;
+    College: string;
+    university_logo_url: string | null;
+    college_logo_url: string | null;
+}
+
+const normalizeMatchKey = (value: string | null | undefined): string => {
+    if (!value) return "";
+    return value
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+        .replace(/[\u2013\u2014]/g, "-")
+        .replace(/[^a-z0-9\s-]/g, "")
+        .trim();
+};
+
 export default function CourseDetailsShow({ courseDetail }: Props) {
     const modules = sortByYear(courseDetail.year_wise_modules);
     const fees = sortByYear(courseDetail.fees);
-    
+
+    const [externalUniversity, setExternalUniversity] = useState<ExternalUniversityRecord | null>(null);
+
+    useEffect(() => {
+        let active = true;
+        const fetchUniversityAssets = async () => {
+            try {
+                const res = await fetch("https://www.admin.studyinnepal.com/api/university", {
+                    headers: { "Accept": "application/json" },
+                });
+                if (!res.ok) return;
+
+                const body = await res.json();
+                const records: ExternalUniversityRecord[] = Array.isArray(body)
+                    ? body
+                    : Array.isArray(body?.data)
+                        ? body.data
+                        : [];
+
+                const uniKey = normalizeMatchKey(courseDetail.university_name);
+                const collegeKey = normalizeMatchKey(courseDetail.college_name);
+
+                const exactMatch = records.find((item) =>
+                    normalizeMatchKey(item.University) === uniKey &&
+                    normalizeMatchKey(item.College) === collegeKey
+                );
+
+                const universityMatch = records.find((item) =>
+                    normalizeMatchKey(item.University) === uniKey
+                );
+
+                if (active) {
+                    setExternalUniversity(exactMatch || universityMatch || null);
+                }
+            } catch (error) {
+                console.error("Failed to fetch university assets:", error);
+            }
+        };
+
+        fetchUniversityAssets();
+        return () => { active = false; };
+    }, [courseDetail.university_name, courseDetail.college_name]);
+
+    const matchedUniversityLogo = externalUniversity?.university_logo_url || courseDetail.university?.university_logo_url || null;
+    const matchedCollegeLogo = externalUniversity?.college_logo_url || null;
+
     // Safely check for new string format or old array format from DB
     const careersData = courseDetail.careers_summary || courseDetail.careers;
 
@@ -863,7 +927,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
 function ModuleAccordion({ label }: { label: string }) {
     const [open, setOpen] = useState(false);
-    const [universityData, setUniversityData] = useState<any>(null);
     return (
         <div className={`gcu-module-row ${open ? 'is-open' : ''}`}>
             <button 
