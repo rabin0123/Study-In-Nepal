@@ -191,10 +191,10 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 </nav>
             )}
 
-            <main className="gcu-wrap gcu-main-content">
+            <main className="gcu-main-content">
 
                 {courseDetail.summary && (
-                    <section id="overview" className="gcu-panel">
+                    <section id="overview" className="gcu-panel gcu-wrap">
                         <div className="gcu-row">
                             <div className="gcu-col-title">
                                 <h2 className="gcu-heading">Overview</h2>
@@ -211,7 +211,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
                 {/* What you will study (Black Card Scheme) */}
                 {modules.length > 0 && (
-                    <section id="study" className="gcu-panel full-bleed scheme--black-card">
+                    <section id="study" className="gcu-panel scheme--black-card">
                         <div className="gcu-wrap">
                             <div className="gcu-row">
                                 <div className="gcu-col-title">
@@ -262,7 +262,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
                 {/* Fees and funding */}
                 {fees.length > 0 && (
-                    <section id="fees" className="gcu-panel">
+                    <section id="fees" className="gcu-panel gcu-wrap">
                         <div className="gcu-row">
                             <div className="gcu-col-title">
                                 <h2 className="gcu-heading">Fees and<br />funding</h2>
@@ -301,7 +301,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 {/* Career Prospectus (Mild Black Background with Background Image) */}
                 <section 
                     id="careers" 
-                    className="gcu-panel full-bleed scheme--mild-black-bg"
+                    className="gcu-panel scheme--mild-black-bg"
                     style={{
                         backgroundImage: `url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')`
                     }}
@@ -422,7 +422,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     content: '';
                     position: absolute;
                     inset: 0;
-                    /* NEW: Linear gradient for the HERO SECTION -> Dark left to Blue right */
                     background: linear-gradient(90deg, rgba(0, 0, 0, 0.9) 0%, rgba(3, 105, 161, 0.6) 100%);
                     pointer-events: none;
                 }
@@ -446,7 +445,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     padding-right: 24px;
                 }
                 
-                /* Breadcrumbs restyled for Dark Hero Background */
+                /* Breadcrumbs */
                 .gcu-breadcrumb {
                     margin-bottom: 12px;
                     position: relative;
@@ -457,7 +456,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     list-style: none;
                     font-size: 0.85rem;
                     font-weight: 600;
-                    color: rgba(255, 255, 255, 0.7); /* Light translucent white */
+                    color: rgba(255, 255, 255, 0.7); 
                 }
                 .gcu-breadcrumb__item::after {
                     content: '/';
@@ -466,7 +465,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 }
                 .gcu-breadcrumb__item:last-child::after { content: none; }
                 .gcu-breadcrumb__current {
-                    color: var(--color-white); /* Solid white for current page */
+                    color: var(--color-white); 
                 }
 
                 /* University Name in Top Left */
@@ -495,16 +494,15 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     padding-bottom: 4px;
                 }
 
-                /* REVERTED: Original Sky Blue gradient for the info banner */
                 .gcu-banner-info {
-                       position: relative;
-    z-index: 20;
-    background: linear-gradient(135deg, var(--color-skyblue-dark) 0%, #041118 100%);
-    color: var(--color-white);
-    padding: 40px;
-    margin-bottom: -50px;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
-    border-radius: 24px;
+                    position: relative;
+                    z-index: 20;
+                    background: linear-gradient(135deg, var(--color-skyblue-dark) 0%, #041118 100%);
+                    color: var(--color-white);
+                    padding: 40px;
+                    margin-bottom: -50px;
+                    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+                    border-radius: 24px;
                 }
                 .gcu-banner-info__award {
                     display: inline-block;
@@ -610,26 +608,19 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 }
 
                 .gcu-panel {
-                    padding: 50px 0;
+                    padding-top: 50px;
+                    padding-bottom: 50px;
                     border-bottom: 1px solid var(--color-border);
                 }
                 .gcu-panel:last-of-type { border-bottom: none; }
                 
-                .gcu-panel.full-bleed {
-                    width: 100vw;
-                    position: relative;
-                    left: 50%;
-                    right: 50%;
-                    margin-left: -50vw;
-                    margin-right: -50vw;
-                    padding: 60px 0;
-                }
-
                 /* BLACK CARD STYLING FOR "WHAT YOU WILL STUDY" */
                 .gcu-panel.scheme--black-card {
                     background-color: var(--color-black);
                     color: var(--color-white);
                     border-bottom: none;
+                    padding-top: 60px;
+                    padding-bottom: 60px;
                 }
                 .gcu-panel.scheme--black-card .gcu-heading {
                     color: var(--color-white); 
@@ -674,6 +665,8 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     position: relative;
                     color: var(--color-white);
                     border-bottom: none;
+                    padding-top: 60px;
+                    padding-bottom: 60px;
                 }
                 .gcu-panel.scheme--mild-black-bg::before {
                     content: '';
@@ -709,7 +702,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     align-items: center;
                     padding: 24px 20px;
                 }
-
 
                 .gcu-row {
                     display: grid;
