@@ -577,6 +577,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     top: 0;
                     z-index: 30;
                     box-shadow: 0 4px 6px -4px rgba(0,0,0,0.05);
+                     overflow-x: hidden; 
                 }
                 .gcu-subnav__list {
                     list-style: none;
