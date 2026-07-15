@@ -137,32 +137,20 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 
                 {/* Top-left container for Breadcrumbs and University Name */}
                 <div className="gcu-hero-top-left">
-                    <div className="gcu-hero-university">
-                        {(matchedCollegeLogo || matchedUniversityLogo) && (
-                            <img
-                                src={matchedCollegeLogo || matchedUniversityLogo!}
-                                alt={courseDetail.university_name}
-                                className="gcu-hero-university-logo"
-                                onError={(event) => {
-                                    const img = event.currentTarget;
-                                    img.onerror = null;
-                                    if (matchedCollegeLogo) {
-                                        img.src = matchedUniversityLogo || "";
-                                    }
-                                }}
-                            />
-                        )}
+    <div className="gcu-hero-university">
+        {courseDetail.university?.university_logo_url && (
+            <img
+                src={courseDetail.university.university_logo_url}
+                alt={courseDetail.university_name}
+                className="gcu-hero-university-logo"
+            />
+        )}
 
-                        <div>
-                            <span className="gcu-hero-univ-name">
-                                {courseDetail.university_name}
-                            </span>
-                            <div className="gcu-hero-subtitle">
-                                {courseDetail.college_name}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <span className="gcu-hero-univ-name">
+            {courseDetail.university_name}
+        </span>
+    </div>
+</div>
 
                 <div className="gcu-wrap">
                     <div className="gcu-banner-info scheme--skyblue">
