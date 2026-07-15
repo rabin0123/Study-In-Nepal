@@ -65,7 +65,13 @@ Route::get('/courses/{university}', [CourseDetailController::class, 'show'])
         Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
         Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])->name('roles.edit');
 Route::post('/course-details', [CourseDetailController::class, 'store'])->name('store');
-        
+        Route::get('/course-details', [CourseDetailController::class, 'index'])->name('index');
+    Route::get('/course-details/create', [CourseDetailController::class, 'create'])->name('create');
+    
+    Route::get('/course-details/{courseDetail:uuid}/edit', [CourseDetailController::class, 'edit'])->name('edit');
+    Route::put('/course-details/{courseDetail:uuid}', [CourseDetailController::class, 'update'])->name('update');
+    Route::delete('/course-details/{courseDetail:uuid}', [CourseDetailController::class, 'destroy'])->name('destroy');
+
 Route::prefix('api')->middleware(['auth', 'verified'])->group(function () {
 
     Route::post('/universities', [UniversityApiControler::class, 'store']);
@@ -145,12 +151,6 @@ Route::put('/agent/applications/{application}/assign', [StudentApplicationApiCon
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
 
 
-Route::get('/course-details', [CourseDetailController::class, 'index'])->name('index');
-    Route::get('/course-details/create', [CourseDetailController::class, 'create'])->name('create');
-    
-    Route::get('/course-details/{courseDetail:uuid}/edit', [CourseDetailController::class, 'edit'])->name('edit');
-    Route::put('/course-details/{courseDetail:uuid}', [CourseDetailController::class, 'update'])->name('update');
-    Route::delete('/course-details/{courseDetail:uuid}', [CourseDetailController::class, 'destroy'])->name('destroy');
 
 });
 });
