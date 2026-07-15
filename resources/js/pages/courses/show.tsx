@@ -354,7 +354,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     font-family: -apple-system, BlinkMacSystemFont, "Montserrat", "Segoe UI", Arial, sans-serif;
                     min-height: 100vh;
                     line-height: 1.5;
-                    width: 100%;
                 }
 
                 .gcu-wrap {
@@ -412,8 +411,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     align-items: flex-end;
                     background: #111;
                     overflow: visible;
-                    /* Fill 100% of available parent area instead of 100vw */
-                    width: 100%;
                 }
                 .gcu-header__bg {
                     position: absolute;
@@ -425,7 +422,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     content: '';
                     position: absolute;
                     inset: 0;
-                    /* Linear gradient for the HERO SECTION -> Dark left to Blue right */
+                    /* NEW: Linear gradient for the HERO SECTION -> Dark left to Blue right */
                     background: linear-gradient(90deg, rgba(0, 0, 0, 0.9) 0%, rgba(3, 105, 161, 0.6) 100%);
                     pointer-events: none;
                 }
@@ -449,7 +446,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     padding-right: 24px;
                 }
                 
-                /* Breadcrumbs */
+                /* Breadcrumbs restyled for Dark Hero Background */
                 .gcu-breadcrumb {
                     margin-bottom: 12px;
                     position: relative;
@@ -460,7 +457,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     list-style: none;
                     font-size: 0.85rem;
                     font-weight: 600;
-                    color: rgba(255, 255, 255, 0.7); 
+                    color: rgba(255, 255, 255, 0.7); /* Light translucent white */
                 }
                 .gcu-breadcrumb__item::after {
                     content: '/';
@@ -469,7 +466,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 }
                 .gcu-breadcrumb__item:last-child::after { content: none; }
                 .gcu-breadcrumb__current {
-                    color: var(--color-white); 
+                    color: var(--color-white); /* Solid white for current page */
                 }
 
                 /* University Name in Top Left */
@@ -498,16 +495,16 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     padding-bottom: 4px;
                 }
 
-                /* Sky Blue gradient for the info banner */
+                /* REVERTED: Original Sky Blue gradient for the info banner */
                 .gcu-banner-info {
-                    position: relative;
-                    z-index: 20;
-                    background: linear-gradient(135deg, var(--color-skyblue-dark) 0%, #041118 100%);
-                    color: var(--color-white);
-                    padding: 40px;
-                    margin-bottom: -50px;
-                    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
-                    border-radius: 24px;
+                       position: relative;
+    z-index: 20;
+    background: linear-gradient(135deg, var(--color-skyblue-dark) 0%, #041118 100%);
+    color: var(--color-white);
+    padding: 40px;
+    margin-bottom: -50px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    border-radius: 24px;
                 }
                 .gcu-banner-info__award {
                     display: inline-block;
@@ -618,9 +615,13 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 }
                 .gcu-panel:last-of-type { border-bottom: none; }
                 
-                /* Resetting full-bleed to just take 100% of available space */
                 .gcu-panel.full-bleed {
-                    width: 100%;
+                    width: 100vw;
+                    position: relative;
+                    left: 50%;
+                    right: 50%;
+                    margin-left: -50vw;
+                    margin-right: -50vw;
                     padding: 60px 0;
                 }
 
@@ -694,6 +695,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 .gcu-panel.scheme--mild-black-bg .gcu-html-content {
                     color: rgba(255, 255, 255, 0.9);
                 }
+                /* Career List Items explicitly restyled for height and dark bg */
                 .gcu-panel.scheme--mild-black-bg .gcu-html-content ul li {
                     background: rgba(255, 255, 255, 0.08);
                     border-left-color: var(--color-skyblue);
@@ -701,11 +703,13 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
                     backdrop-filter: blur(4px);
                     
+                    /* BIGGER CARDS FIX */
                     min-height: 110px;
                     display: flex;
                     align-items: center;
                     padding: 24px 20px;
                 }
+
 
                 .gcu-row {
                     display: grid;
@@ -850,6 +854,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: var(--color-muted-text);
                 }
 
+                /* Default HTML styling (used by other sections if needed) */
                 .gcu-html-content {
                     font-size: 1.05rem;
                     line-height: 1.75;
@@ -869,6 +874,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     font-weight: 700;
                     color: var(--color-skyblue-dark);
                     
+                    /* BIGGER CARDS FIX FOR OTHER SECTIONS */
                     min-height: 110px;
                     display: flex;
                     align-items: center;
