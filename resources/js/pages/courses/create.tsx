@@ -13,38 +13,17 @@ function csrfToken(): string {
     return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
 }
 
-type Props = {
-    courseDetail: {
-        uuid: string;
-        university_name: string;
-        college_name: string;
-        course_name: string;
-        summary: string | null;
-        year_wise_modules: YearModule[] | null;
-        fees: YearFee[] | null;
-        careers: string[] | null;
-    };
-};
-
-export default function CourseDetailsEdit({ courseDetail }: Props) {
+export default function CourseDetailsCreate() {
     // Identity fields — free text, matched later against `universities`
     // by name once a matching row exists (or already exists now).
-    const [universityName, setUniversityName] = useState(courseDetail.university_name);
-    const [collegeName, setCollegeName] = useState(courseDetail.college_name);
-    const [courseName, setCourseName] = useState(courseDetail.course_name);
+    const [universityName, setUniversityName] = useState('');
+    const [collegeName, setCollegeName] = useState('');
+    const [courseName, setCourseName] = useState('');
 
-    const [summary, setSummary] = useState(courseDetail.summary ?? '');
-    const [yearModules, setYearModules] = useState<YearModule[]>(
-        courseDetail.year_wise_modules?.length
-            ? courseDetail.year_wise_modules.map((y) => ({ year: y.year, title: y.title ?? '', modules: y.modules ?? [] }))
-            : [{ year: 1, title: 'Year 1', modules: [''] }],
-    );
-    const [fees, setFees] = useState<YearFee[]>(
-        courseDetail.fees?.length
-            ? courseDetail.fees.map((f) => ({ year: f.year, amount: f.amount ?? '', currency: f.currency ?? '', note: f.note ?? '' }))
-            : [{ year: 1, amount: '', currency: '', note: '' }],
-    );
-    const [careers, setCareers] = useState<string[]>(courseDetail.careers?.length ? courseDetail.careers : [''])
+    const [summary, setSummary] = useState('');
+    const [yearModules, setYearModules] = useState<YearModule[]>([{ year: 1, title: 'Year 1', modules: [''] }]);
+    const [fees, setFees] = useState<YearFee[]>([{ year: 1, amount: '', currency: '', note: '' }]);
+    const [careers, setCareers] = useState<string[]>(['']);
 
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -105,8 +84,8 @@ export default function CourseDetailsEdit({ courseDetail }: Props) {
             careers: careers.map((c) => c.trim()).filter(Boolean),
         };
 
-        fetch(`/course-details/${courseDetail.uuid}`, {
-            method: 'PUT',
+        fetch('/course-details', {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 Accept: 'application/json',
@@ -121,7 +100,7 @@ export default function CourseDetailsEdit({ courseDetail }: Props) {
                     throw new Error(data.message || 'Failed to save');
                 }
                 setSavedMessage(data.message || 'Saved successfully.');
-                setTimeout(() => router.visit(`/course-details/${courseDetail.uuid}`), 800);
+                setTimeout(() => router.visit(`/course-details/${data.courseDetail.uuid}`), 800);
             })
             .catch((err) => console.error('Failed to save course details', err))
             .finally(() => setSaving(false));
@@ -131,16 +110,16 @@ export default function CourseDetailsEdit({ courseDetail }: Props) {
         <AppSidebarLayout
             breadcrumbs={[
                 { title: 'Course Details', href: '/course-details' },
-                { title: courseDetail.course_name, href: `/course-details/${courseDetail.uuid}` },
-                { title: 'Edit', href: `/course-details/${courseDetail.uuid}/edit` },
+                { title: 'New', href: '/course-details/create' },
             ]}
         >
             <form onSubmit={handleSubmit}>
                 <div className="d-flex align-items-center justify-content-between mb-4">
                     <div>
-                        <h4 className="mb-1 fw-semibold">Edit Course Details</h4>
+                        <h4 className="mb-1 fw-semibold">New Course Details</h4>
                         <p className="mb-0 text-body-secondary">
-                            {courseDetail.course_name} · {courseDetail.college_name} · {courseDetail.university_name}
+                            Enter the course info directly — it'll link up automatically to a matching university/college/course
+                            entry if one exists now or gets added later.
                         </p>
                     </div>
                     <button type="submit" className="btn btn-primary" disabled={saving}>
