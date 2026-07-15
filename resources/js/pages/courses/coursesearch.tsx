@@ -1,5 +1,15 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 
+// ── Design Tokens (Matching Homepage Aesthetic) ───────────────────────────
+const P = "#008ce3";         // Bright Sky Blue (Primary)
+const AMBER = "#fbbf24";     // Warm Gold
+const BG = "#F8FAFB";        // Light Neutral Background
+const SURFACE = "#ffffff";   // Pure White
+const BORDER = "#e5e7eb";    // Light border
+const TEXT_MAIN = "#111827"; // Dark Charcoal
+const TEXT_MUTED = "#4b5563"; // Muted Slate
+const TEXT_LIGHT = "#9ca3af"; // Light Gray
+
 // ── Helper to dynamically map stream to actual homepage assets ─────────────
 const getStreamImage = (stream: string, id: number): string => {
   const s = stream?.toLowerCase() || "";
@@ -98,6 +108,36 @@ const standardizeCourse = (course: string | null | undefined): string => {
   return c.replace(/\s+/g, ' ').trim();
 };
 
+// ── Icons ──────────────────────────────────────────────────────────────────
+const SearchLargeIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={P} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 24, top: "50%", transform: "translateY(-50%)" }}>
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
+
+const LocationIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 4 }}>
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+    <circle cx="12" cy="10" r="3" />
+  </svg>
+);
+
+const BuildingIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 4 }}>
+    <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
+    <line x1="7" y1="2" x2="7" y2="22" />
+    <line x1="17" y1="2" x2="17" y2="22" />
+    <line x1="2" y1="12" x2="22" y2="12" />
+  </svg>
+);
+
+const FilterIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}>
+    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+  </svg>
+);
+
 // ── Shared Types ───────────────────────────────────────────────────────────
 interface UniversityEntry {
   id: number;
@@ -122,8 +162,8 @@ const validUrl = (url: string | null | undefined): string | null => {
   return trimmed;
 };
 
-// ── Reusable Dropdown Filter (Bootstrap, theme-aware) ───────────────────────
-function DropdownFilter({ label, icon, options, selected, toggleOption }: { label: string, icon: string, options: string[], selected: string[], toggleOption: (val: string) => void }) {
+// ── Reusable Dropdown Component (Styled for Hero Banner) ───────────────────
+function DropdownFilter({ label, options, selected, toggleOption }: { label: string, options: string[], selected: string[], toggleOption: (val: string) => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -140,38 +180,85 @@ function DropdownFilter({ label, icon, options, selected, toggleOption }: { labe
   const hasSelected = selected.length > 0;
 
   return (
-    <div ref={containerRef} className="dropdown position-relative">
+    <div ref={containerRef} style={{ position: "relative", textAlign: "left" }}>
       <button
-        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`btn btn-sm rounded-pill d-flex align-items-center gap-2 px-3 py-2 fw-semibold ${hasSelected ? "btn-primary" : "btn-outline-light"}`}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "10px 18px",
+          background: hasSelected ? P : "rgba(255, 255, 255, 0.1)",
+          backdropFilter: "blur(8px)",
+          border: `1px solid ${hasSelected ? P : "rgba(255, 255, 255, 0.25)"}`,
+          borderRadius: 999,
+          fontSize: 13,
+          fontWeight: 600,
+          color: "#ffffff",
+          fontFamily: "'Manrope', sans-serif",
+          cursor: "pointer",
+          transition: "all 0.2s ease",
+          whiteSpace: "nowrap"
+        }}
+        onMouseEnter={(e) => {
+          if (!hasSelected) {
+            e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)";
+            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.4)";
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!hasSelected) {
+            e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
+            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.25)";
+          }
+        }}
       >
-        <iconify-icon icon={icon} className="fs-6" />
         {label} {hasSelected && `(${selected.length})`}
-        <iconify-icon
-          icon="solar:alt-arrow-down-line-duotone"
-          className="fs-6"
-          style={{ transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
-        />
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
       </button>
 
       {isOpen && (
-        <div
-          className="dropdown-menu show shadow-lg p-2 mt-2 sidebar-nav-scroll"
-          style={{ minWidth: 280, maxHeight: 300, overflowY: "auto" }}
-        >
+        <div style={{
+          position: "absolute",
+          top: "calc(100% + 12px)",
+          left: 0,
+          width: 280,
+          maxHeight: 300,
+          overflowY: "auto",
+          background: SURFACE,
+          border: `1px solid ${BORDER}`,
+          borderRadius: 12,
+          boxShadow: "0 12px 40px rgba(0,0,0,0.2)",
+          zIndex: 50,
+          padding: "8px"
+        }} className="custom-scroll">
           {options.length === 0 ? (
-            <div className="px-3 py-2 text-body-secondary fs-3">No options available</div>
+            <div style={{ padding: "12px", fontSize: 13, color: TEXT_MUTED }}>No options available</div>
           ) : (
             options.map(opt => (
-              <label key={opt} className="dropdown-item d-flex align-items-center gap-2 rounded py-2" style={{ cursor: "pointer" }}>
+              <label key={opt} style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                padding: "10px 12px",
+                cursor: "pointer",
+                fontSize: 13,
+                color: TEXT_MAIN,
+                borderRadius: 8,
+                transition: "background 0.2s",
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = "#F3F4F6"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+              >
                 <input
                   type="checkbox"
-                  className="form-check-input mt-0 flex-shrink-0"
                   checked={selected.includes(opt)}
                   onChange={() => toggleOption(opt)}
+                  style={{ accentColor: P, width: 16, height: 16, cursor: "pointer", flexShrink: 0 }}
                 />
-                <span className="lh-sm">{opt}</span>
+                <span style={{ display: "block", lineHeight: 1.4 }}>{opt}</span>
               </label>
             ))
           )}
@@ -186,7 +273,8 @@ export default function CourseSearch() {
   const [data, setData] = useState<UniversityEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-
+  const [searchFocused, setSearchFocused] = useState(false);
+  
   // Filter states
   const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
   const [selectedStreams, setSelectedStreams] = useState<string[]>([]);
@@ -202,11 +290,13 @@ export default function CourseSearch() {
   const fetchUniversities = async () => {
     setLoading(true);
     try {
+      // Changed fetch url directly to the absolute API endpoint
       const res = await fetch("https://admin.studyinnepal.com/api/university", {
         headers: { "Accept": "application/json" }
       });
       if (res.ok) {
         const json = await res.json();
+        // Fallback checks to cover cases where the array is direct or nested
         setData(json.data || json);
       }
     } catch (error) {
@@ -236,10 +326,11 @@ export default function CourseSearch() {
     const universitiesSet = new Set<string>(selectedUniversities);
     const collegesSet = new Set<string>(selectedColleges);
     const locationsSet = new Set<string>(selectedLocations);
-
+    
     const resultData: UniversityEntry[] = [];
 
     data.forEach(item => {
+      // Data is sanitized and standardized here
       const stdLevel = standardizeLevel(item.level);
       const stdStream = standardizeStream(item.stream);
       const stdCourse = standardizeCourse(item.Course);
@@ -310,76 +401,102 @@ export default function CourseSearch() {
   const hasActiveFilters = selectedLevels.length > 0 || selectedStreams.length > 0 || selectedCourses.length > 0 || selectedUniversities.length > 0 || selectedColleges.length > 0 || selectedLocations.length > 0;
 
   return (
-    <div className="course-search-scope bg-body text-body">
+    <div style={{ background: BG, minHeight: "100vh", color: TEXT_MAIN, fontFamily: "'Manrope', sans-serif" }}>
+      <link href="https://fonts.googleapis.com/css2?family=Castoro+Titling&family=Rajdhani:wght@600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
       {/* ── VISUAL HERO BANNER (With embedded filters) ─────────────────────── */}
-      <div className="position-relative text-center px-3" style={{ padding: "110px 24px 80px" }}>
-        {/* Background Layer */}
-        <div className="position-absolute top-0 start-0 end-0 bottom-0 overflow-hidden" style={{ zIndex: 0 }}>
+      <div style={{
+        padding: "110px 24px 80px",
+        textAlign: "center",
+        position: "relative",
+      }}>
+        {/* Background Layer (Strictly Contained) */}
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, overflow: "hidden", zIndex: 0 }}>
           <video
             autoPlay
             muted
             loop
             playsInline
             poster="/students_hero.jpg"
-            className="position-absolute top-0 start-0 w-100 h-100"
-            style={{ objectFit: "cover" }}
+            style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover" }}
           >
             <source src="https://admin.studyinnepal.com/storage/videos/d47e6ef1-9380-4968-b9b3-5b0b3a9a6e81.mp4" type="video/mp4" />
           </video>
-          <div className="position-absolute top-0 start-0 end-0 bottom-0" style={{ background: "linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.5))" }} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(rgba(0, 0, 0, 0.7), rgba(0,0,0,0.5))" }} />
+          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 10% 20%, rgba(0, 0, 0, 0.15) 0%, transparent 40%)", pointerEvents: "none" }} />
         </div>
 
         {/* Hero Content Layer */}
-        <div className="position-relative mx-auto" style={{ maxWidth: 1040, zIndex: 5 }}>
-          <p className="text-warning fw-bold text-uppercase mb-2" style={{ fontSize: 11, letterSpacing: "0.28em" }}>
+        <div style={{ maxWidth: 1040, margin: "0 auto", position: "relative", zIndex: 5 }}>
+          <p style={{
+            fontFamily: "'Rajdhani', sans-serif", color: AMBER, fontSize: 11, fontWeight: 700, letterSpacing: "0.28em", textTransform: "uppercase", margin: "0 0 16px", textShadow: "0 2px 4px rgba(0,0,0,0.4)"
+          }}>
             Explore Academic Fields
           </p>
-          <h1 className="text-white fw-normal text-uppercase mb-4" style={{ fontSize: "calc(26px + 2.2vw)", letterSpacing: "0.06em", lineHeight: 1.15 }}>
-            Discover <span className="text-primary">Your Pathway</span> in Nepal
+          <h1 style={{
+            fontFamily: "'Castoro Titling', serif", color: SURFACE, fontSize: "calc(26px + 2.2vw)", fontWeight: 400, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 24px", lineHeight: 1.15, textShadow: "0 4px 12px rgba(0,0,0,0.5)"
+          }}>
+            Discover <span style={{ color: P }}>Your Pathway</span> in Nepal
           </h1>
-          <p className="text-white-50 mx-auto mb-4" style={{ fontSize: 14, lineHeight: 1.7, maxWidth: 620 }}>
+          <p style={{
+            color: "rgba(255,255,255,0.85)", fontSize: 14, lineHeight: 1.7, maxWidth: 620, margin: "0 auto 32px", textShadow: "0 2px 4px rgba(0,0,0,0.3)"
+          }}>
             Search registered universities, streams, specialized colleges, and find the perfect program that meets your academic goals.
           </p>
 
           {/* Search Bar */}
-          <div className="position-relative mx-auto mb-4" style={{ maxWidth: 640 }}>
-            <iconify-icon
-              icon="solar:magnifer-line-duotone"
-              className="position-absolute top-50 translate-middle-y text-primary fs-5"
-              style={{ left: 24 }}
-            />
+          <div style={{ position: "relative", maxWidth: 640, margin: "0 auto 24px" }}>
+            <SearchLargeIcon />
             <input
               type="text"
               placeholder="Search by course, stream, college, or keyword..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="form-control form-control-lg rounded-pill shadow"
-              style={{ paddingLeft: 54 }}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+              style={{
+                width: "100%", boxSizing: "border-box", background: SURFACE, border: `1.5px solid ${searchFocused ? P : "transparent"}`, borderRadius: 999, padding: "16px 24px 16px 54px", fontSize: 15, color: TEXT_MAIN, fontFamily: "'Manrope', sans-serif", outline: "none", boxShadow: searchFocused ? `0 12px 30px rgba(0, 140, 227, 0.2)` : "0 8px 30px rgba(0,0,0,0.2)", transition: "all 0.3s ease",
+              }}
             />
           </div>
 
-          {/* Horizontal Filters Section */}
-          <div className="d-flex flex-wrap align-items-center justify-content-center gap-2 pt-2">
-            <div className="d-flex align-items-center fw-bold text-uppercase text-white-50 me-1" style={{ fontSize: 13, letterSpacing: "0.1em" }}>
-              <iconify-icon icon="solar:filter-line-duotone" className="fs-6 me-1" />
-              Filters
+          {/* Horizontal Filters Section directly in Hero */}
+          <div style={{ 
+            display: "flex", 
+            flexWrap: "wrap", 
+            alignItems: "center", 
+            justifyContent: "center",
+            gap: 12, 
+            paddingTop: 12
+          }}>
+            <div style={{
+              display: "flex", alignItems: "center", fontSize: 13, fontWeight: 800, color: "rgba(255,255,255,0.85)", fontFamily: "'Rajdhani', sans-serif", textTransform: "uppercase", letterSpacing: "0.1em", marginRight: 4, textShadow: "0 2px 4px rgba(0,0,0,0.5)"
+            }}>
+              <FilterIcon /> Filters
             </div>
 
-            <DropdownFilter label="Academic Level" icon="solar:diploma-verified-line-duotone" options={filterOptions.levels} selected={selectedLevels} toggleOption={(v) => toggleFilter(selectedLevels, setSelectedLevels, v)} />
-            <DropdownFilter label="Stream / Field" icon="solar:widget-4-line-duotone" options={filterOptions.streams} selected={selectedStreams} toggleOption={(v) => toggleFilter(selectedStreams, setSelectedStreams, v)} />
-            <DropdownFilter label="Course" icon="solar:book-line-duotone" options={filterOptions.courses} selected={selectedCourses} toggleOption={(v) => toggleFilter(selectedCourses, setSelectedCourses, v)} />
-            <DropdownFilter label="Universities" icon="solar:library-line-duotone" options={filterOptions.universities} selected={selectedUniversities} toggleOption={(v) => toggleFilter(selectedUniversities, setSelectedUniversities, v)} />
-            <DropdownFilter label="Colleges" icon="solar:buildings-2-line-duotone" options={filterOptions.colleges} selected={selectedColleges} toggleOption={(v) => toggleFilter(selectedColleges, setSelectedColleges, v)} />
-            <DropdownFilter label="Location" icon="solar:map-point-line-duotone" options={filterOptions.locations} selected={selectedLocations} toggleOption={(v) => toggleFilter(selectedLocations, setSelectedLocations, v)} />
+            <DropdownFilter label="Academic Level" options={filterOptions.levels} selected={selectedLevels} toggleOption={(v) => toggleFilter(selectedLevels, setSelectedLevels, v)} />
+            <DropdownFilter label="Stream / Field" options={filterOptions.streams} selected={selectedStreams} toggleOption={(v) => toggleFilter(selectedStreams, setSelectedStreams, v)} />
+            <DropdownFilter label="Course" options={filterOptions.courses} selected={selectedCourses} toggleOption={(v) => toggleFilter(selectedCourses, setSelectedCourses, v)} />
+            <DropdownFilter label="Universities" options={filterOptions.universities} selected={selectedUniversities} toggleOption={(v) => toggleFilter(selectedUniversities, setSelectedUniversities, v)} />
+            <DropdownFilter label="Colleges" options={filterOptions.colleges} selected={selectedColleges} toggleOption={(v) => toggleFilter(selectedColleges, setSelectedColleges, v)} />
+            <DropdownFilter label="Location" options={filterOptions.locations} selected={selectedLocations} toggleOption={(v) => toggleFilter(selectedLocations, setSelectedLocations, v)} />
 
             {hasActiveFilters && (
               <button
-                type="button"
                 onClick={handleClearFilters}
-                className="btn btn-sm btn-outline-danger rounded-pill fw-bold text-uppercase px-3 py-2"
-                style={{ fontSize: 12, letterSpacing: "0.05em" }}
+                style={{
+                  background: "rgba(239, 68, 68, 0.15)", border: "1px solid rgba(239, 68, 68, 0.3)", color: "#fca5a5", backdropFilter: "blur(4px)", fontSize: 12, fontWeight: 700, fontFamily: "'Rajdhani', sans-serif", cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.05em", padding: "10px 18px", borderRadius: 999, transition: "all 0.2s"
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = "rgba(239, 68, 68, 0.25)";
+                  e.currentTarget.style.borderColor = "rgba(239, 68, 68, 0.5)";
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = "rgba(239, 68, 68, 0.15)";
+                  e.currentTarget.style.borderColor = "rgba(239, 68, 68, 0.3)";
+                }}
               >
-                <iconify-icon icon="solar:trash-bin-trash-line-duotone" className="fs-6 me-1" />
                 Clear Filters
               </button>
             )}
@@ -388,28 +505,26 @@ export default function CourseSearch() {
       </div>
 
       {/* ── MAIN CONTENT AREA ──────────────────────────────────────────────── */}
-      <div className="mx-auto" style={{ maxWidth: 1040, padding: "40px 24px 96px" }}>
+      <div style={{ maxWidth: 1040, margin: "0 auto", padding: "40px 24px 96px" }}>
 
         {/* Results Info Bar */}
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <div className="text-body-secondary" style={{ fontSize: 15 }}>
-            Showing <strong className="text-body">{filteredData.length}</strong> programs available
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <div style={{ fontSize: 15, color: TEXT_MUTED }}>
+            Showing <strong style={{ color: TEXT_MAIN }}>{filteredData.length}</strong> programs available
           </div>
         </div>
 
         {/* ── COURSE CARDS (SINGLE COLUMN) ── */}
         {loading ? (
-          <div className="bg-body-tertiary border rounded-4 text-center text-body-secondary py-5">
-            <iconify-icon icon="solar:refresh-line-duotone" className="fs-3 mb-2 d-block" />
+          <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 64, textAlign: "center", color: TEXT_MUTED }}>
             Searching directory listings...
           </div>
         ) : filteredData.length === 0 ? (
-          <div className="bg-body-tertiary border rounded-4 text-center text-body-secondary py-5">
-            <iconify-icon icon="solar:file-remove-line-duotone" className="fs-3 mb-2 d-block" />
+          <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 64, textAlign: "center", color: TEXT_MUTED }}>
             No matches found. Try adjusting your filter terms or keywords.
           </div>
         ) : (
-          <div className="d-flex flex-column gap-4">
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             {filteredData.map(item => {
               const stdLevel = standardizeLevel(item.level);
               const stdUni = standardizeName(item.University);
@@ -423,45 +538,86 @@ export default function CourseSearch() {
               const fallbackImage = getStreamImage(item.stream, item.id);
 
               return (
-                <div key={item.id} className="course-card-element card flex-row overflow-hidden shadow-sm">
+                <div
+                  key={item.id}
+                  className="course-card-element"
+                  style={{
+                    background: SURFACE,
+                    border: `1.5px solid ${BORDER}`,
+                    borderRadius: 16,
+                    display: "flex",
+                    overflow: "hidden",
+                    transition: "all 0.3s ease",
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.02)"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = P;
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow = "0 14px 30px rgba(0,0,0,0.06)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = BORDER;
+                    e.currentTarget.style.transform = "none";
+                    e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.02)";
+                  }}
+                >
                   {/* Left Column: Image */}
-                  <div
-                    className={`card-image-col position-relative flex-shrink-0 d-flex align-items-center justify-content-center border-end ${collegeLogo ? "bg-white" : "bg-body-tertiary"}`}
-                    style={{ width: 240 }}
-                  >
+                  <div className="card-image-col" style={{
+                    width: 240,
+                    position: "relative",
+                    overflow: "hidden",
+                    flexShrink: 0,
+                    background: collegeLogo ? "#ffffff" : "#E5E7EB",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRight: `1px solid ${BORDER}`
+                  }}>
                     <img
                       src={collegeLogo ?? fallbackImage}
                       alt={stdCol}
-                      className="w-100 h-100"
                       style={{
+                        width: "100%",
+                        height: "100%",
                         objectFit: collegeLogo ? "contain" : "cover",
                         padding: collegeLogo ? "24px" : "0",
+                        transition: "transform 0.5s ease",
                         boxSizing: "border-box",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!collegeLogo) e.currentTarget.style.transform = "scale(1.05)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = "scale(1.0)";
                       }}
                       onError={(e) => {
                         e.currentTarget.src = fallbackImage;
                         e.currentTarget.style.objectFit = "cover";
                         e.currentTarget.style.padding = "0";
+                        e.currentTarget.parentElement!.style.background = "#E5E7EB";
                       }}
                     />
-                    <span
-                      className="position-absolute bg-dark bg-opacity-75 text-white fw-bold text-uppercase rounded px-2 py-1"
-                      style={{ bottom: 12, left: 12, fontSize: 10, letterSpacing: "0.08em" }}
-                    >
+                    <div style={{
+                      position: "absolute", bottom: 12, left: 12, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)", color: "#ffffff", fontSize: 10, fontWeight: 700, fontFamily: "'Rajdhani', sans-serif", padding: "4px 8px", borderRadius: 4, letterSpacing: "0.08em", textTransform: "uppercase"
+                    }}>
                       {stdStream}
-                    </span>
+                    </div>
                   </div>
 
                   {/* Right Column: Content */}
-                  <div className="card-body d-flex flex-column justify-content-between px-4 py-4" style={{ minWidth: 0 }}>
-                    <div className="d-flex flex-column gap-2">
+                  <div style={{ padding: "28px 24px", flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between", minWidth: 0 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                       {/* Tags */}
-                      <div className="d-flex gap-2 flex-wrap">
-                        <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill text-uppercase fw-bold" style={{ fontSize: 9, letterSpacing: "0.12em" }}>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <span style={{
+                          background: `${AMBER}12`, color: AMBER, border: `1px solid ${AMBER}33`, fontSize: 9, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, letterSpacing: "0.12em", padding: "4px 10px", borderRadius: 999, textTransform: "uppercase"
+                        }}>
                           {stdLevel}
                         </span>
                         {item.Intake && (
-                          <span className="badge bg-body-secondary text-body-secondary border rounded-pill text-uppercase fw-bold" style={{ fontSize: 9, letterSpacing: "0.12em" }}>
+                          <span style={{
+                            background: "#F3F4F6", color: TEXT_MUTED, border: `1px solid #E5E7EB`, fontSize: 9, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, letterSpacing: "0.12em", padding: "4px 10px", borderRadius: 999, textTransform: "uppercase"
+                          }}>
                             Intake: {item.Intake}
                           </span>
                         )}
@@ -469,14 +625,16 @@ export default function CourseSearch() {
 
                       {/* Title & Meta */}
                       <div>
-                        <h2 className="fs-5 fw-bold mb-1">{stdCourse}</h2>
-                        <div className="d-flex flex-wrap align-items-center gap-3 text-body-secondary" style={{ fontSize: 13 }}>
-                          <span className="d-flex align-items-center gap-1">
-                            <iconify-icon icon="solar:buildings-2-line-duotone" />
+                        <h2 style={{ fontSize: 18, fontWeight: 700, color: TEXT_MAIN, margin: "0 0 6px", fontFamily: "'Manrope', sans-serif" }}>
+                          {stdCourse}
+                        </h2>
+                        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, fontSize: 13, color: TEXT_MUTED }}>
+                          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                            <BuildingIcon />
                             {stdCol}
                           </span>
-                          <span className="d-flex align-items-center gap-1">
-                            <iconify-icon icon="solar:map-point-line-duotone" />
+                          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                            <LocationIcon />
                             {stdLoc}
                           </span>
                         </div>
@@ -484,38 +642,53 @@ export default function CourseSearch() {
                     </div>
 
                     {/* Footer Row: Uni & Button */}
-                    <div className="d-flex align-items-center justify-content-between gap-2 border-top pt-3 mt-3">
-                      <div className="d-flex align-items-center gap-2" style={{ minWidth: 0 }}>
+                    <div style={{
+                      borderTop: `1px solid ${BORDER}`, paddingTop: 14, marginTop: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
                         {universityLogo ? (
                           <img
                             src={universityLogo}
                             alt={stdUni}
-                            className="rounded border bg-white flex-shrink-0 shadow-sm"
-                            style={{ width: 32, height: 32, objectFit: "contain", padding: 3 }}
+                            style={{ width: 32, height: 32, objectFit: "contain", borderRadius: 6, border: `1px solid ${BORDER}`, background: "#ffffff", padding: 3, flexShrink: 0, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}
                             onError={(e) => { e.currentTarget.style.display = "none"; }}
                           />
                         ) : (
-                          <div
-                            className="rounded border bg-primary-subtle text-primary d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
-                            style={{ width: 32, height: 32, fontSize: 11 }}
-                          >
+                          <div style={{
+                            width: 32, height: 32, borderRadius: 6, border: `1px solid ${BORDER}`, background: `${P}12`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: P, fontFamily: "'Rajdhani', sans-serif",
+                          }}>
                             {stdUni.charAt(0).toUpperCase()}
                           </div>
                         )}
-                        <div className="d-flex flex-column" style={{ minWidth: 0 }}>
-                          <span className="text-body-secondary text-uppercase fw-semibold" style={{ fontSize: 10, letterSpacing: "0.06em" }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
+                          <span style={{ fontSize: 10, fontWeight: 600, color: TEXT_LIGHT, textTransform: "uppercase", letterSpacing: "0.06em" }}>
                             Affiliated University
                           </span>
-                          <span className="fw-bold text-truncate" style={{ fontSize: 13 }} title={stdUni}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: TEXT_MAIN, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={stdUni}>
                             {stdUni}
                           </span>
                         </div>
                       </div>
 
-                      <a href="/student-inquiry" className="text-decoration-none flex-shrink-0">
-                        <button type="button" className="btn btn-primary btn-sm d-flex align-items-center gap-1 text-uppercase fw-bold" style={{ fontSize: 12, letterSpacing: "0.05em" }}>
+                      <a href={`/student-inquiry`} style={{ textDecoration: 'none' }}>
+                        <button
+                          style={{
+                            background: P, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8, fontSize: 12, fontWeight: 700, fontFamily: "'Rajdhani', sans-serif", textTransform: "uppercase", letterSpacing: "0.05em", cursor: "pointer", transition: "all 0.2s ease", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap"
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "#0072b8";
+                            e.currentTarget.style.transform = "scale(1.02)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = P;
+                            e.currentTarget.style.transform = "scale(1)";
+                          }}
+                        >
                           Inquire Now
-                          <iconify-icon icon="solar:arrow-right-line-duotone" />
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                          </svg>
                         </button>
                       </a>
                     </div>
@@ -527,37 +700,33 @@ export default function CourseSearch() {
         )}
       </div>
 
-      {/* Scoped layout-only CSS (colors/theme all come from Bootstrap) */}
+      {/* CSS Rules */}
       <style>{`
-        .course-search-scope .sidebar-nav-scroll {
-          scrollbar-width: thin;
-        }
-        .course-search-scope .sidebar-nav-scroll::-webkit-scrollbar {
+        /* Custom scrollbars for inner filter dropdowns */
+        .custom-scroll::-webkit-scrollbar {
           width: 5px;
         }
-        .course-search-scope .sidebar-nav-scroll::-webkit-scrollbar-thumb {
-          background: var(--bs-border-color);
+        .custom-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+          background: #d1d5db;
           border-radius: 10px;
         }
-
-        .course-search-scope .course-card-element {
-          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-        }
-        .course-search-scope .course-card-element:hover {
-          transform: translateY(-2px);
-          border-color: var(--bs-primary) !important;
-          box-shadow: 0 14px 30px rgba(0,0,0,0.12) !important;
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+          background: #9ca3af;
         }
 
+        /* Mobile View Adjustments */
         @media (max-width: 768px) {
-          .course-search-scope .course-card-element {
+          .course-card-element {
             flex-direction: column !important;
           }
-          .course-search-scope .card-image-col {
+          .card-image-col {
             width: 100% !important;
             height: 200px !important;
             border-right: none !important;
-            border-bottom: 1px solid var(--bs-border-color);
+            border-bottom: 1px solid #e5e7eb;
           }
         }
       `}</style>
