@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\CourseDetail;
-use App\Models\University;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
@@ -12,61 +11,47 @@ use Inertia\Response;
 class CourseDetailController extends Controller
 {
     /**
-     * Inertia page for /courses/{university}.
-     * `university` binds on its normal primary key — no uuid needed there.
-     * course_details.uuid is only relevant once a details row exists, and
-     * is passed down as data (courseDetail.uuid), not used for routing.
-     * Data is loaded server-side and passed as props — no client fetch.
+     * Listing page — /course-details. Useful for browsing/managing entries
+     * regardless of whether they've been linked to a universities row yet.
      */
-    public function show(University $university): Response
+    public function index(Request $request): Response
     {
-        $university->load('courseDetail');
+        $search = $request->query('search');
 
-        return Inertia::render('courses/show', [
-            'university' => [
-                'id'       => $university->id,
-                'name'     => $university->University,
-                'college'  => $university->College,
-                'course'   => $university->Course,
-                'stream'   => $university->stream,
-                'level'    => $university->level,
-                'intake'   => $university->Intake,
-                'location' => $university->Location,
-                'logoUrl'  => $university->university_logo_url,
-            ],
-            'courseDetail' => $university->courseDetail,
+        $courseDetails = CourseDetail::query()
+            ->when($search, function ($query, $search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('university_name', 'like', "%{$search}%")
+                        ->orWhere('college_name', 'like', "%{$search}%")
+                        ->orWhere('course_name', 'like', "%{$search}%");
+                });
+            })
+            ->orderByDesc('created_at')
+            ->paginate(20)
+            ->withQueryString();
+
+        return Inertia::render('course-details/index', [
+            'courseDetails' => $courseDetails,
+            'filters'       => ['search' => $search],
         ]);
     }
 
     /**
-     * Inertia edit-form page (courses/edit.tsx). The form itself saves via
-     * a plain fetch() POST to `store` below, not another Inertia visit —
-     * see the edit.tsx component.
+     * Standalone create form — no university lookup, just free-text
+     * University/College/Course fields plus the detail content.
      */
-    public function editPage(University $university): Response
+    public function create(): Response
     {
-        $university->load('courseDetail');
-
-        return Inertia::render('courses/edit', [
-            'university'   => $university,
-            'courseDetail' => $university->courseDetail,
-        ]);
+        return Inertia::render('course-details/create');
     }
 
-    /**
-     * Upsert — handles both first-time creation and subsequent edits, since
-     * course_details.university_id is unique (1:1). Called from the edit
-     * form's fetch(), not a full Inertia page visit. A fresh CourseDetail
-     * gets its own uuid automatically (see CourseDetail::booted()).
-     */
-    public function store(Request $request, University $university): JsonResponse
+    public function store(Request $request): JsonResponse
     {
-        $validated = $this->validated($request);
+        $validated = $this->validated($request, forCreate: true);
 
-        $courseDetail = CourseDetail::updateOrCreate(
-            ['university_id' => $university->id],
-            $validated
-        );
+        $courseDetail = CourseDetail::create($validated);
+        // Linking to a matching universities row (if one already exists)
+        // happens automatically in CourseDetail::booted()'s created hook.
 
         return response()->json([
             'message'      => 'Course details saved successfully.',
@@ -74,16 +59,41 @@ class CourseDetailController extends Controller
         ], 201);
     }
 
-    public function destroy(University $university): JsonResponse
+    /**
+     * Public detail page — /course-details/{courseDetail:uuid}.
+     * Works whether or not this row has been linked to a universities row.
+     */
+    public function show(CourseDetail $courseDetail): Response
     {
-        $deleted = CourseDetail::where('university_id', $university->id)->delete();
+        $courseDetail->load('university');
 
-        if (! $deleted) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No course details found for this course.',
-            ], 404);
-        }
+        return Inertia::render('course-details/show', [
+            'courseDetail' => $courseDetail,
+        ]);
+    }
+
+    public function edit(CourseDetail $courseDetail): Response
+    {
+        return Inertia::render('course-details/edit', [
+            'courseDetail' => $courseDetail,
+        ]);
+    }
+
+    public function update(Request $request, CourseDetail $courseDetail): JsonResponse
+    {
+        $validated = $this->validated($request, forCreate: false);
+
+        $courseDetail->update($validated);
+
+        return response()->json([
+            'message'      => 'Course details updated successfully.',
+            'courseDetail' => $courseDetail->fresh(),
+        ]);
+    }
+
+    public function destroy(CourseDetail $courseDetail): JsonResponse
+    {
+        $courseDetail->delete();
 
         return response()->json([
             'success' => true,
@@ -91,9 +101,15 @@ class CourseDetailController extends Controller
         ]);
     }
 
-    private function validated(Request $request): array
+    private function validated(Request $request, bool $forCreate): array
     {
+        $nameRules = $forCreate ? 'required|string|max:255' : 'sometimes|required|string|max:255';
+
         return $request->validate([
+            'university_name'                   => $nameRules,
+            'college_name'                       => $nameRules,
+            'course_name'                         => $nameRules,
+
             'summary'                          => 'nullable|string',
 
             'year_wise_modules'                 => 'nullable|array',
