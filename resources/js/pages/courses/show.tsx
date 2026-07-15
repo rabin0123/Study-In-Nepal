@@ -437,13 +437,12 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     content: '';
                     position: absolute;
                     inset: 0;
-                   background: linear-gradient(
-    135deg,
-    rgba(3, 105, 161, 0.7) 10%
-    rgba(2, 6, 23, 0.88) 45%,
-    
-    rgba(0, 0, 0, 0.92) 100%,
-);                    pointer-events: none;
+            background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.85) 0%,
+    rgba(15, 23, 42, 0.8) 50%,
+    rgba(3, 105, 161, 0.6) 100%
+);                 pointer-events: none;
                 }
 
                 /* Hero Top Left Container */
