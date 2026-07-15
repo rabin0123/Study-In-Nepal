@@ -31,7 +31,7 @@ function defaultYearFee(): YearFee[] {
 }
 
 // ---------------------------------------------------------------------------
-// 1. ComboboxInput — Searchable dropdown combined with text input
+// 1. ComboboxInput 
 // ---------------------------------------------------------------------------
 function ComboboxInput({
     placeholder, value, onChange, options, disabled, error
@@ -61,11 +61,8 @@ function ComboboxInput({
     }, [value]);
 
     return (
-        <div ref={wrapperRef} className="position-relative">
-            <div className="input-group shadow-sm rounded-2">
-                <span className="input-group-text bg-white border-end-0 text-muted ps-2 pe-2">
-                    <span className="iconify" data-icon="lucide:search" data-width="18"></span>
-                </span>
+        <div ref={wrapperRef} className="relative w-full">
+            <div className="relative">
                 <input
                     type="text"
                     placeholder={placeholder}
@@ -77,27 +74,24 @@ function ComboboxInput({
                         setIsOpen(true);
                     }}
                     onFocus={() => setIsOpen(true)}
-                    className={`form-control border-start-0 ps-0 ${error ? 'is-invalid border-danger' : ''}`}
+                    className={`block w-full pl-4 pr-10 py-3 border bg-gray-50 rounded-none sm:text-sm outline-none transition-colors ${
+                        error ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 focus:ring-[#008AE6] focus:border-[#008AE6]'
+                    } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                     autoComplete="off"
-                    style={{ boxShadow: 'none' }}
                 />
             </div>
             
             {isOpen && filteredOptions.length > 0 && !disabled && (
-                <ul
-                    className="dropdown-menu show w-100 p-2 mt-1 shadow border-0 rounded-2"
-                    style={{ maxHeight: 240, overflowY: 'auto', position: 'absolute', zIndex: 1000 }}
-                >
+                <ul className="absolute z-50 w-full mt-1 bg-white border border-gray-100 shadow-lg max-h-60 overflow-y-auto rounded-none">
                     {filteredOptions.map((opt, idx) => (
                         <li key={idx}>
-                            <a
-                                href="javascript:void(0)"
+                            <button
+                                type="button"
                                 onMouseDown={(e) => { e.preventDefault(); onChange(opt); setIsOpen(false); }}
-                                className="dropdown-item rounded py-1 d-flex align-items-center gap-2"
+                                className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#008AE6] transition-colors"
                             >
-                                <span className="iconify text-muted" data-icon="lucide:book" data-width="14"></span>
                                 {opt}
-                            </a>
+                            </button>
                         </li>
                     ))}
                 </ul>
@@ -107,7 +101,7 @@ function ComboboxInput({
 }
 
 // ---------------------------------------------------------------------------
-// 2. MultiSelect Dropdown — Checkbox dropdown
+// 2. MultiSelect Dropdown 
 // ---------------------------------------------------------------------------
 function MultiSelectDropdown({
     options, selectedKeys, onToggle, disabled, placeholder
@@ -136,51 +130,42 @@ function MultiSelectDropdown({
         : `${selectedKeys.length} institution(s) selected`;
 
     return (
-        <div ref={wrapperRef} className="position-relative">
-            <div 
-                className={`form-control shadow-sm d-flex justify-content-between align-items-center rounded-2 ${disabled ? 'bg-light text-muted border-light' : 'bg-white cursor-pointer'}`}
+        <div ref={wrapperRef} className="relative w-full">
+            <button
+                type="button"
+                className={`w-full flex justify-between items-center pl-4 pr-4 py-3 border rounded-none sm:text-sm outline-none transition-colors ${
+                    disabled ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gray-50 border-gray-200 hover:border-gray-300 text-gray-900 cursor-pointer'
+                }`}
                 onClick={() => !disabled && setIsOpen(!isOpen)}
-                style={{ cursor: disabled ? 'not-allowed' : 'pointer' }}
             >
-                <div className="d-flex align-items-center gap-2">
-                    <span className="iconify text-muted" data-icon="lucide:building-2" data-width="18"></span>
-                    <span>{displayText}</span>
-                </div>
-                <span className="iconify text-muted" data-icon={isOpen ? "lucide:chevron-up" : "lucide:chevron-down"} data-width="18"></span>
-            </div>
+                <span>{displayText}</span>
+                <span className="text-gray-400">▼</span>
+            </button>
             
             {isOpen && !disabled && (
-                <div 
-                    className="dropdown-menu show w-100 p-2 mt-1 shadow border-0 rounded-2"
-                    style={{ maxHeight: 280, overflowY: 'auto', position: 'absolute', zIndex: 1000 }}
-                >
+                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-100 shadow-lg max-h-72 overflow-y-auto rounded-none p-2">
                     {options.length === 0 ? (
-                        <div className="text-muted p-2 text-center small">
-                            <span className="iconify mb-1 opacity-50 d-block mx-auto" data-icon="lucide:inbox" data-width="20"></span>
-                            No institutions found.
-                        </div>
+                        <div className="text-gray-400 p-4 text-center text-sm">No institutions found.</div>
                     ) : (
                         options.map((opt) => (
                             <div 
                                 key={opt.key} 
-                                className="dropdown-item rounded px-2 py-2 mb-1 d-flex align-items-start gap-2"
+                                className="flex items-start gap-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
                                 onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
                                     onToggle(opt.key);
                                 }}
-                                style={{ cursor: 'pointer', whiteSpace: 'normal' }}
                             >
                                 <input 
                                     type="checkbox" 
-                                    className="form-check-input mt-1 flex-shrink-0" 
+                                    className="mt-1 h-4 w-4 text-[#008AE6] border-gray-300 rounded focus:ring-[#008AE6] cursor-pointer" 
                                     checked={selectedKeys.includes(opt.key)}
                                     readOnly 
-                                    style={{ cursor: 'pointer' }}
                                 />
-                                <div>
-                                    <div className="fw-medium text-wrap lh-sm mb-1 text-dark small">{opt.label}</div>
-                                    <div className="text-muted text-wrap lh-sm" style={{fontSize: '0.75rem'}}>{opt.subLabel}</div>
+                                <div className="flex-1">
+                                    <div className="text-sm font-medium text-gray-900">{opt.label}</div>
+                                    <div className="text-xs text-gray-500 mt-0.5">{opt.subLabel}</div>
                                 </div>
                             </div>
                         ))
@@ -192,9 +177,9 @@ function MultiSelectDropdown({
 }
 
 // ---------------------------------------------------------------------------
-// 3. Simple WYSIWYG Editor
+// 3. Advanced WYSIWYG Editor
 // ---------------------------------------------------------------------------
-function SimpleWysiwyg({ value, onChange, placeholder, error }: { value: string; onChange: (v: string) => void; placeholder?: string; error?: string; }) {
+function AdvancedWysiwyg({ value, onChange, placeholder, error }: { value: string; onChange: (v: string) => void; placeholder?: string; error?: string; }) {
     const editorRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -203,36 +188,59 @@ function SimpleWysiwyg({ value, onChange, placeholder, error }: { value: string;
         }
     }, [value]);
 
-    const exec = (cmd: string) => {
-        document.execCommand(cmd, false, undefined);
+    const exec = (cmd: string, arg?: string) => {
+        document.execCommand(cmd, false, arg);
         editorRef.current?.focus();
         if (editorRef.current) onChange(editorRef.current.innerHTML);
     };
 
     return (
-        <div className={`border rounded-2 shadow-sm bg-white overflow-hidden ${error ? 'border-danger' : 'border-light-subtle'}`}>
-            <div className="bg-light p-1 border-bottom d-flex gap-1">
-                <button type="button" className="btn btn-sm btn-white border bg-white shadow-sm px-2 text-dark" onClick={() => exec('bold')} title="Bold">
-                    <span className="iconify" data-icon="lucide:bold" data-width="16"></span>
+        <div className={`border bg-white overflow-hidden transition-colors ${error ? 'border-red-500' : 'border-gray-200'}`}>
+            <div className="bg-gray-50 px-3 py-2 border-b border-gray-200 flex flex-wrap gap-2 items-center">
+                
+                {/* Text Formatting */}
+                <select 
+                    onChange={(e) => exec('formatBlock', e.target.value)} 
+                    className="text-xs border border-gray-300 bg-white py-1 px-2 focus:outline-none focus:border-[#008AE6] text-gray-700 h-8"
+                    defaultValue="<P>"
+                >
+                    <option value="<P>">Paragraph</option>
+                    <option value="<H1>">Heading 1</option>
+                    <option value="<H2>">Heading 2</option>
+                </select>
+
+                <div className="w-px h-5 bg-gray-300 mx-1"></div>
+
+                <button type="button" className="w-8 h-8 flex items-center justify-center bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 font-serif font-bold text-sm" onClick={() => exec('bold')} title="Bold">B</button>
+                <button type="button" className="w-8 h-8 flex items-center justify-center bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 font-serif italic text-sm" onClick={() => exec('italic')} title="Italic">I</button>
+                
+                <div className="w-px h-5 bg-gray-300 mx-1"></div>
+
+                {/* Lists */}
+                <button type="button" className="px-2 h-8 flex items-center justify-center gap-1 bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 text-xs font-medium" onClick={() => exec('insertUnorderedList')} title="Bullet Points">
+                    • Bullets
                 </button>
-                <button type="button" className="btn btn-sm btn-white border bg-white shadow-sm px-2 text-dark" onClick={() => exec('italic')} title="Italic">
-                    <span className="iconify" data-icon="lucide:italic" data-width="16"></span>
-                </button>
-                <div className="vr mx-1 opacity-25"></div>
-                <button type="button" className="btn btn-sm btn-white border bg-white shadow-sm px-2 text-dark" onClick={() => exec('insertUnorderedList')} title="Bullet Points">
-                    <span className="iconify" data-icon="lucide:list" data-width="16"></span>
+                <button type="button" className="px-2 h-8 flex items-center justify-center gap-1 bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 text-xs font-medium" onClick={() => exec('insertOrderedList')} title="Numbered List">
+                    1. Numbers
                 </button>
             </div>
             <div
                 ref={editorRef}
-                className="p-3 bg-white editor-content small"
+                className="p-4 bg-white editor-content prose prose-sm max-w-none text-gray-700"
                 contentEditable
                 onInput={(e) => onChange(e.currentTarget.innerHTML)}
                 onBlur={(e) => onChange(e.currentTarget.innerHTML)}
-                style={{ minHeight: 120, outline: 'none' }}
+                style={{ minHeight: '150px', outline: 'none' }}
                 data-placeholder={placeholder}
             />
-            <style>{`.editor-content:empty:before { content: attr(data-placeholder); color: #adb5bd; pointer-events: none; display: block; }`}</style>
+            <style>{`
+                .editor-content:empty:before { content: attr(data-placeholder); color: #9ca3af; pointer-events: none; display: block; font-style: italic; }
+                .editor-content h1 { font-size: 1.5em; font-weight: bold; margin-bottom: 0.5em; font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif; }
+                .editor-content h2 { font-size: 1.25em; font-weight: bold; margin-bottom: 0.5em; font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif; }
+                .editor-content p { margin-bottom: 0.75em; }
+                .editor-content ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 0.75em; }
+                .editor-content ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 0.75em; }
+            `}</style>
         </div>
     );
 }
@@ -247,13 +255,12 @@ export default function CourseDetailsCreate() {
     const [summaryHtml, setSummaryHtml] = useState('');
     const [careersHtml, setCareersHtml] = useState('');
     
-    // Modules per institution
+    // Modules & Fees mapping
     const [yearModulesByInst, setYearModulesByInst] = useState<Record<string, YearModule[]>>({});
-    const [activeModuleTab, setActiveModuleTab] = useState<string | null>(null);
-
-    // Fees per institution
     const [feesByInst, setFeesByInst] = useState<Record<string, YearFee[]>>({});
-    const [activeFeeTab, setActiveFeeTab] = useState<string | null>(null);
+    
+    // Unified Tab Selection
+    const [activeTab, setActiveTab] = useState<string | null>(null);
 
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -298,79 +305,78 @@ export default function CourseDetailsCreate() {
         setSelectedInstKeys(prev => prev.filter(k => validKeys.includes(k)));
     }, [availableInstitutions]);
 
-    // Keep Modules and Fees in sync with selected institutions
+    // Initialize state structure for new institutions and manage active tab
     useEffect(() => {
         setYearModulesByInst((prev) => {
             const next: Record<string, YearModule[]> = {};
             selectedInstKeys.forEach((key) => { next[key] = prev[key] ?? defaultYearModules(); });
             return next;
         });
-        setActiveModuleTab((prevActive) => (prevActive && selectedInstKeys.includes(prevActive) ? prevActive : selectedInstKeys.length > 0 ? selectedInstKeys[0] : null));
-
         setFeesByInst((prev) => {
             const next: Record<string, YearFee[]> = {};
             selectedInstKeys.forEach((key) => { next[key] = prev[key] ?? defaultYearFee(); });
             return next;
         });
-        setActiveFeeTab((prevActive) => (prevActive && selectedInstKeys.includes(prevActive) ? prevActive : selectedInstKeys.length > 0 ? selectedInstKeys[0] : null));
+        
+        setActiveTab((prevActive) => (prevActive && selectedInstKeys.includes(prevActive) ? prevActive : selectedInstKeys.length > 0 ? selectedInstKeys[0] : null));
     }, [selectedInstKeys]);
 
     const toggleInstitution = (key: string) => setSelectedInstKeys((prev) => prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]);
 
     // -- Module Handlers --
     const addYear = () => {
-        if (!activeModuleTab) return;
-        setYearModulesByInst((prev) => ({ ...prev, [activeModuleTab]: [...prev[activeModuleTab], { year: nextYear(prev[activeModuleTab]), title: '', modules: [''] }] }));
+        if (!activeTab) return;
+        setYearModulesByInst((prev) => ({ ...prev, [activeTab]: [...prev[activeTab], { year: nextYear(prev[activeTab]), title: '', modules: [''] }] }));
     };
     const removeYear = (index: number) => {
-        if (!activeModuleTab) return;
-        setYearModulesByInst((prev) => ({ ...prev, [activeModuleTab]: prev[activeModuleTab].filter((_, i) => i !== index) }));
+        if (!activeTab) return;
+        setYearModulesByInst((prev) => ({ ...prev, [activeTab]: prev[activeTab].filter((_, i) => i !== index) }));
     };
     const updateYear = (index: number, patch: Partial<YearModule>) => {
-        if (!activeModuleTab) return;
-        setYearModulesByInst((prev) => ({ ...prev, [activeModuleTab]: prev[activeModuleTab].map((y, i) => (i === index ? { ...y, ...patch } : y)) }));
+        if (!activeTab) return;
+        setYearModulesByInst((prev) => ({ ...prev, [activeTab]: prev[activeTab].map((y, i) => (i === index ? { ...y, ...patch } : y)) }));
     };
     const addModuleLine = (yearIndex: number) => {
-        if (!activeModuleTab) return;
-        setYearModulesByInst((prev) => ({ ...prev, [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? { ...y, modules: [...y.modules, ''] } : y) }));
+        if (!activeTab) return;
+        setYearModulesByInst((prev) => ({ ...prev, [activeTab]: prev[activeTab].map((y, i) => i === yearIndex ? { ...y, modules: [...y.modules, ''] } : y) }));
     };
     const updateModuleLine = (yearIndex: number, moduleIndex: number, value: string) => {
-        if (!activeModuleTab) return;
-        setYearModulesByInst((prev) => ({ ...prev, [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? { ...y, modules: y.modules.map((m, mi) => (mi === moduleIndex ? value : m)) } : y) }));
+        if (!activeTab) return;
+        setYearModulesByInst((prev) => ({ ...prev, [activeTab]: prev[activeTab].map((y, i) => i === yearIndex ? { ...y, modules: y.modules.map((m, mi) => (mi === moduleIndex ? value : m)) } : y) }));
     };
     const removeModuleLine = (yearIndex: number, moduleIndex: number) => {
-        if (!activeModuleTab) return;
-        setYearModulesByInst((prev) => ({ ...prev, [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? { ...y, modules: y.modules.filter((_, mi) => mi !== moduleIndex) } : y) }));
+        if (!activeTab) return;
+        setYearModulesByInst((prev) => ({ ...prev, [activeTab]: prev[activeTab].map((y, i) => i === yearIndex ? { ...y, modules: y.modules.filter((_, mi) => mi !== moduleIndex) } : y) }));
     };
-    const copyToAllInstitutions = () => {
-        if (!activeModuleTab) return;
-        const source = yearModulesByInst[activeModuleTab];
+    const copyModulesToAll = () => {
+        if (!activeTab) return;
+        const source = yearModulesByInst[activeTab];
         setYearModulesByInst((prev) => {
             const next = { ...prev };
-            selectedInstKeys.forEach((key) => { if (key !== activeModuleTab) next[key] = JSON.parse(JSON.stringify(source)); });
+            selectedInstKeys.forEach((key) => { if (key !== activeTab) next[key] = JSON.parse(JSON.stringify(source)); });
             return next;
         });
     };
 
     // -- Fee Handlers --
     const addFeeYear = () => {
-        if (!activeFeeTab) return;
-        setFeesByInst((prev) => ({ ...prev, [activeFeeTab]: [...prev[activeFeeTab], { year: nextYear(prev[activeFeeTab]), amount: '', currency: '', note: '' }] }));
+        if (!activeTab) return;
+        setFeesByInst((prev) => ({ ...prev, [activeTab]: [...prev[activeTab], { year: nextYear(prev[activeTab]), amount: '', currency: '', note: '' }] }));
     };
     const removeFeeYear = (index: number) => {
-        if (!activeFeeTab) return;
-        setFeesByInst((prev) => ({ ...prev, [activeFeeTab]: prev[activeFeeTab].filter((_, i) => i !== index) }));
+        if (!activeTab) return;
+        setFeesByInst((prev) => ({ ...prev, [activeTab]: prev[activeTab].filter((_, i) => i !== index) }));
     };
     const updateFeeYear = (index: number, patch: Partial<YearFee>) => {
-        if (!activeFeeTab) return;
-        setFeesByInst((prev) => ({ ...prev, [activeFeeTab]: prev[activeFeeTab].map((f, i) => (i === index ? { ...f, ...patch } : f)) }));
+        if (!activeTab) return;
+        setFeesByInst((prev) => ({ ...prev, [activeTab]: prev[activeTab].map((f, i) => (i === index ? { ...f, ...patch } : f)) }));
     };
-    const copyFeesToAllInstitutions = () => {
-        if (!activeFeeTab) return;
-        const source = feesByInst[activeFeeTab];
+    const copyFeesToAll = () => {
+        if (!activeTab) return;
+        const source = feesByInst[activeTab];
         setFeesByInst((prev) => {
             const next = { ...prev };
-            selectedInstKeys.forEach((key) => { if (key !== activeFeeTab) next[key] = JSON.parse(JSON.stringify(source)); });
+            selectedInstKeys.forEach((key) => { if (key !== activeTab) next[key] = JSON.parse(JSON.stringify(source)); });
             return next;
         });
     };
@@ -399,7 +405,7 @@ export default function CourseDetailsCreate() {
             return { university_name: uni, college_name: col, year_wise_modules: cleanModules, fees: cleanFees };
         });
 
-        // Maintain global fees array just in case the backend still requires it at root level
+        // Global Fees mapping 
         const globalFees = selectedInstKeys.flatMap(key => {
             const [uni, col] = key.split('|||');
             return (feesByInst[key] ?? []).filter(f => f.year).map(f => ({
@@ -433,316 +439,252 @@ export default function CourseDetailsCreate() {
             .finally(() => setSaving(false));
     };
 
-    const activeYearModules = activeModuleTab ? (yearModulesByInst[activeModuleTab] ?? []) : [];
-    const activeYearFees = activeFeeTab ? (feesByInst[activeFeeTab] ?? []) : [];
+    const activeYearModules = activeTab ? (yearModulesByInst[activeTab] ?? []) : [];
+    const activeYearFees = activeTab ? (feesByInst[activeTab] ?? []) : [];
 
     return (
-        <div className="container-lg py-4">
-            <form onSubmit={handleSubmit} className="mx-auto" style={{ maxWidth: '850px' }}>
+        <div className="min-h-screen bg-[#fafafa] py-12 px-4 sm:px-6 lg:px-8 font-sans">
+            <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-10">
                 
                 {/* Header */}
-                <div className="d-flex align-items-center justify-content-between pb-3 mb-4 border-bottom">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b border-gray-200">
                     <div>
-                        <h4 className="mb-1 fw-bold text-dark d-flex align-items-center gap-2">
-                            <span className="iconify text-primary" data-icon="lucide:graduation-cap" data-width="24"></span>
+                        <h1 className="text-3xl sm:text-4xl font-serif text-gray-900 tracking-wide">
                             New Course Details
-                        </h4>
-                        <p className="mb-0 text-muted small">
+                        </h1>
+                        <p className="mt-2 text-sm text-gray-500">
                             Define a course once and securely link it to multiple colleges effortlessly.
                         </p>
                     </div>
-                    <button type="submit" className="btn btn-primary d-flex align-items-center gap-2 shadow-sm rounded-pill px-3" disabled={saving}>
-                        <span className={`iconify ${saving ? "spin" : ""}`} data-icon={saving ? "lucide:loader-2" : "lucide:save"} data-width="16"></span>
-                        <span className="fw-medium small">{saving ? 'Saving...' : 'Save details'}</span>
+                    <button type="submit" className="inline-flex items-center justify-center px-8 py-3 bg-[#008AE6] hover:bg-[#0071bf] text-white text-xs font-bold uppercase tracking-widest rounded-full shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#008AE6]" disabled={saving}>
+                        {saving ? 'Processing...' : 'Save Details'}
                     </button>
                 </div>
 
                 {savedMessage && (
-                    <div className="alert alert-success d-flex align-items-center gap-2 shadow-sm border-0 rounded-3 p-2 mb-4 small">
-                        <span className="iconify" data-icon="lucide:check-circle-2" data-width="18"></span>
-                        <span className="fw-medium">{savedMessage}</span>
+                    <div className="p-4 bg-green-50 border border-green-200 text-green-800 text-sm font-medium tracking-wide">
+                        {savedMessage}
                     </div>
                 )}
 
                 {/* 1. Course Selection */}
-                <div className="card border-0 shadow-sm mb-4 rounded-3">
-                    <div className="card-body p-3 p-md-4">
-                        <h6 className="fw-bold mb-1 text-dark d-flex align-items-center gap-2">
-                            <span className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" style={{width: 22, height: 22, fontSize: 11}}>1</span>
-                            Select Course
-                        </h6>
-                        <p className="text-muted small mb-3">Search or type a course to unlock the connected institutions.</p>
-                        
-                        <div className="row">
-                            <div className="col-md-8">
-                                <label className="form-label fw-semibold text-dark small">Course Name <span className="text-danger">*</span></label>
-                                <ComboboxInput
-                                    placeholder="e.g. BSc Computer Science..."
-                                    value={courseName}
-                                    onChange={setCourseName}
-                                    options={uniqueCourses}
-                                    error={errors.course_name}
-                                />
-                                {errors.course_name && <div className="text-danger small mt-1 d-flex align-items-center gap-1"><span className="iconify" data-icon="lucide:alert-circle" data-width="14"></span>{errors.course_name}</div>}
-                            </div>
-                        </div>
+                <div className="bg-white p-6 md:p-8 shadow-sm border border-gray-100">
+                    <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Step 1</h2>
+                    <h3 className="text-xl font-serif text-gray-900 mb-6">Select Course</h3>
+                    
+                    <div className="max-w-xl">
+                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-widest mb-2">Course Name <span className="text-red-500">*</span></label>
+                        <ComboboxInput
+                            placeholder="e.g. BSc Computer Science..."
+                            value={courseName}
+                            onChange={setCourseName}
+                            options={uniqueCourses}
+                            error={errors.course_name}
+                        />
+                        {errors.course_name && <p className="mt-2 text-xs text-red-500">{errors.course_name}</p>}
                     </div>
                 </div>
 
                 {/* 2. Colleges & Universities */}
-                <div className="card border-0 shadow-sm mb-4 rounded-3">
-                    <div className="card-body p-3 p-md-4">
-                        <h6 className="fw-bold mb-1 text-dark d-flex align-items-center gap-2">
-                            <span className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" style={{width: 22, height: 22, fontSize: 11}}>2</span>
-                            Select Institutions
-                        </h6>
-                        <p className="text-muted small mb-3">Check all the colleges this curriculum should apply to.</p>
-                        
-                        <div className="row">
-                            <div className="col-md-8">
-                                <label className="form-label fw-semibold text-dark small">Colleges / Universities <span className="text-danger">*</span></label>
-                                <MultiSelectDropdown 
-                                    options={availableInstitutions}
-                                    selectedKeys={selectedInstKeys}
-                                    onToggle={toggleInstitution}
-                                    disabled={!courseName || availableInstitutions.length === 0}
-                                    placeholder={!courseName ? "Waiting for course selection..." : "Select institutions..."}
-                                />
-                                {errors.institutions && <div className="text-danger small mt-1 d-flex align-items-center gap-1"><span className="iconify" data-icon="lucide:alert-circle" data-width="14"></span>{errors.institutions}</div>}
-                            </div>
-                        </div>
+                <div className="bg-white p-6 md:p-8 shadow-sm border border-gray-100">
+                    <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Step 2</h2>
+                    <h3 className="text-xl font-serif text-gray-900 mb-6">Select Institutions</h3>
+                    
+                    <div className="max-w-xl">
+                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-widest mb-2">Colleges / Universities <span className="text-red-500">*</span></label>
+                        <MultiSelectDropdown 
+                            options={availableInstitutions}
+                            selectedKeys={selectedInstKeys}
+                            onToggle={toggleInstitution}
+                            disabled={!courseName || availableInstitutions.length === 0}
+                            placeholder={!courseName ? "Waiting for course selection..." : "Select institutions..."}
+                        />
+                        {errors.institutions && <p className="mt-2 text-xs text-red-500">{errors.institutions}</p>}
                     </div>
                 </div>
 
                 {/* 3. Global Information */}
-                <div className="card border-0 shadow-sm mb-4 rounded-3">
-                    <div className="card-body p-3 p-md-4">
-                        <h6 className="fw-bold mb-1 text-dark d-flex align-items-center gap-2">
-                            <span className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" style={{width: 22, height: 22, fontSize: 11}}>3</span>
-                            Global Course Information
-                        </h6>
-                        <p className="text-muted small mb-3">This description applies globally to the course.</p>
-                        
-                        <div className="mb-3">
-                            <label className="form-label fw-semibold text-dark small d-flex align-items-center gap-1">
-                                <span className="iconify text-muted" data-icon="lucide:file-text" data-width="16"></span> Course Summary
-                            </label>
-                            <SimpleWysiwyg value={summaryHtml} onChange={setSummaryHtml} placeholder="Write an engaging overview..." error={errors.summary} />
+                <div className="bg-white p-6 md:p-8 shadow-sm border border-gray-100">
+                    <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Step 3</h2>
+                    <h3 className="text-xl font-serif text-gray-900 mb-6">Global Course Information</h3>
+                    
+                    <div className="space-y-6">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-700 uppercase tracking-widest mb-2">Course Summary</label>
+                            <AdvancedWysiwyg value={summaryHtml} onChange={setSummaryHtml} placeholder="Write an engaging overview..." error={errors.summary} />
                         </div>
 
                         <div>
-                            <label className="form-label fw-semibold text-dark small d-flex align-items-center gap-1">
-                                <span className="iconify text-muted" data-icon="lucide:briefcase" data-width="16"></span> Career Prospects
-                            </label>
-                            <SimpleWysiwyg value={careersHtml} onChange={setCareersHtml} placeholder="Highlight future job opportunities..." error={errors.careers_summary} />
+                            <label className="block text-xs font-bold text-gray-700 uppercase tracking-widest mb-2">Career Prospects</label>
+                            <AdvancedWysiwyg value={careersHtml} onChange={setCareersHtml} placeholder="Highlight future job opportunities..." error={errors.careers_summary} />
                         </div>
                     </div>
                 </div>
 
-                {/* 4. Course Modules */}
-                <div className="card border-0 shadow-sm mb-4 rounded-3">
-                    <div className="card-body p-3 p-md-4">
-                        <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-                            <div>
-                                <h6 className="fw-bold mb-1 text-dark d-flex align-items-center gap-2">
-                                    <span className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" style={{width: 22, height: 22, fontSize: 11}}>4</span>
-                                    Course Modules (Per Institution)
-                                </h6>
-                                <p className="text-muted small mb-0">Configure the syllabus independently for each selected college.</p>
-                            </div>
-                            
-                            {activeModuleTab && (
-                                <div className="d-flex gap-2">
-                                    {selectedInstKeys.length > 1 && (
-                                        <button type="button" className="btn btn-sm btn-light border shadow-sm d-flex align-items-center gap-1" onClick={copyToAllInstitutions} title="Copy to all">
-                                            <span className="iconify" data-icon="lucide:copy" data-width="14"></span> <span className="d-none d-sm-inline small">Apply to all</span>
-                                        </button>
-                                    )}
-                                    <button type="button" className="btn btn-sm btn-primary shadow-sm d-flex align-items-center gap-1" onClick={addYear}>
-                                        <span className="iconify" data-icon="lucide:plus" data-width="14"></span> Add Year
-                                    </button>
-                                </div>
-                            )}
+                {/* 4. Unified Institution Configuration (Modules + Fees) */}
+                <div className="bg-white p-6 md:p-8 shadow-sm border border-gray-100">
+                    <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Step 4</h2>
+                    <h3 className="text-xl font-serif text-gray-900 mb-6">Institution Configuration</h3>
+
+                    {selectedInstKeys.length === 0 ? (
+                        <div className="text-center p-8 bg-gray-50 border border-dashed border-gray-200 text-gray-400 text-sm tracking-wide">
+                            No institutions selected. Please select institutions in Step 2.
                         </div>
-
-                        {selectedInstKeys.length === 0 ? (
-                            <div className="text-muted p-4 border border-dashed rounded-3 bg-light text-center small">
-                                <span className="iconify opacity-25 mb-2 d-block mx-auto" data-icon="lucide:layers" data-width="32"></span>
-                                No institutions selected.
+                    ) : (
+                        <div>
+                            {/* Tabs Header */}
+                            <div className="flex gap-1 overflow-x-auto border-b border-gray-200 mb-8 pb-px no-scrollbar">
+                                {selectedInstKeys.map((key) => {
+                                    const info = institutionLookup.get(key);
+                                    const isActive = key === activeTab;
+                                    return (
+                                        <button 
+                                            key={key}
+                                            type="button" 
+                                            className={`flex-shrink-0 px-6 py-4 text-left transition-colors border-b-2 ${
+                                                isActive 
+                                                    ? 'border-[#008AE6] bg-[#008AE6]/5' 
+                                                    : 'border-transparent hover:bg-gray-50'
+                                            }`}
+                                            onClick={() => setActiveTab(key)}
+                                            style={{ minWidth: '200px' }}
+                                        >
+                                            <span className={`block text-xs font-bold uppercase tracking-widest truncate ${isActive ? 'text-[#008AE6]' : 'text-gray-700'}`}>
+                                                {info ? info.label : key}
+                                            </span>
+                                            <span className={`block text-[10px] mt-1 uppercase tracking-wider truncate ${isActive ? 'text-[#008AE6]/70' : 'text-gray-400'}`}>
+                                                {info?.subLabel}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
                             </div>
-                        ) : (
-                            <>
-                                <ul className="nav nav-pills mb-3 flex-nowrap overflow-auto pb-1 gap-2" style={{ scrollbarWidth: 'thin' }}>
-                                    {selectedInstKeys.map((key) => {
-                                        const info = institutionLookup.get(key);
-                                        const isActive = key === activeModuleTab;
-                                        return (
-                                            <li className="nav-item" key={key}>
-                                                <button type="button" className={`nav-link rounded-pill border px-3 py-1 text-start d-flex flex-column transition-all ${isActive ? 'active shadow-sm border-primary' : 'bg-white text-dark border-light-subtle hover-bg-light'}`} onClick={() => setActiveModuleTab(key)} style={{ minWidth: '150px' }}>
-                                                    <span className="fw-semibold d-block text-truncate small" style={{ maxWidth: '170px' }}>{info ? info.label : key}</span>
-                                                    <span className={`d-block text-truncate ${isActive ? 'text-white-50' : 'text-muted'}`} style={{ maxWidth: '170px', fontSize: '0.65rem' }}>{info?.subLabel}</span>
-                                                </button>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
 
-                                {activeYearModules.map((yearBlock, yearIndex) => (
-                                    <div key={yearIndex} className="card border border-light-subtle shadow-none rounded-3 mb-3">
-                                        <div className="card-header bg-light border-bottom p-2 px-3 d-flex align-items-center justify-content-between rounded-top-3">
-                                            <div className="fw-semibold text-dark small d-flex align-items-center gap-1">
-                                                <span className="iconify text-primary" data-icon="lucide:calendar" data-width="16"></span> Academic Year Set {yearIndex + 1}
-                                            </div>
-                                            {activeYearModules.length > 1 && (
-                                                <button type="button" className="btn btn-sm text-danger d-flex align-items-center gap-1 border-0 py-0" onClick={() => removeYear(yearIndex)}>
-                                                    <span className="iconify" data-icon="lucide:trash-2" data-width="14"></span>
+                            {/* Active Tab Content */}
+                            {activeTab && (
+                                <div className="space-y-12">
+                                    
+                                    {/* --- MODULES SECTION --- */}
+                                    <div>
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                                            <h4 className="text-lg font-serif text-gray-900">Course Modules</h4>
+                                            <div className="flex gap-2">
+                                                {selectedInstKeys.length > 1 && (
+                                                    <button type="button" className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-500 border border-gray-200 hover:bg-gray-50 transition-colors" onClick={copyModulesToAll}>
+                                                        Apply to all
+                                                    </button>
+                                                )}
+                                                <button type="button" className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white bg-[#008AE6] hover:bg-[#0071bf] transition-colors" onClick={addYear}>
+                                                    + Add Year
                                                 </button>
-                                            )}
-                                        </div>
-                                        <div className="card-body p-3">
-                                            <div className="row g-2 mb-3">
-                                                <div className="col-sm-3 col-md-2">
-                                                    <label className="form-label text-muted fw-semibold mb-1" style={{fontSize: '0.75rem'}}>Year Num</label>
-                                                    <input type="number" min={1} className="form-control form-control-sm" value={yearBlock.year} onChange={(e) => updateYear(yearIndex, { year: Number(e.target.value) || 1 })} />
-                                                </div>
-                                                <div className="col-sm-9 col-md-10">
-                                                    <label className="form-label text-muted fw-semibold mb-1" style={{fontSize: '0.75rem'}}>Year Title (Optional)</label>
-                                                    <input type="text" className="form-control form-control-sm" placeholder={`e.g. Year ${yearBlock.year} - Core Fundamentals`} value={yearBlock.title} onChange={(e) => updateYear(yearIndex, { title: e.target.value })} />
-                                                </div>
                                             </div>
-                                            
-                                            <div className="d-flex flex-column gap-2">
-                                                {yearBlock.modules.map((moduleValue, moduleIndex) => (
-                                                    <div key={moduleIndex} className="d-flex gap-2">
-                                                        <div className="input-group input-group-sm">
-                                                            <span className="input-group-text bg-light text-muted border-end-0">{moduleIndex + 1}.</span>
-                                                            <input type="text" className="form-control border-start-0 ps-0" placeholder="Module Name..." value={moduleValue} onChange={(e) => updateModuleLine(yearIndex, moduleIndex, e.target.value)} />
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            {activeYearModules.map((yearBlock, yearIndex) => (
+                                                <div key={yearIndex} className="border border-gray-200 bg-gray-50 p-4 sm:p-6">
+                                                    <div className="flex justify-between items-start mb-4 pb-4 border-b border-gray-200">
+                                                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-4 gap-4">
+                                                            <div className="sm:col-span-1">
+                                                                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Year</label>
+                                                                <input type="number" min={1} className="w-full px-3 py-2 text-sm border border-gray-200 bg-white focus:ring-[#008AE6] focus:border-[#008AE6] outline-none" value={yearBlock.year} onChange={(e) => updateYear(yearIndex, { year: Number(e.target.value) || 1 })} />
+                                                            </div>
+                                                            <div className="sm:col-span-3">
+                                                                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Year Title (Optional)</label>
+                                                                <input type="text" className="w-full px-3 py-2 text-sm border border-gray-200 bg-white focus:ring-[#008AE6] focus:border-[#008AE6] outline-none" placeholder={`e.g. Year ${yearBlock.year} - Core Fundamentals`} value={yearBlock.title} onChange={(e) => updateYear(yearIndex, { title: e.target.value })} />
+                                                            </div>
                                                         </div>
-                                                        {yearBlock.modules.length > 1 && (
-                                                            <button type="button" className="btn btn-sm btn-light border text-danger flex-shrink-0 px-2" onClick={() => removeModuleLine(yearIndex, moduleIndex)}><span className="iconify" data-icon="lucide:x" data-width="14"></span></button>
+                                                        {activeYearModules.length > 1 && (
+                                                            <button type="button" className="ml-4 mt-6 text-red-400 hover:text-red-600 font-bold text-xl leading-none" onClick={() => removeYear(yearIndex)} title="Remove Year">
+                                                                ×
+                                                            </button>
                                                         )}
                                                     </div>
-                                                ))}
-                                            </div>
-                                            <button type="button" className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 rounded-pill px-2 mt-2" style={{fontSize: '0.75rem'}} onClick={() => addModuleLine(yearIndex)}>
-                                                <span className="iconify" data-icon="lucide:plus" data-width="12"></span> Add Module Subject
-                                            </button>
+                                                    
+                                                    <div className="space-y-2">
+                                                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Subjects / Modules</label>
+                                                        {yearBlock.modules.map((moduleValue, moduleIndex) => (
+                                                            <div key={moduleIndex} className="flex gap-2">
+                                                                <div className="flex-1 flex bg-white border border-gray-200 focus-within:ring-1 focus-within:ring-[#008AE6] focus-within:border-[#008AE6]">
+                                                                    <span className="px-3 py-2 text-sm text-gray-400 bg-gray-50 border-r border-gray-200">{moduleIndex + 1}.</span>
+                                                                    <input type="text" className="w-full px-3 py-2 text-sm border-none bg-transparent outline-none" placeholder="Module Name..." value={moduleValue} onChange={(e) => updateModuleLine(yearIndex, moduleIndex, e.target.value)} />
+                                                                </div>
+                                                                {yearBlock.modules.length > 1 && (
+                                                                    <button type="button" className="px-3 py-2 border border-gray-200 bg-white text-red-400 hover:bg-gray-50 transition-colors text-lg leading-none" onClick={() => removeModuleLine(yearIndex, moduleIndex)}>
+                                                                        ×
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    <button type="button" className="mt-4 text-[10px] font-bold uppercase tracking-widest text-[#008AE6] hover:text-[#0071bf]" onClick={() => addModuleLine(yearIndex)}>
+                                                        + Add Subject
+                                                    </button>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
-                                ))}
-                            </>
-                        )}
-                    </div>
-                </div>
 
-                {/* 5. Fees */}
-                <div className="card border-0 shadow-sm mb-5 rounded-3">
-                    <div className="card-body p-3 p-md-4">
-                        <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-                            <div>
-                                <h6 className="fw-bold mb-1 text-dark d-flex align-items-center gap-2">
-                                    <span className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" style={{width: 22, height: 22, fontSize: 11}}>5</span>
-                                    Fee Structure (Per Institution)
-                                </h6>
-                                <p className="text-muted small mb-0">Outline the standard estimated tuition independently for each selected college.</p>
-                            </div>
-                            
-                            {activeFeeTab && (
-                                <div className="d-flex gap-2">
-                                    {selectedInstKeys.length > 1 && (
-                                        <button type="button" className="btn btn-sm btn-light border shadow-sm d-flex align-items-center gap-1" onClick={copyFeesToAllInstitutions} title="Copy to all">
-                                            <span className="iconify" data-icon="lucide:copy" data-width="14"></span> <span className="d-none d-sm-inline small">Apply to all</span>
-                                        </button>
-                                    )}
-                                    <button type="button" className="btn btn-sm btn-primary shadow-sm d-flex align-items-center gap-1" onClick={addFeeYear}>
-                                        <span className="iconify" data-icon="lucide:plus" data-width="14"></span> Add Fee Row
-                                    </button>
+                                    <div className="w-full h-px bg-gray-200"></div>
+
+                                    {/* --- FEES SECTION --- */}
+                                    <div>
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                                            <h4 className="text-lg font-serif text-gray-900">Fee Structure</h4>
+                                            <div className="flex gap-2">
+                                                {selectedInstKeys.length > 1 && (
+                                                    <button type="button" className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-500 border border-gray-200 hover:bg-gray-50 transition-colors" onClick={copyFeesToAll}>
+                                                        Apply to all
+                                                    </button>
+                                                )}
+                                                <button type="button" className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white bg-[#008AE6] hover:bg-[#0071bf] transition-colors" onClick={addFeeYear}>
+                                                    + Add Fee Row
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="border border-gray-200 bg-white p-4 sm:p-6 space-y-4">
+                                            {activeYearFees.map((fee, feeIndex) => (
+                                                <div key={feeIndex} className="flex flex-wrap sm:flex-nowrap gap-3 items-end pb-4 border-b border-gray-100 last:border-0 last:pb-0">
+                                                    <div className="w-20">
+                                                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Year</label>
+                                                        <input type="number" min={1} className="w-full px-3 py-2 text-sm border border-gray-200 bg-gray-50 focus:ring-[#008AE6] focus:border-[#008AE6] outline-none" value={fee.year} onChange={(e) => updateFeeYear(feeIndex, { year: Number(e.target.value) || 1 })} />
+                                                    </div>
+                                                    <div className="w-24">
+                                                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Currency</label>
+                                                        <input type="text" className="w-full px-3 py-2 text-sm border border-gray-200 bg-gray-50 focus:ring-[#008AE6] focus:border-[#008AE6] outline-none" placeholder="NPR/USD" value={fee.currency} onChange={(e) => updateFeeYear(feeIndex, { currency: e.target.value })} />
+                                                    </div>
+                                                    <div className="flex-1 min-w-[120px]">
+                                                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Amount</label>
+                                                        <input type="text" className="w-full px-3 py-2 text-sm border border-gray-200 bg-gray-50 focus:ring-[#008AE6] focus:border-[#008AE6] outline-none" placeholder="12,000" value={fee.amount} onChange={(e) => updateFeeYear(feeIndex, { amount: e.target.value })} />
+                                                    </div>
+                                                    <div className="flex-1 min-w-[150px]">
+                                                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Note (Optional)</label>
+                                                        <input type="text" className="w-full px-3 py-2 text-sm border border-gray-200 bg-gray-50 focus:ring-[#008AE6] focus:border-[#008AE6] outline-none" placeholder="e.g. Tuition fee" value={fee.note} onChange={(e) => updateFeeYear(feeIndex, { note: e.target.value })} />
+                                                    </div>
+                                                    
+                                                    {activeYearFees.length > 1 && (
+                                                        <button type="button" className="px-3 py-2 text-lg leading-none border border-gray-200 bg-white text-red-400 hover:bg-gray-50" onClick={() => removeFeeYear(feeIndex)}>
+                                                            ×
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    
                                 </div>
                             )}
                         </div>
-
-                        {selectedInstKeys.length === 0 ? (
-                            <div className="text-muted p-4 border border-dashed rounded-3 bg-light text-center small">
-                                <span className="iconify opacity-25 mb-2 d-block mx-auto" data-icon="lucide:coins" data-width="32"></span>
-                                No institutions selected.
-                            </div>
-                        ) : (
-                            <>
-                                <ul className="nav nav-pills mb-3 flex-nowrap overflow-auto pb-1 gap-2" style={{ scrollbarWidth: 'thin' }}>
-                                    {selectedInstKeys.map((key) => {
-                                        const info = institutionLookup.get(key);
-                                        const isActive = key === activeFeeTab;
-                                        return (
-                                            <li className="nav-item" key={key}>
-                                                <button type="button" className={`nav-link rounded-pill border px-3 py-1 text-start d-flex flex-column transition-all ${isActive ? 'active shadow-sm border-primary' : 'bg-white text-dark border-light-subtle hover-bg-light'}`} onClick={() => setActiveFeeTab(key)} style={{ minWidth: '150px' }}>
-                                                    <span className="fw-semibold d-block text-truncate small" style={{ maxWidth: '170px' }}>{info ? info.label : key}</span>
-                                                    <span className={`d-block text-truncate ${isActive ? 'text-white-50' : 'text-muted'}`} style={{ maxWidth: '170px', fontSize: '0.65rem' }}>{info?.subLabel}</span>
-                                                </button>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-
-                                <div className="bg-light p-3 rounded-3 border border-light-subtle">
-                                    {/* Indicator showing which institution's fees are being edited */}
-                                    {activeFeeTab && institutionLookup.has(activeFeeTab) && (
-                                        <div className="mb-3 d-flex align-items-center gap-2 text-primary bg-primary bg-opacity-10 px-3 py-2 rounded-2 small fw-medium">
-                                            <span className="iconify" data-icon="lucide:info" data-width="14"></span>
-                                            Editing fees for: {institutionLookup.get(activeFeeTab)?.label} ({institutionLookup.get(activeFeeTab)?.subLabel})
-                                        </div>
-                                    )}
-
-                                    {activeYearFees.map((fee, feeIndex) => (
-                                        <div key={feeIndex} className="row g-2 align-items-end mb-2 pb-2 border-bottom border-light-subtle last-no-border">
-                                            <div className="col-4 col-md-2">
-                                                <label className="form-label text-muted fw-semibold mb-1" style={{fontSize: '0.75rem'}}>Year</label>
-                                                <input type="number" min={1} className="form-control form-control-sm" value={fee.year} onChange={(e) => updateFeeYear(feeIndex, { year: Number(e.target.value) || 1 })} />
-                                            </div>
-                                            <div className="col-8 col-md-3">
-                                                <label className="form-label text-muted fw-semibold mb-1" style={{fontSize: '0.75rem'}}>Currency</label>
-                                                <div className="input-group input-group-sm">
-                                                    <span className="input-group-text bg-white px-2"><span className="iconify text-muted" data-icon="lucide:coins" data-width="14"></span></span>
-                                                    <input type="text" className="form-control ps-1" placeholder="NPR/USD" value={fee.currency} onChange={(e) => updateFeeYear(feeIndex, { currency: e.target.value })} />
-                                                </div>
-                                            </div>
-                                            <div className="col-12 col-md-3">
-                                                <label className="form-label text-muted fw-semibold mb-1" style={{fontSize: '0.75rem'}}>Amount</label>
-                                                <input type="text" className="form-control form-control-sm" placeholder="12,000" value={fee.amount} onChange={(e) => updateFeeYear(feeIndex, { amount: e.target.value })} />
-                                            </div>
-                                            <div className="col">
-                                                <label className="form-label text-muted fw-semibold mb-1" style={{fontSize: '0.75rem'}}>Note</label>
-                                                <input type="text" className="form-control form-control-sm" placeholder="Tuition" value={fee.note} onChange={(e) => updateFeeYear(feeIndex, { note: e.target.value })} />
-                                            </div>
-                                            <div className="col-auto">
-                                                {activeYearFees.length > 1 ? (
-                                                    <button type="button" className="btn btn-sm btn-light border text-danger px-2 shadow-sm" onClick={() => removeFeeYear(feeIndex)}>
-                                                        <span className="iconify" data-icon="lucide:trash-2" data-width="14"></span>
-                                                    </button>
-                                                ) : (
-                                                    <div style={{width: '32px'}} />
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </>
-                        )}
-                    </div>
+                    )}
                 </div>
 
-                <div className="d-flex justify-content-end pb-5 pt-2">
-                    <button type="submit" className="btn btn-primary px-4 py-2 shadow-sm d-flex align-items-center gap-2 rounded-pill" disabled={saving}>
-                        <span className={`iconify ${saving ? "spin" : ""}`} data-icon={saving ? "lucide:loader-2" : "lucide:check-circle"} data-width="18"></span>
-                        <span className="fw-medium small">{saving ? 'Processing...' : 'Save All Details'}</span>
+                {/* Footer Action */}
+                <div className="flex justify-end pt-4 pb-12">
+                    <button type="submit" className="inline-flex items-center justify-center px-8 py-4 bg-[#008AE6] hover:bg-[#0071bf] text-white text-sm font-bold uppercase tracking-widest rounded-full shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#008AE6]" disabled={saving}>
+                        {saving ? 'Processing...' : 'Save All Details'}
                     </button>
                 </div>
-
-                <style>{`
-                    .last-no-border:last-child { border-bottom: none !important; margin-bottom: 0 !important; padding-bottom: 0 !important; }
-                    .hover-bg-light:hover { background-color: #f8f9fa !important; }
-                    .spin { animation: spin 1s linear infinite; }
-                    @keyframes spin { 100% { transform: rotate(360deg); } }
-                `}</style>
             </form>
         </div>
     );
