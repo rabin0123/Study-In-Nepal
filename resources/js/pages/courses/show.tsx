@@ -422,7 +422,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     content: '';
                     position: absolute;
                     inset: 0;
-                    /* Linear gradient for the HERO SECTION -> Dark left to Blue right */
+                    /* NEW: Linear gradient for the HERO SECTION -> Dark left to Blue right */
                     background: linear-gradient(90deg, rgba(0, 0, 0, 0.9) 0%, rgba(3, 105, 161, 0.6) 100%);
                     pointer-events: none;
                 }
@@ -495,23 +495,20 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     padding-bottom: 4px;
                 }
 
-                /* BANNER INFO UPDATED: Premium dark slate to deep blue glass effect */
+                /* REVERTED: Original Sky Blue gradient for the info banner */
                 .gcu-banner-info {
                     position: relative;
                     z-index: 20;
-                    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(7, 89, 133, 0.95) 100%);
-                    backdrop-filter: blur(10px);
-                    -webkit-backdrop-filter: blur(10px);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    background: linear-gradient(135deg, var(--color-skyblue-dark) 0%, var(--color-skyblue) 100%);
                     color: var(--color-white);
                     padding: 40px;
                     margin-bottom: -50px;
-                    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-                    border-radius: 12px;
+                    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+                    border-radius: 4px;
                 }
                 .gcu-banner-info__award {
                     display: inline-block;
-                    background: rgba(255, 255, 255, 0.15);
+                    background: rgba(255, 255, 255, 0.2);
                     padding: 4px 12px;
                     border-radius: 3px;
                     font-size: 0.75rem;
