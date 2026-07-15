@@ -49,6 +49,8 @@ interface StudentApplication {
   creator?: CreatorUser | null;
   assigned_to?: number | null;
   assigned_agent?: AssignedAgent | null;
+  comments?: ApplicationComment[];
+  activities?: ActivityLog[];
 }
 
 interface StatusOption {
@@ -163,15 +165,6 @@ function formatDateTime(iso: string) {
   }
 }
 
-function initialsFromName(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((n) => n[0]?.toUpperCase())
-    .join("");
-}
-
 function Card({
   children,
   className = "",
@@ -281,6 +274,47 @@ export default function StudentApplicationDetail({ application: initialApplicati
     }, 3500);
   };
 
+  const fetchApplicationDetails = async (id: string, active: boolean = true, showLoader: boolean = true) => {
+    try {
+      if (showLoader) {
+        setLoadingStudent(true);
+        setLoadingComments(true);
+        setLoadingStatuses(true);
+        setLoadingActivities(true);
+      }
+      const res = await fetch(`/api/agent/applications/${id}`, {
+        headers: { Accept: "application/json" },
+      });
+      if (!res.ok) throw new Error("Failed to load application details.");
+      const body = await res.json();
+
+      if (active && body.data) {
+        setStudent(body.data);
+        setPhoneValue(body.data.phone_number);
+        setStatusValue(body.data.status || "");
+        setAssigneeValue(body.data.assigned_to ? String(body.data.assigned_to) : "");
+        setComments(body.data.comments || []);
+        setActivities(body.data.activities || []);
+      }
+      if (active) {
+        setCanManageAssignment(Boolean(body.can_manage_assignment));
+        setStatusOptions(body.statuses || []);
+      }
+      if (active && Array.isArray(body.assignable_users)) {
+        setAssignableUsers(body.assignable_users);
+      }
+    } catch (e) {
+      console.error("Error loading application profile:", e);
+    } finally {
+      if (active) {
+        setLoadingStudent(false);
+        setLoadingComments(false);
+        setLoadingStatuses(false);
+        setLoadingActivities(false);
+      }
+    }
+  };
+
   useEffect(() => {
     const segments = window.location.pathname.split('/').filter(Boolean);
     const id = segments[segments.length - 1];
@@ -291,60 +325,10 @@ export default function StudentApplicationDetail({ application: initialApplicati
     }
 
     let active = true;
-    (async () => {
-      try {
-        setLoadingStudent(true);
-        const res = await fetch(`/api/agent/applications/${id}`, {
-          headers: { Accept: "application/json" },
-        });
-        if (!res.ok) throw new Error("Failed to load application data.");
-        const body = await res.json();
-
-        if (active && body.data) {
-          setStudent(body.data);
-          setPhoneValue(body.data.phone_number);
-          setStatusValue(body.data.status || "");
-          setAssigneeValue(body.data.assigned_to ? String(body.data.assigned_to) : "");
-        }
-        if (active) {
-          setCanManageAssignment(Boolean(body.can_manage_assignment));
-        }
-        if (active && Array.isArray(body.assignable_users)) {
-          setAssignableUsers(body.assignable_users);
-        }
-      } catch (e) {
-        console.error("Error loading application profile:", e);
-      } finally {
-        if (active) setLoadingStudent(false);
-      }
-    })();
+    fetchApplicationDetails(id, active, true);
 
     return () => { active = false; };
   }, [initialApplication]);
-
-  const fetchActivityLogs = async () => {
-    if (!student?.id) return;
-    try {
-      setLoadingActivities(true);
-      const res = await fetch(`/api/agent/applications/${student.id}/activities`, {
-        headers: { Accept: "application/json" },
-      });
-      const body = await res.json();
-      if (body.success && body.data) {
-        setActivities(body.data);
-      }
-    } catch (err) {
-      console.error("Failed to load activities stream:", err);
-    } finally {
-      setLoadingActivities(false);
-    }
-  };
-
-  useEffect(() => {
-    if (student?.id) {
-      fetchActivityLogs();
-    }
-  }, [student?.id]);
 
   useEffect(() => {
     let active = true;
@@ -366,50 +350,6 @@ export default function StudentApplicationDetail({ application: initialApplicati
     })();
     return () => { active = false; };
   }, []);
-
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        setLoadingStatuses(true);
-        const res = await fetch(`/api/agent/application-statuses`, {
-          headers: { Accept: "application/json" },
-        });
-        if (!res.ok) throw new Error("Failed to load statuses.");
-        const body = await res.json();
-        const list: StatusOption[] = Array.isArray(body?.data) ? body.data : Array.isArray(body) ? body : [];
-        if (active && list.length > 0) {
-          setStatusOptions(list);
-        }
-      } catch (e) {
-        console.error("Error loading status options, using fallback list:", e);
-      } finally {
-        if (active) setLoadingStatuses(false);
-      }
-    })();
-    return () => { active = false; };
-  }, []);
-
-  useEffect(() => {
-    if (!student?.id) return;
-    let active = true;
-    (async () => {
-      try {
-        setLoadingComments(true);
-        const res = await fetch(`/api/agent/applications/${student.id}/comments`, {
-          headers: { Accept: "application/json" },
-        });
-        if (!res.ok) throw new Error("Failed to load remarks.");
-        const body = await res.json();
-        if (active) setComments(Array.isArray(body.data) ? body.data : []);
-      } catch (e) {
-        console.error("Error loading remarks:", e);
-      } finally {
-        if (active) setLoadingComments(false);
-      }
-    })();
-    return () => { active = false; };
-  }, [student?.id]);
 
   useEffect(() => {
     if (!leftColumnRef.current) return;
@@ -514,12 +454,10 @@ export default function StudentApplicationDetail({ application: initialApplicati
 
       const body = await res.json();
       if (res.ok && body.success) {
-        setStudent(body.data);
-        setPhoneValue(body.data.phone_number);
         setLocalErrors({});
         setEditingField(null);
         showToast(`${label} updated.`);
-        fetchActivityLogs();
+        fetchApplicationDetails(String(student.id), true, false);
       } else {
         if (res.status === 422 && body.errors) {
           const mappedErrors: Record<string, string> = {};
@@ -567,10 +505,9 @@ export default function StudentApplicationDetail({ application: initialApplicati
 
       const body = await res.json();
       if (res.ok && body.success) {
-        setStudent(body.data);
         setEditingField(null);
         showToast(`${label} updated.`);
-        fetchActivityLogs();
+        fetchApplicationDetails(String(student.id), true, false);
       } else {
         console.error("Failed to sync academic configuration properties.");
       }
@@ -603,11 +540,9 @@ export default function StudentApplicationDetail({ application: initialApplicati
 
       const body = await res.json();
       if (res.ok && body.success) {
-        setStudent(body.data);
-        setStatusValue(body.data.status);
         setEditingStatus(false);
         showToast(`Status updated to "${getStatusMeta(body.data.status).label}".`);
-        fetchActivityLogs();
+        fetchApplicationDetails(String(student.id), true, false);
       } else {
         showToast("Failed to update status.");
       }
@@ -643,11 +578,9 @@ export default function StudentApplicationDetail({ application: initialApplicati
 
       const body = await res.json();
       if (res.ok && body.success) {
-        setStudent(body.data);
-        setAssigneeValue(body.data.assigned_to ? String(body.data.assigned_to) : "");
         setEditingAssignee(false);
         showToast(body.message || "Application reassigned.");
-        fetchActivityLogs();
+        fetchApplicationDetails(String(student.id), true, false);
       } else {
         showToast(body.message || "Failed to reassign application.");
       }
@@ -678,10 +611,9 @@ export default function StudentApplicationDetail({ application: initialApplicati
 
       const body = await res.json();
       if (res.ok && body.success && body.data) {
-        setComments((prev) => [...prev, body.data]);
         setNewComment("");
         showToast("Remark added successfully.");
-        fetchActivityLogs();
+        fetchApplicationDetails(String(student.id), true, false);
       } else if (res.status === 422 && body.errors) {
         setCommentError(body.errors.comment?.[0] || "Please check your entry.");
       } else {
