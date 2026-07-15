@@ -4,6 +4,7 @@ use App\Http\Controllers\UniversityApiControler;
 use App\Http\Controllers\AgencySurveyApiController;
 use App\Http\Controllers\InstitutionalSurveyController;
 use App\Http\Controllers\StudentApplicationApiController;
+use App\Http\Controllers\CourseDetailController;
 use App\Http\Controllers\SurveyApiController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\PermissionController;
