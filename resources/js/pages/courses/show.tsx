@@ -72,7 +72,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                 {courseDetail.university_name.slice(0, 1).toUpperCase()}
                             </span>
                         )}
-                        <span className="gcu-top-nav__name">{courseDetail.university_name}</span>
+                        
                     </div>
                 </div>
             </header>
