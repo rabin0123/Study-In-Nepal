@@ -23,7 +23,7 @@
                 }
             })();
         </script>
-        <script src="https://code.iconify.design/iconify-icon/3.1.1/iconify-icon.min.js"></script>
+        <script src="https://code.iconify.design/iconify-icon/2.3.0/iconify-icon.min.js"></script>
 
         {{-- Inline style to set the HTML background color based on our theme in app.css --}}
         <style>
@@ -77,6 +77,6 @@
         <script src="/assets/js/theme/theme.js"></script>
         <script src="/assets/js/theme/app.min.js"></script>
         <script src="/assets/js/theme/sidebarmenu-default.js"></script>
-        <script src="https://code.iconify.design/iconify-icon/3.1.1/iconify-icon.min.js"></script>
+        <script src="https://code.iconify.design/iconify-icon/2.3.0/iconify-icon.min.js"></script>
     </body>
 </html>
