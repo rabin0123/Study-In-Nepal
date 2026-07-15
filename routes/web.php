@@ -28,6 +28,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('/online/survey', 'survey/survey')->name('survey');
     Route::inertia('/agency/survey', 'survey/agent/agencysurveyindex')->name('agencysurveyindex');
    
+Route::get('/courses/{university}', [CourseDetailController::class, 'show'])
+    ->name('courses.show');
     Route::inertia('/survey', 'survey/surveyindex')->name('surveyindex');
     Route::inertia('/institutional-survey', 'survey/institutional/InstitutionalSurveyIndex');
 
@@ -141,9 +143,6 @@ Route::put('/agent/applications/{application}/assign', [StudentApplicationApiCon
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
 
-
-    Route::get('/courses/{university}', [CourseDetailController::class, 'show'])
-    ->name('courses.show');
 
 // Admin/editor page — renders the Inertia edit form (courses/edit.tsx).
 Route::get('/courses/{university}/edit', [CourseDetailController::class, 'editPage'])
