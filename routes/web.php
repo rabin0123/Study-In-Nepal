@@ -38,7 +38,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('/commissions', 'commission/commissionindex')->name('commissionindex');
     Route::inertia('/commission', 'commission/commissionstructure')->name('commissionstructure');
     Route::inertia('/roles/create', 'roles/RoleCreatePage')->name('RolesCreatePage');
-
+    Route::inertia('courses', 'courses/coursesearch')->name('courses');
     Route::put('/users/{user}/profile-field', [ProfileController::class, 'updateField']);
     Route::get('users', [UserApiController::class, 'index'])->name('users.index');
     Route::patch('/users/{user}/toggle-status', [UserApiController::class, 'toggleStatus'])->name('users.toggle-status');
