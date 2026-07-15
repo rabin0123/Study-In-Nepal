@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('student_applications', function (Blueprint $table) {
     $table->uuid('id')->primary();
+    $table->string('original_app_id')->nullable();
     $table->string('app_id')->unique(); 
     $table->foreignId('created_by')
         ->constrained('users')
@@ -47,6 +48,7 @@ return new class extends Migration
     $table->foreignId('assigned_to')->nullable()
         ->constrained('users')->nullOnDelete();
     $table->index('passport_number');
+    $table->index('original_app_id');
 });
     }
 
