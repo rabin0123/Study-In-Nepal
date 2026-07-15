@@ -57,24 +57,24 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
     };
 
     return (
+
         <div className="gcu-page bg-circle">
             <Head title={`${courseDetail.course_name} | ${courseDetail.university_name}`} />
 
-            {/* Header Utility Logo Bar */}
-            <header className="gcu-top-nav">
-                <div className="gcu-top-nav__wrap">
-                    <div className="gcu-top-nav__logo">
-                        {courseDetail.university?.university_logo_url ? (
-                            <img src={courseDetail.university.university_logo_url} alt={courseDetail.university_name} />
-                        ) : (
-                            <span className="gcu-top-nav__logo-fallback">
-                                {courseDetail.university_name.slice(0, 1).toUpperCase()}
-                            </span>
-                        )}
-                        <span className="gcu-top-nav__name">{courseDetail.university_name}</span>
-                    </div>
-                </div>
-            </header>
+            {/* Breadcrumbs */}
+                <nav aria-label="Breadcrumb" className="gcu-breadcrumb">
+                    <ol className="gcu-breadcrumb__order">
+                        <li className="gcu-breadcrumb__item">
+                            <span className="gcu-breadcrumb__link">{courseDetail.university_name}</span>
+                        </li>
+                        <li className="gcu-breadcrumb__item">
+                            <span className="gcu-breadcrumb__link">{courseDetail.college_name}</span>
+                        </li>
+                        <li className="gcu-breadcrumb__item">
+                            <span className="gcu-breadcrumb__current" aria-current="page">{courseDetail.course_name}</span>
+                        </li>
+                    </ol>
+                </nav>
 
             {/* GCU Full-Bleed Image Background with Overlapping Course Banner Card */}
             <div className="gcu-header-section">
