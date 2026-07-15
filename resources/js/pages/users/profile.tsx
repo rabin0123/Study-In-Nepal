@@ -282,7 +282,7 @@ export default function Profile({ user, status, canEdit, isSelf, canVerify = fal
 
     return (
         <div className="min-vh-100 font-['Rajdhani']" style={{ background: "var(--surface-bg)" }}>
-            <Head title={isSelf ? 'My Profile' : `${localUser.name} - Profile`} />
+            <Head title={isSelf ? 'My ' : `${localUser.name} - Profile`} />
 
             <style>
                 {`
