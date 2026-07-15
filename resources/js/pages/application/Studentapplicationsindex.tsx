@@ -92,6 +92,7 @@ export default function StudentApplicationsIndex() {
   const canView = auth?.permissions?.includes('view.application');
   const canCreate = auth?.permissions?.includes('create.application');
   const canExport = auth?.permissions?.includes('export.application');
+  const canDownload = auth?.permissions?.includes('download.application');
 
   useEffect(() => {
     // If the user doesn't have permission to view, don't even fetch
@@ -135,7 +136,8 @@ export default function StudentApplicationsIndex() {
     const q = search.trim().toLowerCase();
     return applications.filter((a) => {
       if (countryFilter && a.country !== countryFilter) return false;
-      if (agencyFilter && a.agency_name !== agencyFilter) return false;
+      // If user cannot download/view agency, disregard active agency filter
+      if (canDownload && agencyFilter && a.agency_name !== agencyFilter) return false;
       if (!q) return true;
 
       // Safely convert all fields to string to handle numerical values or nulls smoothly
@@ -152,10 +154,10 @@ export default function StudentApplicationsIndex() {
         email.includes(q) ||
         passportNumber.includes(q) ||
         universityName.includes(q) ||
-        agencyName.includes(q)
+        (canDownload && agencyName.includes(q))
       );
     });
-  }, [applications, search, countryFilter, agencyFilter]);
+  }, [applications, search, countryFilter, agencyFilter, canDownload]);
 
   const clearFilters = () => {
     setSearch(""); setCountryFilter(""); setAgencyFilter("");
@@ -461,15 +463,18 @@ export default function StudentApplicationsIndex() {
               {countries.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
 
-            <select
-              value={agencyFilter}
-              onChange={(e) => setAgencyFilter(e.target.value)}
-              className="form-select"
-              style={{ maxWidth: 200 }}
-            >
-              <option value="">All Agencies</option>
-              {agencies.map((a) => <option key={a} value={a}>{a}</option>)}
-            </select>
+            {/* Conditionally show Agency Filter Dropdown */}
+            {canDownload && (
+              <select
+                value={agencyFilter}
+                onChange={(e) => setAgencyFilter(e.target.value)}
+                className="form-select"
+                style={{ maxWidth: 200 }}
+              >
+                <option value="">All Agencies</option>
+                {agencies.map((a) => <option key={a} value={a}>{a}</option>)}
+              </select>
+            )}
 
             {(search || countryFilter || agencyFilter) && (
               <button
@@ -512,12 +517,12 @@ export default function StudentApplicationsIndex() {
                 >
                   <colgroup>
                     <col style={{ width: '4%' }} />
-                    <col style={{ width: '22%' }} />
-                    <col style={{ width: '12%' }} />
-                    <col style={{ width: '28%' }} />
-                    <col style={{ width: '11%' }} />
-                    <col style={{ width: '11%' }} />
-                    <col style={{ width: '12%' }} />
+                    <col style={{ width: canDownload ? '22%' : '25%' }} />
+                    <col style={{ width: canDownload ? '12%' : '14%' }} />
+                    <col style={{ width: canDownload ? '28%' : '32%' }} />
+                    <col style={{ width: canDownload ? '11%' : '13%' }} />
+                    {canDownload && <col style={{ width: '11%' }} />}
+                    <col style={{ width: canDownload ? '12%' : '12%' }} />
                   </colgroup>
                   <thead className="text-dark fs-4" style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bs-card-bg, #fff)' }}>
                     <tr>
@@ -533,7 +538,7 @@ export default function StudentApplicationsIndex() {
                       <th><h6 className="fs-4 fw-semibold mb-0">Country</h6></th>
                       <th><h6 className="fs-4 fw-semibold mb-0">University / Course</h6></th>
                       <th><h6 className="fs-4 fw-semibold mb-0">Status</h6></th>
-                      <th><h6 className="fs-4 fw-semibold mb-0">Agency</h6></th>
+                      {canDownload && <th><h6 className="fs-4 fw-semibold mb-0">Agency</h6></th>}
                       <th><h6 className="fs-4 fw-semibold mb-0">Submitted</h6></th>
                     </tr>
                   </thead>
@@ -606,11 +611,13 @@ export default function StudentApplicationsIndex() {
                             <StatusBadge status={a.status} />
                           </td>
 
-                          <td className="overflow-hidden">
-                            <div className="d-flex align-items-center gap-2">
-                              <span className="badge text-bg-secondary text-truncate d-inline-block" style={{ maxWidth: '100%' }}>{a.agency_name}</span>
-                            </div>
-                          </td>
+                          {canDownload && (
+                            <td className="overflow-hidden">
+                              <div className="d-flex align-items-center gap-2">
+                                <span className="badge text-bg-secondary text-truncate d-inline-block" style={{ maxWidth: '100%' }}>{a.agency_name}</span>
+                              </div>
+                            </td>
+                          )}
 
                           <td>
                             <p className="mb-0 fw-normal d-flex align-items-center gap-2">
