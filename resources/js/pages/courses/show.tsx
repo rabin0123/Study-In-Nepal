@@ -363,11 +363,17 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 }
 
                 .gcu-wrap {
-                    max-width: 1140px;
-                    margin: 0 auto;
-                    padding: 0 24px;
-                    width: 100%;
-                }
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 40px;
+    width: 100%;
+}
+
+@media (max-width: 640px) {
+    .gcu-wrap {
+        padding: 0 16px;
+    }
+}
 
                 .gcu-top-nav {
                     background: var(--color-white);
