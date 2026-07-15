@@ -137,7 +137,7 @@ class CourseDetailController extends Controller
             'course_name'                       => 'sometimes|required|string|max:255',
 
             'summary'                           => 'nullable|string',
-            'careers_summary'                   => 'nullable|string', // Note the switch from 'careers' to 'careers_summary'
+            'careers'                   => 'nullable|string', // Note the switch from 'careers' to 'careers_summary'
 
             'year_wise_modules'                 => 'nullable|array',
             'year_wise_modules.*.year'          => 'required_with:year_wise_modules|integer|min:1',
