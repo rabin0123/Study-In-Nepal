@@ -57,6 +57,7 @@ class UniversityApiControler extends Controller
                                                 ? implode(', ', $course['allDocs'])
                                                 : null,
                 ]);
+                $university->linkMatchingCourseDetail(); 
 
                 $results[] = $university;
             }
