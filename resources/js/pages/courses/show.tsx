@@ -471,36 +471,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     padding-left: 24px;
                     padding-right: 24px;
                 }
-
-                .gcu-hero-university {
-                    display: flex;
-                    align-items: center;
-                    gap: 16px;
-                    padding-left: 24px;
-                }
-                .gcu-hero-university-logo {
-                    width: 72px;
-                    height: 72px;
-                    object-fit: contain;
-                    background: rgba(255,255,255,0.95);
-                    border-radius: 16px;
-                    padding: 10px;
-                    box-shadow: 0 12px 24px rgba(0,0,0,0.12);
-                }
-                .gcu-hero-univ-name {
-                    display: block;
-                    color: var(--color-white);
-                    font-size: 1.55rem;
-                    font-weight: 800;
-                    text-shadow: 0 4px 18px rgba(0,0,0,0.45);
-                    padding-bottom: 4px;
-                    border-bottom: 3px solid rgba(14, 165, 233, 0.75);
-                }
-                .gcu-hero-subtitle {
-                    font-size: 0.95rem;
-                    color: rgba(255,255,255,0.85);
-                    margin-top: 4px;
-                }
                 
                 /* Breadcrumbs restyled for Dark Hero Background */
                 .gcu-breadcrumb {
