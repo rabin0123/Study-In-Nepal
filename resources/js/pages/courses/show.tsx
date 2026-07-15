@@ -44,405 +44,718 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
         { id: 'careers', label: 'Careers', show: careers.length > 0 },
     ].filter((s) => s.show);
 
-    const [openSections, setOpenSections] = useState<Record<string, boolean>>(
-        () => Object.fromEntries(sections.map((s, i) => [s.id, i === 0])),
-    );
-
-    const toggleSection = (id: string) =>
-        setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }));
+    // Track active tab for module blocks (by year index/value)
+    const [activeTab, setActiveTab] = useState<number>(() => {
+        return modules.length > 0 ? modules[0].year : 1;
+    });
 
     const jumpTo = (id: string) => {
-        setOpenSections((prev) => ({ ...prev, [id]: true }));
-        requestAnimationFrame(() => {
-            const el = document.getElementById(id);
-            if (!el) return;
-            const top = el.getBoundingClientRect().top + window.scrollY - 84;
-            window.scrollTo({ top, behavior: 'smooth' });
-        });
+        const el = document.getElementById(id);
+        if (!el) return;
+        const top = el.getBoundingClientRect().top + window.scrollY - 100;
+        window.scrollTo({ top, behavior: 'smooth' });
     };
 
     return (
-        <div className="cd-page">
-            <Head title={`${courseDetail.course_name} — ${courseDetail.university_name}`} />
+        <div className="gcu-page bg-circle">
+            <Head title={`${courseDetail.course_name} | ${courseDetail.university_name}`} />
 
-            {/* Top utility bar */}
-            <div className="cd-topbar">
-                <div className="cd-topbar__inner">
-                    <div className="cd-topbar__brand">
+            {/* Header Utility Logo Bar */}
+            <header className="gcu-top-nav">
+                <div className="gcu-top-nav__wrap">
+                    <div className="gcu-top-nav__logo">
                         {courseDetail.university?.university_logo_url ? (
-                            <img src={courseDetail.university.university_logo_url} alt="" className="cd-topbar__logo" />
+                            <img src={courseDetail.university.university_logo_url} alt={courseDetail.university_name} />
                         ) : (
-                            <span className="cd-topbar__logo cd-topbar__logo--fallback">
+                            <span className="gcu-top-nav__logo-fallback">
                                 {courseDetail.university_name.slice(0, 1).toUpperCase()}
                             </span>
                         )}
-                        <span className="cd-topbar__name">{courseDetail.university_name}</span>
+                        <span className="gcu-top-nav__name">{courseDetail.university_name}</span>
+                    </div>
+                </div>
+            </header>
+
+            {/* GCU Full-Bleed Image Background with Overlapping Course Banner Card */}
+            <div className="gcu-header-section">
+                <div 
+                    className="gcu-header__bg"
+                    style={{
+                        backgroundImage: `url(${courseDetail.hero_image_url || 'https://www.gcu.ac.uk/__data/assets/image/0020/162803/Global-MBA.jpg'})`
+                    }}
+                />
+                <div className="gcu-wrap">
+                    <div className="gcu-banner-info scheme--pink-purple">
+                        <div className="gcu-banner-info__wrap">
+                            <span className="gcu-banner-info__award">
+                                {courseDetail.university?.level || 'Postgraduate'}
+                            </span>
+                            <h1 className="gcu-banner-info__title">
+                                {courseDetail.course_name}
+                            </h1>
+                            <div className="gcu-banner-info__meta">
+                                <p className="gcu-banner-info__tagline">
+                                    {courseDetail.college_name}
+                                </p>
+                            </div>
+                            <ul className="gcu-banner-info__list">
+                                {courseDetail.university?.Intake && (
+                                    <li>
+                                        <span className="gcu-icon" aria-hidden="true">arrow_circle_up</span>
+                                        Intake: {courseDetail.university.Intake}
+                                    </li>
+                                )}
+                                {courseDetail.university?.Location && (
+                                    <li>
+                                        <span className="gcu-icon" aria-hidden="true">watch_later</span>
+                                        Location: {courseDetail.university.Location}
+                                    </li>
+                                )}
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Full-bleed hero image with overlaid title, GCU-style */}
-            <header
-                className="cd-hero"
-                style={
-                    courseDetail.hero_image_url
-                        ? { backgroundImage: `url(${courseDetail.hero_image_url})` }
-                        : undefined
-                }
-            >
-                <div className="cd-hero__scrim" />
-                <div className="cd-hero__inner">
-                    <p className="cd-hero__crumbs">
-                        {courseDetail.university_name}
-                        <span className="cd-hero__crumb-sep">/</span>
-                        {courseDetail.college_name}
-                    </p>
-                    <h1 className="cd-hero__title">{courseDetail.course_name}</h1>
-                </div>
-            </header>
-
-            {/* Sticky anchor nav */}
+            {/* Sticky Anchor Navigation Bar */}
             {sections.length > 1 && (
-                <nav className="cd-subnav" aria-label="Page contents">
-                    <div className="cd-subnav__inner">
-                        {sections.map((s) => (
-                            <button key={s.id} type="button" onClick={() => jumpTo(s.id)} className="cd-subnav__link">
-                                {s.label}
-                            </button>
-                        ))}
+                <nav className="gcu-subnav" aria-label="Course Sections">
+                    <div className="gcu-wrap">
+                        <ul className="gcu-subnav__list">
+                            {sections.map((s) => (
+                                <li key={s.id}>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => jumpTo(s.id)}
+                                        className="gcu-subnav__link"
+                                    >
+                                        {s.label}
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
                     </div>
                 </nav>
             )}
 
-            <main className="cd-content">
-                {/* Overview */}
+            {/* Main Content Layout */}
+            <main className="gcu-wrap gcu-main-content">
+                
+                {/* Breadcrumbs */}
+                <nav aria-label="Breadcrumb" className="gcu-breadcrumb">
+                    <ol className="gcu-breadcrumb__order">
+                        <li className="gcu-breadcrumb__item">
+                            <span className="gcu-breadcrumb__link">{courseDetail.university_name}</span>
+                        </li>
+                        <li className="gcu-breadcrumb__item">
+                            <span className="gcu-breadcrumb__link">{courseDetail.college_name}</span>
+                        </li>
+                        <li className="gcu-breadcrumb__item">
+                            <span className="gcu-breadcrumb__current" aria-current="page">{courseDetail.course_name}</span>
+                        </li>
+                    </ol>
+                </nav>
+
+                {/* Overview Section */}
                 {courseDetail.summary && (
-                    <section id="overview" className="cd-section">
-                        <h2 className="cd-section__title">Overview</h2>
-                        <p className="cd-prose">{courseDetail.summary}</p>
-
-                        {(courseDetail.university?.level || courseDetail.university?.Intake || courseDetail.university?.Location) && (
-                            <div className="cd-quickfacts">
-                                {courseDetail.university?.level && (
-                                    <div className="cd-quickfacts__item">
-                                        <span className="cd-quickfacts__label">Level</span>
-                                        <span className="cd-quickfacts__value">{courseDetail.university.level}</span>
-                                    </div>
-                                )}
-                                {courseDetail.university?.Intake && (
-                                    <div className="cd-quickfacts__item">
-                                        <span className="cd-quickfacts__label">Intake</span>
-                                        <span className="cd-quickfacts__value">{courseDetail.university.Intake}</span>
-                                    </div>
-                                )}
-                                {courseDetail.university?.Location && (
-                                    <div className="cd-quickfacts__item">
-                                        <span className="cd-quickfacts__label">Location</span>
-                                        <span className="cd-quickfacts__value">{courseDetail.university.Location}</span>
-                                    </div>
-                                )}
+                    <section id="overview" className="gcu-panel">
+                        <div className="gcu-row">
+                            <div className="gcu-col-title">
+                                <h2 className="gcu-heading">Overview</h2>
                             </div>
-                        )}
-                    </section>
-                )}
-
-                {/* What you will study — GCU-style module accordion rows with arrow_forward */}
-                {modules.length > 0 && (
-                    <section id="study" className="cd-section">
-                        <h2 className="cd-section__title">What you will study</h2>
-
-                        {modules.map((yearBlock) => (
-                            <div key={yearBlock.year} className="cd-yearblock">
-                                <h3 className="cd-yearblock__title">
-                                    {yearBlock.title || `Year ${yearBlock.year}`}
-                                </h3>
-                                {yearBlock.modules && yearBlock.modules.length > 0 ? (
-                                    <div className="cd-modulerows">
-                                        {yearBlock.modules.map((m, i) => (
-                                            <ModuleRow key={i} label={m} />
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className="cd-muted">No modules listed for this year.</p>
-                                )}
+                            <div className="gcu-col-content">
+                                <div className="gcu-prose">
+                                    {courseDetail.summary}
+                                </div>
                             </div>
-                        ))}
-                    </section>
-                )}
-
-                {/* Fees and funding — GCU-style study options table */}
-                {fees.length > 0 && (
-                    <section id="fees" className="cd-section">
-                        <h2 className="cd-section__title">Fees and funding</h2>
-                        <p className="cd-section__intro">
-                            Estimated tuition by year of study. Confirm current figures with the institution.
-                        </p>
-
-                        <div className="cd-tablewrap">
-                            <table className="cd-table">
-                                <thead>
-                                    <tr>
-                                        <th>Year</th>
-                                        <th>Fee</th>
-                                        <th>Notes</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {fees.map((fee) => (
-                                        <tr key={fee.year}>
-                                            <td className="cd-table__year">Year {fee.year}</td>
-                                            <td className="cd-table__amount">
-                                                {fee.amount ? `${fee.currency ?? ''} ${fee.amount}`.trim() : '—'}
-                                            </td>
-                                            <td className="cd-table__note">{fee.note || '—'}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
                         </div>
                     </section>
                 )}
 
-                {/* Careers */}
-                {careers.length > 0 && (
-                    <section id="careers" className="cd-section">
-                        <h2 className="cd-section__title">Careers</h2>
-                        <p className="cd-section__intro">This course could help you get a career as a:</p>
-                        <ul className="cd-careerlist">
-                            {careers.map((career, i) => (
-                                <li key={i}>{career}</li>
-                            ))}
-                        </ul>
+                {/* What you will study (GCU Teal-Green background panels + Tabbed/Accordion Modules) */}
+                {modules.length > 0 && (
+                    <section id="study" className="gcu-panel full-bleed scheme--teal-green-purple">
+                        <div className="gcu-wrap">
+                            <div className="gcu-row">
+                                <div className="gcu-col-title">
+                                    <h2 className="gcu-heading light-text">What you<br />will study</h2>
+                                </div>
+                                <div className="gcu-col-content mt-2">
+                                    
+                                    {/* Tab selection headers */}
+                                    {modules.length > 1 && (
+                                        <div className="gcu-tab-headers">
+                                            {modules.map((yearBlock) => (
+                                                <button
+                                                    key={yearBlock.year}
+                                                    type="button"
+                                                    className={`gcu-tab-header-btn ${activeTab === yearBlock.year ? 'is-active' : ''}`}
+                                                    onClick={() => setActiveTab(yearBlock.year)}
+                                                >
+                                                    {yearBlock.title || `Year ${yearBlock.year}`}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Active Year Modules */}
+                                    <div className="gcu-tab-body">
+                                        {modules.map((yearBlock) => {
+                                            if (activeTab !== yearBlock.year && modules.length > 1) return null;
+                                            return (
+                                                <div key={yearBlock.year} className="gcu-accordion-navigation">
+                                                    {yearBlock.title && modules.length === 1 && (
+                                                        <h3 className="gcu-single-year-title">{yearBlock.title}</h3>
+                                                    )}
+                                                    {yearBlock.modules && yearBlock.modules.length > 0 ? (
+                                                        yearBlock.modules.map((moduleName, i) => (
+                                                            <ModuleAccordion key={i} label={moduleName} />
+                                                        ))
+                                                    ) : (
+                                                        <p className="gcu-muted">No modules listed for this period.</p>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
                     </section>
                 )}
 
-                {!courseDetail.summary && modules.length === 0 && careers.length === 0 && fees.length === 0 && (
-                    <section className="cd-section">
-                        <p className="cd-muted">Detailed information for this course hasn&rsquo;t been published yet.</p>
+                {/* Fees and Funding Section (GCU striped table style) */}
+                {fees.length > 0 && (
+                    <section id="fees" className="gcu-panel">
+                        <div className="gcu-row">
+                            <div className="gcu-col-title">
+                                <h2 className="gcu-heading">Fees and<br />funding</h2>
+                            </div>
+                            <div className="gcu-col-content">
+                                <p className="gcu-section-intro">
+                                    The tuition fees you pay are determined by your fee status. Estimated tuition breakdown by year is published below for guidance.
+                                </p>
+                                <div className="gcu-table-wrap">
+                                    <table className="gcu-content-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Year of Study</th>
+                                                <th>Tuition Fee</th>
+                                                <th>Additional Notes</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {fees.map((fee) => (
+                                                <tr key={fee.year}>
+                                                    <td className="gcu-table-year">Year {fee.year}</td>
+                                                    <td className="gcu-table-amount">
+                                                        {fee.amount ? `${fee.currency ?? ''} ${fee.amount}`.trim() : '—'}
+                                                    </td>
+                                                    <td className="gcu-table-note">{fee.note || '—'}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
                     </section>
                 )}
+
+                {/* Careers Section */}
+                {careers.length > 0 && (
+                    <section id="careers" className="gcu-panel">
+                        <div className="gcu-row">
+                            <div className="gcu-col-title">
+                                <h2 className="gcu-heading">Careers</h2>
+                            </div>
+                            <div className="gcu-col-content">
+                                <p className="gcu-section-intro">Our course helps set the trajectory for career positions such as:</p>
+                                <ul className="gcu-career-list">
+                                    {careers.map((career, i) => (
+                                        <li key={i}>{career}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                    </section>
+                )}
+
+                {/* Fallback Empty Block */}
+                {!courseDetail.summary && modules.length === 0 && careers.length === 0 && fees.length === 0 && (
+                    <section className="gcu-panel">
+                        <p className="gcu-muted text-center">Detailed course structure information hasn't been published yet.</p>
+                    </section>
+                )}
+
             </main>
 
             <style>{`
+                /* Target GCU Visual Identity CSS Variables */
                 :root {
-                    --cd-blue: #003da6;
-                    --cd-blue-dark: #002d7a;
-                    --cd-blue-light: #eaf1fb;
-                    --cd-ink: #12181f;
-                    --cd-ink-soft: #4c5764;
-                    --cd-line: #dfe4ea;
-                    --cd-surface: #ffffff;
-                    --cd-canvas: #f7f9fb;
+                    --color-purple: #3e1e5f;
+                    --color-purple-dark: #27103e;
+                    --color-pink: #d12d5d;
+                    --color-pink-light: #fbeaf0;
+                    --color-teal: #005d63;
+                    --color-teal-light: #e6f6f7;
+                    --color-grey: #f4f6f8;
+                    --color-border: #dfe4ea;
+                    --color-black: #12181f;
+                    --color-muted-text: #4c5764;
                 }
-                * { box-sizing: border-box; }
 
-                .cd-page {
-                    background: var(--cd-canvas);
+                * { box-sizing: border-box; margin: 0; padding: 0; }
+
+                .gcu-page {
+                    background: #ffffff;
+                    color: var(--color-black);
+                    font-family: -apple-system, BlinkMacSystemFont, "Montserrat", "Segoe UI", Arial, sans-serif;
                     min-height: 100vh;
-                    color: var(--cd-ink);
-                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+                    line-height: 1.5;
                 }
 
-                /* Top utility bar */
-                .cd-topbar { background: var(--cd-blue-dark); color: #fff; }
-                .cd-topbar__inner {
-                    max-width: 1120px; margin: 0 auto; padding: 10px 24px;
-                    display: flex; align-items: center;
+                .gcu-wrap {
+                    max-width: 1140px;
+                    margin: 0 auto;
+                    padding: 0 24px;
+                    width: 100%;
                 }
-                .cd-topbar__brand { display: flex; align-items: center; gap: 10px; }
-                .cd-topbar__logo {
-                    width: 26px; height: 26px; border-radius: 4px;
-                    object-fit: contain; background: #fff;
-                }
-                .cd-topbar__logo--fallback {
-                    display: flex; align-items: center; justify-content: center;
-                    font-weight: 700; font-size: 0.8rem; color: var(--cd-blue-dark);
-                }
-                .cd-topbar__name { font-size: 0.85rem; font-weight: 600; letter-spacing: 0.01em; }
 
-                /* Full-bleed hero */
-                .cd-hero {
+                /* Logo bar utility header */
+                .gcu-top-nav {
+                    background: #ffffff;
+                    border-bottom: 1px solid var(--color-border);
                     position: relative;
-                    min-height: 320px;
+                    z-index: 50;
+                }
+                .gcu-top-nav__wrap {
+                    max-width: 1140px;
+                    margin: 0 auto;
+                    padding: 14px 24px;
+                    display: flex;
+                    align-items: center;
+                }
+                .gcu-top-nav__logo {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                }
+                .gcu-top-nav__logo img {
+                    height: 32px;
+                    width: auto;
+                    object-fit: contain;
+                }
+                .gcu-top-nav__logo-fallback {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 50%;
+                    background: var(--color-purple);
+                    color: #fff;
+                    font-weight: bold;
+                    font-size: 0.95rem;
+                }
+                .gcu-top-nav__name {
+                    font-size: 1rem;
+                    font-weight: 700;
+                    color: var(--color-purple-dark);
+                }
+
+                /* Header Cover Background & Overlay Block */
+                .gcu-header-section {
+                    position: relative;
+                    min-height: 480px;
                     display: flex;
                     align-items: flex-end;
-                    background-color: var(--cd-blue);
+                    background: var(--color-purple-dark);
+                    overflow: visible;
+                }
+                .gcu-header__bg {
+                    position: absolute;
+                    inset: 0;
                     background-size: cover;
                     background-position: center;
+                    opacity: 0.5;
                 }
-                .cd-hero__scrim {
-                    position: absolute; inset: 0;
-                    background: linear-gradient(0deg, rgba(0,20,60,0.82) 0%, rgba(0,20,60,0.45) 55%, rgba(0,20,60,0.15) 100%);
+                .gcu-header-section::after {
+                    content: '';
+                    position: absolute;
+                    inset: 0;
+                    background: linear-gradient(0deg, rgba(39, 16, 62, 0.9) 0%, rgba(39, 16, 62, 0.4) 100%);
+                    pointer-events: none;
                 }
-                .cd-hero__inner {
+
+                /* Overlay Info Box (GCU Scheme style) */
+                .gcu-banner-info {
                     position: relative;
-                    max-width: 1120px;
-                    margin: 0 auto;
-                    padding: 48px 24px 32px;
-                    width: 100%;
-                    color: #fff;
+                    z-index: 20;
+                    background: linear-gradient(135deg, var(--color-purple) 0%, var(--color-pink) 100%);
+                    color: #ffffff;
+                    padding: 40px;
+                    margin-bottom: -50px; /* Overlaps content layer underneath */
+                    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+                    border-radius: 4px;
                 }
-                .cd-hero__crumbs {
-                    margin: 0 0 10px;
+                .gcu-banner-info__award {
+                    display: inline-block;
+                    background: rgba(255, 255, 255, 0.2);
+                    padding: 4px 12px;
+                    border-radius: 3px;
+                    font-size: 0.75rem;
+                    text-transform: uppercase;
+                    font-weight: 700;
+                    letter-spacing: 0.05em;
+                    margin-bottom: 12px;
+                }
+                .gcu-banner-info__title {
+                    font-size: 2.3rem;
+                    font-weight: 800;
+                    line-height: 1.15;
+                    margin-bottom: 8px;
+                    letter-spacing: -0.01em;
+                }
+                .gcu-banner-info__meta {
+                    margin-bottom: 24px;
+                }
+                .gcu-banner-info__tagline {
+                    font-size: 1.1rem;
+                    font-weight: 600;
+                    opacity: 0.9;
+                }
+                .gcu-banner-info__list {
+                    list-style: none;
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 20px;
+                    border-top: 1px solid rgba(255, 255, 255, 0.15);
+                    padding-top: 20px;
+                    font-size: 0.88rem;
+                    font-weight: 600;
+                }
+                .gcu-banner-info__list li {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+                .gcu-icon {
+                    font-size: 0.95rem;
+                    opacity: 0.8;
+                    display: inline-block;
+                }
+
+                /* Sticky Navigation */
+                .gcu-subnav {
+                    background: #ffffff;
+                    border-bottom: 1px solid var(--color-border);
+                    position: sticky;
+                    top: 0;
+                    z-index: 30;
+                    box-shadow: 0 4px 6px -4px rgba(0,0,0,0.05);
+                }
+                .gcu-subnav__list {
+                    list-style: none;
+                    display: flex;
+                    gap: 24px;
+                    overflow-x: auto;
+                    scrollbar-width: none; /* Hide scrollbars */
+                }
+                .gcu-subnav__list::-webkit-scrollbar { display: none; }
+                .gcu-subnav__link {
+                    background: none;
+                    border: none;
+                    border-bottom: 3px solid transparent;
+                    color: var(--color-muted-text);
+                    cursor: pointer;
+                    font-size: 0.9rem;
+                    font-weight: 700;
+                    padding: 20px 4px 17px;
+                    text-decoration: none;
+                    white-space: nowrap;
+                    transition: color .2s, border-color .2s;
+                }
+                .gcu-subnav__link:hover {
+                    color: var(--color-purple);
+                    border-bottom-color: var(--color-border);
+                }
+                .gcu-subnav__link:focus, .gcu-subnav__link:active {
+                    color: var(--color-purple);
+                    border-bottom-color: var(--color-purple);
+                }
+
+                /* Content Structure Panels */
+                .gcu-main-content {
+                    padding-top: 90px; /* Compensate for header card overlap */
+                    padding-bottom: 100px;
+                }
+                .gcu-breadcrumb {
+                    margin-bottom: 40px;
+                }
+                .gcu-breadcrumb__order {
+                    display: flex;
+                    flex-wrap: wrap;
+                    list-style: none;
                     font-size: 0.8rem;
                     font-weight: 600;
-                    color: rgba(255,255,255,0.8);
-                    letter-spacing: 0.01em;
+                    color: var(--color-muted-text);
                 }
-                .cd-hero__crumb-sep { margin: 0 8px; opacity: 0.6; }
-                .cd-hero__title {
-                    margin: 0;
-                    font-size: 2.1rem;
+                .gcu-breadcrumb__item::after {
+                    content: '/';
+                    margin: 0 8px;
+                    opacity: 0.6;
+                }
+                .gcu-breadcrumb__item:last-child::after { content: none; }
+                .gcu-breadcrumb__current {
+                    color: var(--color-purple);
+                }
+
+                .gcu-panel {
+                    padding: 50px 0;
+                    border-bottom: 1px solid var(--color-border);
+                }
+                .gcu-panel:last-of-type { border-bottom: none; }
+                
+                /* Full Bleed Panels */
+                .gcu-panel.full-bleed {
+                    width: 100vw;
+                    position: relative;
+                    left: 50%;
+                    right: 50%;
+                    margin-left: -50vw;
+                    margin-right: -50vw;
+                    padding: 60px 0;
+                }
+                .gcu-panel.scheme--teal-green-purple {
+                    background-color: var(--color-teal);
+                    color: #ffffff;
+                    border-bottom: none;
+                }
+
+                /* Grid system within panel rows */
+                .gcu-row {
+                    display: grid;
+                    grid-template-columns: 280px 1fr;
+                    gap: 40px;
+                }
+                .gcu-col-title {
+                    font-size: 1.5rem;
+                }
+                .gcu-heading {
+                    font-size: 1.8rem;
                     font-weight: 800;
+                    color: var(--color-purple-dark);
                     line-height: 1.2;
-                    max-width: 820px;
                     letter-spacing: -0.01em;
                 }
+                .gcu-heading.light-text {
+                    color: #ffffff;
+                }
+                .gcu-section-intro {
+                    font-size: 1.05rem;
+                    color: var(--color-muted-text);
+                    margin-bottom: 24px;
+                }
 
-                /* Sticky subnav */
-                .cd-subnav {
-                    position: sticky; top: 0; z-index: 30;
-                    background: var(--cd-surface);
-                    border-bottom: 1px solid var(--cd-line);
+                .gcu-prose {
+                    font-size: 1.05rem;
+                    line-height: 1.75;
+                    color: var(--color-black);
+                    white-space: pre-line;
                 }
-                .cd-subnav__inner {
-                    max-width: 1120px; margin: 0 auto; padding: 0 24px;
-                    display: flex; gap: 4px; overflow-x: auto;
-                }
-                .cd-subnav__link {
-                    appearance: none; background: none; border: none;
-                    border-bottom: 3px solid transparent;
-                    padding: 16px 14px 13px;
-                    font-size: 0.88rem; font-weight: 700;
-                    color: var(--cd-ink-soft);
-                    cursor: pointer; white-space: nowrap;
-                    transition: color .15s ease, border-color .15s ease;
-                }
-                .cd-subnav__link:hover { color: var(--cd-blue); border-bottom-color: var(--cd-line); }
-                .cd-subnav__link:active,
-                .cd-subnav__link:focus-visible { color: var(--cd-blue); border-bottom-color: var(--cd-blue); }
 
-                /* Content */
-                .cd-content { max-width: 860px; margin: 0 auto; padding: 40px 24px 96px; }
-                .cd-section { padding: 34px 0; border-bottom: 1px solid var(--cd-line); }
-                .cd-section:first-child { padding-top: 0; }
-                .cd-section:last-child { border-bottom: none; }
-                .cd-section__title {
-                    margin: 0 0 16px;
-                    font-size: 1.5rem; font-weight: 800;
-                    color: var(--cd-blue-dark);
-                    letter-spacing: -0.01em;
+                /* Tabbed elements inside What Will You Study panel */
+                .gcu-tab-headers {
+                    display: flex;
+                    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+                    margin-bottom: 30px;
+                    gap: 20px;
                 }
-                .cd-section__intro { margin: -6px 0 18px; font-size: 0.94rem; color: var(--cd-ink-soft); }
-                .cd-prose { font-size: 1.02rem; line-height: 1.75; color: var(--cd-ink); white-space: pre-line; margin: 0 0 20px; }
-                .cd-muted { color: var(--cd-ink-soft); font-size: 0.95rem; }
+                .gcu-tab-header-btn {
+                    background: none;
+                    border: none;
+                    color: rgba(255, 255, 255, 0.7);
+                    font-size: 1.1rem;
+                    font-weight: 700;
+                    padding: 10px 0 16px;
+                    cursor: pointer;
+                    border-bottom: 4px solid transparent;
+                    transition: border-color 0.2s, color 0.2s;
+                }
+                .gcu-tab-header-btn.is-active, .gcu-tab-header-btn:hover {
+                    color: #ffffff;
+                    border-bottom-color: #ffffff;
+                }
+                .gcu-single-year-title {
+                    font-size: 1.25rem;
+                    font-weight: 700;
+                    margin-bottom: 20px;
+                }
 
-                .cd-quickfacts {
-                    display: flex; flex-wrap: wrap; gap: 0;
-                    border-top: 1px solid var(--cd-line);
-                    padding-top: 16px;
+                /* Module row accordion elements */
+                .gcu-accordion-navigation {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
                 }
-                .cd-quickfacts__item {
-                    display: flex; flex-direction: column; gap: 4px;
-                    padding-right: 28px; margin-right: 28px;
-                    border-right: 1px solid var(--cd-line);
+                .gcu-module-row {
+                    background: #ffffff;
+                    color: var(--color-black);
+                    border-radius: 4px;
+                    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+                    overflow: hidden;
+                    border: 1px solid rgba(0,0,0,0.05);
                 }
-                .cd-quickfacts__item:last-child { border-right: none; margin-right: 0; padding-right: 0; }
-                .cd-quickfacts__label {
-                    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em;
-                    text-transform: uppercase; color: var(--cd-ink-soft);
-                }
-                .cd-quickfacts__value { font-size: 0.95rem; font-weight: 700; color: var(--cd-blue-dark); }
-
-                /* Year blocks + module rows, GCU-style */
-                .cd-yearblock { margin-bottom: 26px; }
-                .cd-yearblock:last-child { margin-bottom: 0; }
-                .cd-yearblock__title {
-                    margin: 0 0 10px;
-                    font-size: 1.02rem; font-weight: 700; color: var(--cd-ink);
-                    text-transform: uppercase; letter-spacing: 0.03em; font-size: 0.78rem;
-                    color: var(--cd-ink-soft);
-                }
-                .cd-modulerows { border-top: 1px solid var(--cd-line); }
-
-                .cd-module-row { border-bottom: 1px solid var(--cd-line); }
-                .cd-module-row__head {
+                .gcu-module-row__head {
                     width: 100%;
-                    appearance: none; background: none; border: none;
-                    display: flex; align-items: center; justify-content: space-between;
-                    padding: 14px 4px;
-                    font-size: 0.98rem; font-weight: 600; color: var(--cd-blue-dark);
-                    cursor: pointer; text-align: left;
+                    background: none;
+                    border: none;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding: 18px 24px;
+                    font-size: 1.02rem;
+                    font-weight: 700;
+                    color: var(--color-purple);
+                    cursor: pointer;
+                    text-align: left;
+                    transition: background 0.15s;
                 }
-                .cd-module-row__arrow {
-                    flex-shrink: 0; margin-left: 14px;
-                    width: 22px; height: 22px;
-                    border-radius: 50%;
-                    background: var(--cd-blue-light);
-                    color: var(--cd-blue);
-                    display: flex; align-items: center; justify-content: center;
-                    font-size: 0.85rem;
-                    transition: transform .18s ease, background .15s ease;
+                .gcu-module-row__head:hover {
+                    background-color: var(--color-grey);
                 }
-                .cd-module-row.is-open .cd-module-row__arrow { transform: rotate(90deg); background: var(--cd-blue); color: #fff; }
-                .cd-module-row__body {
-                    padding: 0 4px 16px;
-                    font-size: 0.92rem;
-                    color: var(--cd-ink-soft);
+                .gcu-module-row__arrow {
+                    color: var(--color-purple);
+                    font-size: 1.2rem;
+                    transition: transform 0.2s ease;
+                }
+                .gcu-module-row.is-open .gcu-module-row__arrow {
+                    transform: rotate(90deg);
+                }
+                .gcu-module-row__body {
+                    padding: 0 24px 20px;
+                    font-size: 0.95rem;
+                    color: var(--color-muted-text);
                     line-height: 1.6;
+                    border-top: 1px dashed var(--color-border);
+                    padding-top: 14px;
                 }
 
-                /* Fee table, GCU-style */
-                .cd-tablewrap { overflow-x: auto; }
-                .cd-table { width: 100%; border-collapse: collapse; font-size: 0.93rem; }
-                .cd-table thead th {
-                    text-align: left; font-size: 0.72rem; font-weight: 700;
-                    letter-spacing: 0.05em; text-transform: uppercase;
-                    color: #fff; background: var(--cd-blue);
-                    padding: 10px 14px;
+                /* Table representation */
+                .gcu-table-wrap {
+                    overflow-x: auto;
+                    border: 1px solid var(--color-border);
+                    border-radius: 4px;
                 }
-                .cd-table thead th:first-child { border-radius: 6px 0 0 0; }
-                .cd-table thead th:last-child { border-radius: 0 6px 0 0; }
-                .cd-table tbody td {
-                    padding: 12px 14px;
-                    border-bottom: 1px solid var(--cd-line);
+                .gcu-content-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: 0.95rem;
+                }
+                .gcu-content-table th {
+                    background: var(--color-purple);
+                    color: #ffffff;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    font-size: 0.75rem;
+                    letter-spacing: 0.05em;
+                    padding: 14px 18px;
+                    text-align: left;
+                }
+                .gcu-content-table td {
+                    padding: 16px 18px;
+                    border-bottom: 1px solid var(--color-border);
                     vertical-align: top;
                 }
-                .cd-table tbody tr:nth-child(even) { background: var(--cd-blue-light); }
-                .cd-table__year { font-weight: 700; white-space: nowrap; }
-                .cd-table__amount { font-weight: 700; color: var(--cd-blue-dark); white-space: nowrap; }
-                .cd-table__note { color: var(--cd-ink-soft); }
-
-                /* Careers list */
-                .cd-careerlist {
-                    margin: 0; padding-left: 20px;
-                    display: grid; gap: 8px;
-                    font-size: 0.98rem; color: var(--cd-ink);
+                .gcu-content-table tr:nth-of-type(even) {
+                    background-color: var(--color-grey);
                 }
-                .cd-careerlist li::marker { color: var(--cd-blue); }
+                .gcu-table-year {
+                    font-weight: 700;
+                    color: var(--color-black);
+                }
+                .gcu-table-amount {
+                    font-weight: 700;
+                    color: var(--color-pink);
+                }
+                .gcu-table-note {
+                    color: var(--color-muted-text);
+                }
 
-                @media (max-width: 640px) {
-                    .cd-hero { min-height: 240px; }
-                    .cd-hero__title { font-size: 1.5rem; }
-                    .cd-hero__inner { padding: 32px 20px 24px; }
-                    .cd-content { padding: 32px 20px 72px; }
-                    .cd-quickfacts__item { margin-right: 18px; padding-right: 18px; }
+                /* Career elements */
+                .gcu-career-list {
+                    list-style: none;
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                    gap: 16px;
+                }
+                .gcu-career-list li {
+                    background: var(--color-grey);
+                    border-left: 4px solid var(--color-purple);
+                    padding: 14px 20px;
+                    border-radius: 0 4px 4px 0;
+                    font-weight: 700;
+                    color: var(--color-purple-dark);
+                }
+
+                .gcu-muted {
+                    color: var(--color-muted-text);
+                }
+                .text-center { text-align: center; }
+
+                /* Responsive Layout adjustment Rules */
+                @media (max-width: 860px) {
+                    .gcu-row {
+                        grid-template-columns: 1fr;
+                        gap: 20px;
+                    }
+                    .gcu-header-section {
+                        min-height: 380px;
+                    }
+                    .gcu-banner-info {
+                        padding: 24px;
+                    }
+                    .gcu-banner-info__title {
+                        font-size: 1.8rem;
+                    }
+                }
+                @media (max-width: 500px) {
+                    .gcu-header-section {
+                        min-height: 270px;
+                    }
+                    .gcu-main-content {
+                        padding-top: 70px;
+                    }
+                    .gcu-banner-info {
+                        margin-bottom: -40px;
+                    }
                 }
             `}</style>
         </div>
     );
 }
 
-function ModuleRow({ label }: { label: string }) {
+function ModuleAccordion({ label }: { label: string }) {
     const [open, setOpen] = useState(false);
     return (
-        <div className={`cd-module-row ${open ? 'is-open' : ''}`}>
-            <button type="button" className="cd-module-row__head" onClick={() => setOpen((o) => !o)}>
+        <div className={`gcu-module-row ${open ? 'is-open' : ''}`}>
+            <button 
+                type="button" 
+                className="gcu-module-row__head" 
+                onClick={() => setOpen((o) => !o)}
+            >
                 <span>{label}</span>
-                <span className="cd-module-row__arrow" aria-hidden="true">
-                    &rsaquo;
+                <span className="gcu-module-row__arrow" aria-hidden="true">
+                    &#10142;
                 </span>
             </button>
+            {open && (
+                <div className="gcu-module-row__body">
+                    <p>This module develops specialized learning outcomes designed for {label}. Details include critical thinking practices, case examinations, and operational assessments focused on sector advancements.</p>
+                </div>
+            )}
         </div>
     );
 }
