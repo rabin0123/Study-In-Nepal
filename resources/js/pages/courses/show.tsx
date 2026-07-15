@@ -373,13 +373,13 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     inset: 0;
                     background-size: cover;
                     background-position: center;
-                    opacity: 0.5;
+                    opacity: 0.35;
                 }
                 .gcu-header-section::after {
                     content: '';
                     position: absolute;
                     inset: 0;
-                    background: linear-gradient(0deg, rgba(3, 105, 161, 0.9) 0%, rgba(3, 105, 161, 0.4) 100%);
+                    background: linear-gradient(0deg, rgba(3, 105, 161, 0.65) 0%, rgba(3, 105, 161, 0.20) 100%);
                     pointer-events: none;
                 }
 
@@ -388,14 +388,18 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     position: absolute;
                     top: 0;
                     left: 0;
+                    right: 0;
                     width: 100%;
                     padding-top: 32px;
                     z-index: 20;
                 }
                 .gcu-hero-top-left .gcu-wrap,
                 .gcu-subnav .gcu-wrap {
-                    padding-left: 0;
-                    padding-right: 0;
+                    max-width: none;
+                    width: 100%;
+                    margin: 0;
+                    padding-left: 24px;
+                    padding-right: 24px;
                 }
                 
                 /* Breadcrumbs restyled for Dark Hero Background */
