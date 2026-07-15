@@ -413,7 +413,7 @@ export default function Profile({ user, status, canEdit, isSelf, canVerify = fal
 
                                         <div className="min-w-0 grow">
                                             <h5 className="fw-semibold mb-1 text-strong-custom text-truncate">{localUser.name}</h5>
-                                            <p className="fs-3 text-body-secondary fw-semibold mb-2 text-truncate" title={localUser.agency_name}>
+                                            <p className="fs-2 text-body-secondary fw-semibold mb-2 text-truncate" title={localUser.agency_name}>
                                                 {localUser.agency_name}
                                             </p>
                                             <div className="d-flex flex-wrap gap-2">
