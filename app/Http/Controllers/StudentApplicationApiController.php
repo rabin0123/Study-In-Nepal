@@ -609,6 +609,146 @@ class StudentApplicationApiController extends Controller
         ], 201);
     }
 
+    public function getComments(StudentApplication $application, Request $request): JsonResponse
+    {
+        $user = $request->user() ?? auth()->user();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated.'
+            ], 401);
+        }
+
+        if (!$user->hasPermissionTo('view.application')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This action is unauthorized.'
+            ], 403);
+        }
+
+        $isInternalUser = $user->hasAnyRole(['developer', 'main-agent', 'main-agent-staff']);
+
+        if (!$isInternalUser && $application->creator->agency_name !== $user->agency_name) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This action is unauthorized.'
+            ], 403);
+        }
+
+        $remarks = $application->remarks()->with('user')->get();
+
+        $formattedComments = $remarks->map(function ($remark) {
+            return [
+                'id' => $remark->id,
+                'avatar_url' => $remark->user ? $remark->user->avatar_url : asset('assets/avatar/default.jpg'), 
+                'application_id' => $remark->student_application_id,
+                'author_name' => $remark->user ? $remark->user->name : 'Unknown',
+                'author_id' => $remark->user_id,
+                'comment' => $remark->comment,
+                'created_at' => $remark->created_at->toIso8601String(),
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $formattedComments,
+        ]);
+    }
+
+    public function getStatuses(): JsonResponse
+    {
+        $statusMapping = [
+            'PENDING REVIEW' => [
+                'label' => 'Pending Review',
+                'color' => '#fbbf24',
+            ],
+            'APPROVED' => [
+                'label' => 'Approved',
+                'color' => '#22c55e',
+            ],
+            'REJECTED' => [
+                'label' => 'Rejected',
+                'color' => '#ef4444',
+            ],
+        ];
+
+        $formatted = collect(StudentApplication::STATUSES)->map(function ($status) use ($statusMapping) {
+            return [
+                'value' => $status,
+                'label' => $statusMapping[$status]['label'] ?? ucwords(strtolower($status)),
+                'color' => $statusMapping[$status]['color'] ?? '#94a3b8',
+            ];
+        })->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => $formatted,
+        ]);
+    }
+
+    /**
+     * GET /api/agent/applications/{application}/activities
+     */
+    public function getActivities(StudentApplication $application, Request $request): JsonResponse
+    {
+        $user = $request->user() ?? auth()->user();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated.'
+            ], 401);
+        }
+
+        if (!$user->hasPermissionTo('view.application')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This action is unauthorized.'
+            ], 403);
+        }
+
+        $isInternalUser = $user->hasAnyRole(['developer', 'main-agent', 'main-agent-staff']);
+
+        if (!$isInternalUser && $application->creator->agency_name !== $user->agency_name) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This action is unauthorized.'
+            ], 403);
+        }
+
+        $activities = Activity::where('subject_type', StudentApplication::class)
+            ->where('subject_id', $application->id)
+            ->with('causer')
+            ->latest()
+            ->get()
+            ->map(function (Activity $activity) {
+                $action = $activity->properties['action'] ?? null;
+
+                $type = 'update';
+                if ($action === 'created_application') {
+                    $type = 'creation';
+                } elseif ($action === 'updated_status') {
+                    $type = 'status_change';
+                }
+
+                return [
+                    'id' => $activity->id,
+                    'type' => $type,
+                    'description' => $activity->description,
+                    'user_name' => $activity->causer ? $activity->causer->name : 'System',
+                    'created_at' => $activity->created_at->toIso8601String(),
+                    'old' => $activity->properties['old'] ?? null,
+                    'new' => $activity->properties['new'] ?? null,
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => $activities,
+        ]);
+    }
+
     /**
      * PUT /api/agent/applications/{application}/assign
      */

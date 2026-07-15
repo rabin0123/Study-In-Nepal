@@ -101,11 +101,13 @@ Route::get('/agent/applications/{application}/pdf', [StudentApplicationApiContro
 Route::delete('/agent/applications/{application}', [StudentApplicationApiController::class, 'destroy']);
 Route::post('/agent/applications/download-zip', [StudentApplicationApiController::class, 'downloadZip']);
 Route::post('/agent/applications/{application}/comments', [StudentApplicationApiController::class, 'storeComment']);
-
+Route::get('/agent/applications/{application}/comments', [StudentApplicationApiController::class, 'getComments']);
+Route::get('/agent/application-statuses', [StudentApplicationApiController::class, 'getStatuses']);
 
 Route::put('/agent/applications/{application}/assign', [StudentApplicationApiController::class, 'assign']);
 
 
+Route::get('/agent/applications/{application}/activities', [StudentApplicationApiController::class, 'getActivities']);
     
     Route::get('/commissions', [CommissionListController::class, 'index']);
     Route::get('/commission', [CommissionListController::class, 'commissionindex']);
