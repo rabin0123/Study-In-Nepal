@@ -409,7 +409,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     min-height: 480px;
                     display: flex;
                     align-items: flex-end;
-                    background: var(--color-skyblue-dark);
+                    background: #111;
                     overflow: visible;
                 }
                 .gcu-header__bg {
@@ -417,13 +417,13 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     inset: 0;
                     background-size: cover;
                     background-position: center;
-                    opacity: 0.35;
                 }
                 .gcu-header-section::after {
                     content: '';
                     position: absolute;
                     inset: 0;
-                    background: linear-gradient(0deg, rgba(3, 105, 161, 0.65) 0%, rgba(3, 105, 161, 0.20) 100%);
+                    /* Linear gradient for the HERO SECTION -> Dark left to Blue right */
+                    background: linear-gradient(90deg, rgba(0, 0, 0, 0.9) 0%, rgba(3, 105, 161, 0.6) 100%);
                     pointer-events: none;
                 }
 
@@ -495,16 +495,19 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     padding-bottom: 4px;
                 }
 
-                /* NEW BLACK TO BLUE GRADIENT FOR BANNER INFO */
+                /* BANNER INFO UPDATED: Premium dark slate to deep blue glass effect */
                 .gcu-banner-info {
                     position: relative;
                     z-index: 20;
-                    background: linear-gradient(135deg, #0a0a0a 0%, var(--color-skyblue-dark) 100%);
+                    background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(7, 89, 133, 0.95) 100%);
+                    backdrop-filter: blur(10px);
+                    -webkit-backdrop-filter: blur(10px);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
                     color: var(--color-white);
                     padding: 40px;
                     margin-bottom: -50px;
-                    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
-                    border-radius: 8px;
+                    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+                    border-radius: 12px;
                 }
                 .gcu-banner-info__award {
                     display: inline-block;
