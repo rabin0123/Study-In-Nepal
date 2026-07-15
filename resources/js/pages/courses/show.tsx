@@ -75,7 +75,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 <div className="gcu-hero-top-left">
                     <div className="gcu-wrap">
                         
-                         <span>{courseDetail.university_name}</span>
+                         <span className="gcu-hero-univ-name">{courseDetail.university_name}</span>
                     </div>
                 </div>
 
