@@ -285,7 +285,7 @@ function ApplyNowModal({ courseTarget, recentStudents, recentStudentsLoading, on
     setSearching(true);
     setSearchError(null);
     try {
-      const res = await fetch(`https://admin.studyinnepal.com/api/agent/applications/search-students?q=${encodeURIComponent(q)}`, {
+      const res = await fetch(`/api/agent/applications/search-students?q=${encodeURIComponent(q)}`, {
         headers: { "Accept": "application/json" },
         credentials: "include",
       });
@@ -364,7 +364,7 @@ function ApplyNowModal({ courseTarget, recentStudents, recentStudentsLoading, on
     setErrorMessage(null);
     try {
       const res = await fetch(
-        `https://admin.studyinnepal.com/api/agent/applications/${selectedStudent.id}/apply-to-course`,
+        `/api/agent/applications/${selectedStudent.id}/apply-to-course`,
         {
           method: "POST",
           headers: {
