@@ -437,7 +437,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     content: '';
                     position: absolute;
                     inset: 0;
-                    background: linear-gradient(0deg, rgba(0, 0, 0, 0.65) 0%, rgba(3, 105, 161, 0.20) 100%);
+                    background: linear-gradient(0deg, rgba(0, 0, 0, 0.65) 0%, rgba(148, 149, 149, 0.2) 100%);
                     pointer-events: none;
                 }
 
