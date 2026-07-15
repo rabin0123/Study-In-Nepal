@@ -499,7 +499,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 .gcu-banner-info {
                     position: relative;
                     z-index: 20;
-                    background: linear-gradient(135deg, var(--color-skyblue-dark) 0%, var(--color-skyblue) 100%);
+                   linear-gradient(135deg, var(--color-skyblue-dark) 0%, #020c11 100%)
                     color: var(--color-white);
                     padding: 40px;
                     margin-bottom: -50px;
