@@ -284,7 +284,7 @@ export default function Profile({ user, status, canEdit, isSelf, canVerify = fal
         <div className="min-vh-100 font-['Rajdhani']" style={{ background: "var(--surface-bg)" }}>
             <Head title={isSelf ? 'My Profile' : `${localUser.name} - Profile`} />
 
-            <style>
+            {/* <style>
                 {`
                     @import url('https://fonts.googleapis.com/css2?family=Castoro+Titling&family=Rajdhani:wght@400;500;600;700&display=swap');
 
@@ -385,7 +385,7 @@ export default function Profile({ user, status, canEdit, isSelf, canVerify = fal
                         color: var(--text-strong) !important;
                     }
                 `}
-            </style>
+            </style> */}
 
             <div className="container-fluid px-3 px-md-4 px-lg-5 py-4 py-lg-5" style={{ maxWidth: '1720px', margin: '0 auto' }}>
                 <div className="row g-6 align-items-start">
