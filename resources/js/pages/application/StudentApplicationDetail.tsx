@@ -1349,7 +1349,7 @@ export default function StudentApplicationDetail({ application: initialApplicati
                     No logged activity events found.
                   </div>
                 ) : (
-                  <div className="overflow-auto px-1" style={{ maxHeight: "1000px" }}>
+                  <div className="overflow-auto px-1" style={{ maxHeight: "1100px" }}>
                     <div className="position-relative border-start ms-3 ps-6 pt-5" style={{ borderColor: 'var(--bs-border-color)' }}>
                       {activities.map((activity) => {
                         let badgeColor = "bg-info-subtle text-info";
