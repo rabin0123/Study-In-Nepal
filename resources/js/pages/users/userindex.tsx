@@ -273,27 +273,47 @@ export default function UsersIndex({
                         opacity: 1;
                     }
 
-                    /* Custom Slim Scrollbar styling */
+                    /* Custom Slim Scrollbar styling - Firefox */
                     .slim-scroll {
                         scrollbar-width: thin;
-                        scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+                        scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
                     }
+                    /* Custom Slim Scrollbar styling - WebKit */
                     .slim-scroll::-webkit-scrollbar {
-                        width: 6px;
-                        height: 6px;
+                        width: 5px;
+                        height: 5px;
                     }
                     .slim-scroll::-webkit-scrollbar-track {
                         background: transparent;
                     }
                     .slim-scroll::-webkit-scrollbar-thumb {
-                        background-color: rgba(0, 0, 0, 0.12);
+                        background-color: rgba(0, 0, 0, 0.18);
                         border-radius: 10px;
                     }
                     .slim-scroll::-webkit-scrollbar-thumb:hover {
-                        background-color: rgba(0, 0, 0, 0.24);
+                        background-color: rgba(0, 0, 0, 0.32);
                     }
                     [data-bs-theme="dark"] .slim-scroll::-webkit-scrollbar-thumb {
-                        background-color: rgba(255, 255, 255, 0.15);
+                        background-color: rgba(255, 255, 255, 0.18);
+                    }
+                    [data-bs-theme="dark"] .slim-scroll::-webkit-scrollbar-thumb:hover {
+                        background-color: rgba(255, 255, 255, 0.3);
+                    }
+
+                    /* Users table sizing */
+                    .users-table-scroll {
+                        height: 520px;
+                        overflow-y: auto;
+                        overflow-x: hidden;
+                        width: 100%;
+                    }
+                    .users-table thead th {
+                        padding-top: 0.85rem;
+                        padding-bottom: 0.85rem;
+                    }
+                    .users-table tbody td {
+                        padding-top: 0.65rem;
+                        padding-bottom: 0.65rem;
                     }
                 `}
             </style>
@@ -461,10 +481,10 @@ export default function UsersIndex({
             )}
 
             {/* Main Content Area */}
-            <div className="container-fluid py-6">
+            <div className="container-fluid py-4">
 
                 {/* Page header */}
-                <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-6">
+                <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-4">
                     <div className="d-flex align-items-center gap-3">
                         {isAdmin && selectedPartnerId && (
                             <button
@@ -520,9 +540,9 @@ export default function UsersIndex({
                 {/* Table Container Card */}
                 <div className="card">
                     <div className="card-body p-0">
-                        {/* Fixed scroll container with slim scrollbar styling */}
-                        <div className="table-responsive slim-scroll" style={{ height: '450px', overflowY: 'auto', width: '100%' }}>
-                            <table className="table mb-0 align-middle" style={{ tableLayout: 'fixed', width: '100%', minWidth: 900 }}>
+                        {/* Fixed-height scroll container with slim scrollbar styling */}
+                        <div className="table-responsive slim-scroll users-table-scroll">
+                            <table className="table users-table mb-0 align-middle" style={{ tableLayout: 'fixed', width: '100%', minWidth: 900 }}>
                                 <colgroup>
                                     <col style={{ width: '32%' }} />
                                     <col style={{ width: '28%' }} />
@@ -728,47 +748,11 @@ export default function UsersIndex({
                             </table>
                         </div>
 
-                        {/* Pagination footer */}
+                        {/* Record count footer (pagination removed - scroll handles navigation) */}
                         {users.data.length > 0 && (
-                            <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between gap-3 border-top px-6 py-4 mt-4">
+                            <div className="d-flex align-items-center justify-content-between border-top px-6 py-3">
                                 <div className="text-body-secondary fs-3">
-                                    Showing <strong className="text-dark">{users.from}</strong>–<strong className="text-dark">{users.to}</strong> of <strong className="text-dark">{users.total}</strong> records
-                                </div>
-                                <div className="d-flex align-items-center gap-1.5 flex-wrap">
-                                    {users.links.map((link, i) => {
-                                        const isPrevious = link.label.includes('Previous');
-                                        const isNext = link.label.includes('Next');
-
-                                        return (
-                                            <button
-                                                key={i}
-                                                disabled={!link.url}
-                                                onClick={() => link.url && router.get(link.url, {}, { preserveState: true })}
-                                                style={{
-                                                    minWidth: 38,
-                                                    height: 38,
-                                                    borderRadius: '0.375rem',
-                                                    border: '1px solid var(--bs-border-color)',
-                                                    background: link.active ? 'var(--bs-primary)' : 'var(--bs-card-bg, #fff)',
-                                                    color: link.active ? '#fff' : 'var(--bs-body-color)',
-                                                    cursor: link.url ? 'pointer' : 'not-allowed',
-                                                    opacity: link.url ? 1 : 0.45,
-                                                    transition: 'all 0.15s ease',
-                                                }}
-                                                className={`btn btn-sm d-flex align-items-center justify-content-center p-0 fw-bold fs-3 ${
-                                                    link.url ? 'hover-bg-light' : ''
-                                                }`}
-                                            >
-                                                {isPrevious ? (
-                                                    <iconify-icon icon="solar:alt-arrow-left-line-duotone" className="fs-4"></iconify-icon>
-                                                ) : isNext ? (
-                                                    <iconify-icon icon="solar:alt-arrow-right-line-duotone" className="fs-4"></iconify-icon>
-                                                ) : (
-                                                    <span dangerouslySetInnerHTML={{ __html: link.label }} />
-                                                )}
-                                            </button>
-                                        );
-                                    })}
+                                    Showing <strong className="text-dark">{users.total}</strong> record{users.total === 1 ? '' : 's'}
                                 </div>
                             </div>
                         )}
