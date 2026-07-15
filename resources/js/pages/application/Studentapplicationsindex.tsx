@@ -621,41 +621,7 @@ export default function StudentApplicationsIndex() {
                             </p>
                           </td>
 
-                          <td onClick={(e) => e.stopPropagation()}>
-                            <div className="dropdown dropstart">
-                              <a
-                                href="javascript:void(0)"
-                                className="text-muted"
-                                id={`app-actions-${a.id}`}
-                                data-bs-toggle="dropdown"
-                                aria-expanded="false"
-                              >
-                                <i className="ti ti-dots fs-5"></i>
-                              </a>
-                              <ul className="dropdown-menu" aria-labelledby={`app-actions-${a.id}`}>
-                                <li>
-                                  <Link href={`/applications/${a.id}`} className="dropdown-item d-flex align-items-center gap-3">
-                                    <i className="fs-4 ti ti-eye"></i>View
-                                  </Link>
-                                </li>
-                                <li>
-                                  <Link href={`/applications/${a.id}/edit`} className="dropdown-item d-flex align-items-center gap-3">
-                                    <i className="fs-4 ti ti-edit"></i>Edit
-                                  </Link>
-                                </li>
-                                <li>
-                                  <a
-                                    href="javascript:void(0)"
-                                    className="dropdown-item d-flex align-items-center gap-3 text-danger"
-                                    onClick={() => handleRowSelectToggle(a.id)}
-                                  >
-                                    <i className="fs-4 ti ti-square-check"></i>
-                                    {isRowSelected ? 'Deselect' : 'Select'}
-                                  </a>
-                                </li>
-                              </ul>
-                            </div>
-                          </td>
+                          
                         </tr>
                       );
                     })}
