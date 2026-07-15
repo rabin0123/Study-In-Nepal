@@ -544,11 +544,11 @@ export default function UsersIndex({
                         <div className="table-responsive slim-scroll users-table-scroll">
                             <table className="table users-table mb-0 align-middle" style={{ tableLayout: 'fixed', width: '100%' }}>
                                 <colgroup>
-                                    <col style={{ width: '38%' }} />
                                     <col style={{ width: '24%' }} />
-                                    <col style={{ width: '13%' }} />
-                                    <col style={{ width: '14%' }} />
-                                    <col style={{ width: '11%' }} />
+                                    <col style={{ width: '26%' }} />
+                                    <col style={{ width: '16%' }} />
+                                    <col style={{ width: '18%' }} />
+                                    <col style={{ width: '16%' }} />
                                 </colgroup>
                                 <thead className="text-dark fs-4" style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bs-card-bg, #fff)' }}>
                                     <tr>
