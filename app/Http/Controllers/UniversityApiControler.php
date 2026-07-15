@@ -282,6 +282,7 @@ public function destroy($id)
         'college_logo_url'    => isset($data['college_logo_url']) ? trim($data['college_logo_url']) : null,
     ]
 );
+$record->linkMatchingCourseDetail();
                 if ($record->wasRecentlyCreated) {
                     $createdCount++;
                 } else {
