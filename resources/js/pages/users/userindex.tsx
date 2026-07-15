@@ -635,7 +635,7 @@ export default function UsersIndex({
                                                                     aria-expanded="false"
                                                                     style={{ width: 32, height: 32 }}
                                                                 >
-                                                                    <iconify-icon icon="solar:menu-dots-vertical-bold-duotone" className="fs-5" />
+                                                                    <iconify-icon icon="solar:menu-dots-bold-duotone" className="fs-5" />
                                                                 </a>
                                                                 <ul className="dropdown-menu" aria-labelledby={`user-actions-${user.id}`}>
                                                                     <li>
