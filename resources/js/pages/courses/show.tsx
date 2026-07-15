@@ -65,8 +65,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
             {/* GCU Full-Bleed Image Background with Overlapping Course Banner Card */}
             <div className="gcu-header-section">
-                {/* Breadcrumbs */}
-                <nav aria-label="Breadcrumb" className="gcu-breadcrumb">
+             
                     <ol className="gcu-breadcrumb__order">
                         <li className="gcu-breadcrumb__item">
                             <span className="gcu-breadcrumb__link">{courseDetail.university_name}</span>
@@ -78,7 +77,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                             <span className="gcu-breadcrumb__current" aria-current="page">{courseDetail.course_name}</span>
                         </li>
                     </ol>
-                </nav>
+              
                 <div 
                     className="gcu-header__bg"
                     style={{
