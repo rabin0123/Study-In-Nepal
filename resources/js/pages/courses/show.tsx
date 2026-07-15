@@ -137,9 +137,9 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                             <span className="gcu-banner-info__award">
                                 {courseDetail.university?.level || 'Postgraduate'}
                             </span>
-                            <h1 className="gcu-banner-info__title">
+                            <div className="gcu-banner-info__title">
                                 {courseDetail.course_name}
-                            </h1>
+                            </div>
                             <div className="gcu-banner-info__meta">
                                 <div className="gcu-banner-info__tagline">
                                     {collegeLogo && (
@@ -523,6 +523,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     line-height: 1.15;
                     margin-bottom: 16px;
                     letter-spacing: -0.01em;
+                    color: #dae4f3;
                 }
                 .gcu-banner-info__meta {
                     margin-bottom: 24px;
