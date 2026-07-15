@@ -552,7 +552,7 @@ export default function UsersIndex({
                                 </colgroup>
                                 <thead className="text-dark fs-4" style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bs-card-bg, #fff)' }}>
                                     <tr>
-                                        <th className="ps-9">User Details</th>
+                                        <th className="ps-15">User Details</th>
                                         <th>Email</th>
                                         <th>Country</th>
                                         <th>Role</th>
