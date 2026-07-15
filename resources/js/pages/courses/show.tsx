@@ -61,22 +61,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
         <div className="gcu-page bg-circle">
             <Head title={`${courseDetail.course_name} | ${courseDetail.university_name}`} />
 
-            {/* Top Navigation */}
-            <header className="gcu-top-nav">
-                <div className="gcu-top-nav__wrap">
-                    <div className="gcu-top-nav__logo">
-                        {courseDetail.university?.university_logo_url ? (
-                            <img src={courseDetail.university.university_logo_url} alt={courseDetail.university_name} />
-                        ) : (
-                            <span className="gcu-top-nav__logo-fallback">
-                                {courseDetail.university_name.slice(0, 1).toUpperCase()}
-                            </span>
-                        )}
-                        
-                    </div>
-                </div>
-            </header>
-
+            
             {/* Hero Section */}
             <div className="gcu-header-section">
                 <div 
