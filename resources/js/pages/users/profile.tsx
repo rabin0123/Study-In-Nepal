@@ -407,7 +407,7 @@ export default function Profile({ user, status, canEdit, isSelf, canVerify = fal
                                                     }}
                                                 />
                                             ) : (
-                                                <Avatar name={localUser.name} size={60} />
+                                                <Avatar name={localUser.name} size={70} />
                                             )}
                                         </div>
 
