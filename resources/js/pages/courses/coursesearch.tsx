@@ -117,6 +117,7 @@ interface UniversityEntry {
 interface StudentResult {
   id: string;
   app_id: string;
+  original_app_id: string | null;
   student_name: string;
   email: string | null;
   phone_number: string | null;
@@ -236,15 +237,26 @@ interface ApplyModalProps {
     college: string;
     course: string;
   };
+  // Prefetched recent students (~50-100), shown instantly with no query.
+  recentStudents: StudentResult[];
+  recentStudentsLoading: boolean;
+  // Called when the modal opens so the parent can silently refresh the
+  // recent-students list in the background.
+  onRequestRefreshRecent: () => void;
   onClose: () => void;
 }
 
 type ModalStep = "search" | "confirm" | "submitting" | "success" | "error";
 
-function ApplyNowModal({ courseTarget, onClose }: ApplyModalProps) {
+// Below this length, filter the prefetched "recent students" list locally
+// (instant, no network). At or above it, hit the indexed DB search so we
+// can reach the full 1000+ record set, not just the recent-students slice.
+const LOCAL_FILTER_MAX_LENGTH = 2;
+
+function ApplyNowModal({ courseTarget, recentStudents, recentStudentsLoading, onRequestRefreshRecent, onClose }: ApplyModalProps) {
   const [step, setStep] = useState<ModalStep>("search");
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<StudentResult[]>([]);
+  const [remoteResults, setRemoteResults] = useState<StudentResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<StudentResult | null>(null);
@@ -254,6 +266,10 @@ function ApplyNowModal({ courseTarget, onClose }: ApplyModalProps) {
 
   useEffect(() => {
     inputRef.current?.focus();
+    // Refresh the recent-students cache in the background every time the
+    // modal opens, without blocking the (already cached) instant display.
+    onRequestRefreshRecent();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Close on Escape
@@ -265,44 +281,72 @@ function ApplyNowModal({ courseTarget, onClose }: ApplyModalProps) {
     return () => document.removeEventListener("keydown", handleKey);
   }, [onClose]);
 
-  const runSearch = useCallback(async (q: string) => {
-    if (!q.trim()) {
-      setResults([]);
-      setSearching(false);
-      return;
-    }
+  const runRemoteSearch = useCallback(async (q: string) => {
     setSearching(true);
     setSearchError(null);
     try {
-      const res = await fetch(`/api/agent/applications/search-students?q=${encodeURIComponent(q)}`, {
+      const res = await fetch(`https://admin.studyinnepal.com/api/agent/applications/search-students?q=${encodeURIComponent(q)}`, {
         headers: { "Accept": "application/json" },
         credentials: "include",
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
         setSearchError(json.message || "Unable to search students right now.");
-        setResults([]);
+        setRemoteResults([]);
       } else {
-        setResults(json.data || []);
+        setRemoteResults(json.data || []);
       }
     } catch (err) {
       setSearchError("Network error while searching. Please try again.");
-      setResults([]);
+      setRemoteResults([]);
     } finally {
       setSearching(false);
     }
   }, []);
 
-  // Debounced live search as the user types
+  // Instant local filter of the prefetched recent-students list — used for
+  // empty query and very short queries where a DB round-trip would only
+  // add latency without adding much value.
+  const localMatches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return recentStudents;
+    return recentStudents.filter(
+      (s) =>
+        s.student_name?.toLowerCase().includes(q) ||
+        s.app_id?.toLowerCase().includes(q)
+    );
+  }, [query, recentStudents]);
+
+  // Debounced live search against the DB once the query is long enough to
+  // be worth a round trip (covers students outside the recent-50/100 slice).
   useEffect(() => {
+    const q = query.trim();
+    if (q.length <= LOCAL_FILTER_MAX_LENGTH) {
+      setRemoteResults([]);
+      setSearching(false);
+      setSearchError(null);
+      return;
+    }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      runSearch(query);
-    }, 350);
+      runRemoteSearch(q);
+    }, 300);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [query, runSearch]);
+  }, [query, runRemoteSearch]);
+
+  const isRemoteMode = query.trim().length > LOCAL_FILTER_MAX_LENGTH;
+
+  // Merge remote results in front (they're the authoritative full-DB match),
+  // then any local matches not already present, so results don't flicker
+  // away while the debounced remote call is still in flight.
+  const displayedResults = isRemoteMode
+    ? [
+        ...remoteResults,
+        ...localMatches.filter((s) => !remoteResults.some((r) => r.id === s.id)),
+      ]
+    : localMatches;
 
   const handlePickStudent = (student: StudentResult) => {
     setSelectedStudent(student);
@@ -320,7 +364,7 @@ function ApplyNowModal({ courseTarget, onClose }: ApplyModalProps) {
     setErrorMessage(null);
     try {
       const res = await fetch(
-        `/api/agent/applications/${selectedStudent.id}/apply-to-course`,
+        `https://admin.studyinnepal.com/api/agent/applications/${selectedStudent.id}/apply-to-course`,
         {
           method: "POST",
           headers: {
@@ -406,29 +450,41 @@ function ApplyNowModal({ courseTarget, onClose }: ApplyModalProps) {
                 />
               </div>
 
-              {searching && (
-                <div className="text-center text-muted small py-4">Searching...</div>
+              {!query.trim() && (
+                <div className="small text-muted mb-2" style={{ fontSize: "11px" }}>
+                  Recently active students
+                </div>
               )}
 
-              {!searching && searchError && (
+              {recentStudentsLoading && !query.trim() && recentStudents.length === 0 && (
+                <div className="text-center text-muted small py-4">Loading recent students...</div>
+              )}
+
+              {isRemoteMode && searching && (
+                <div className="text-center text-muted small py-2" style={{ fontSize: "12px" }}>
+                  Searching full student list...
+                </div>
+              )}
+
+              {isRemoteMode && !searching && searchError && (
                 <div className="text-center text-danger small py-4">{searchError}</div>
               )}
 
-              {!searching && !searchError && query.trim() && results.length === 0 && (
+              {!recentStudentsLoading && displayedResults.length === 0 && query.trim() && !searching && !searchError && (
                 <div className="text-center text-muted small py-4">
                   No students found matching &ldquo;{query}&rdquo;.
                 </div>
               )}
 
-              {!searching && !query.trim() && (
+              {!recentStudentsLoading && displayedResults.length === 0 && !query.trim() && (
                 <div className="text-center text-muted small py-4">
-                  Start typing a student&rsquo;s name or App ID to search.
+                  No students yet. Start typing a name or App ID to search.
                 </div>
               )}
 
-              {!searching && results.length > 0 && (
+              {displayedResults.length > 0 && (
                 <div className="d-flex flex-column gap-2">
-                  {results.map((student) => (
+                  {displayedResults.map((student) => (
                     <button
                       key={student.id}
                       onClick={() => handlePickStudent(student)}
@@ -575,9 +631,36 @@ export default function CourseSearch() {
   // Apply Now modal state — tracks which course card triggered it
   const [applyTarget, setApplyTarget] = useState<{ university: string; college: string; course: string } | null>(null);
 
+  // Prefetched "recent students" cache — loaded on page mount so the Apply
+  // Now modal's search list appears instantly instead of waiting on a
+  // network call the first time it's opened.
+  const [recentStudents, setRecentStudents] = useState<StudentResult[]>([]);
+  const [recentStudentsLoading, setRecentStudentsLoading] = useState(true);
+
+  const fetchRecentStudents = useCallback(async () => {
+    setRecentStudentsLoading(true);
+    try {
+      const res = await fetch("https://admin.studyinnepal.com/api/agent/applications/recent-students?limit=75", {
+        headers: { "Accept": "application/json" },
+        credentials: "include",
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setRecentStudents(json.data || []);
+      }
+    } catch (error) {
+      console.error("Failed to prefetch recent students", error);
+    } finally {
+      setRecentStudentsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchUniversities();
-  }, []);
+    // Prefetch student list as soon as the course search page loads, so
+    // it's already warm by the time someone clicks "Apply Now".
+    fetchRecentStudents();
+  }, [fetchRecentStudents]);
 
   const fetchUniversities = async () => {
     setLoading(true);
@@ -971,6 +1054,9 @@ export default function CourseSearch() {
       {applyTarget && (
         <ApplyNowModal
           courseTarget={applyTarget}
+          recentStudents={recentStudents}
+          recentStudentsLoading={recentStudentsLoading}
+          onRequestRefreshRecent={fetchRecentStudents}
           onClose={() => setApplyTarget(null)}
         />
       )}
