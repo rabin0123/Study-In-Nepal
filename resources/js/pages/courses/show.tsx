@@ -14,6 +14,7 @@ type Props = {
         year_wise_modules: YearModule[] | null;
         fees: YearFee[] | null;
         careers_summary: string | null; 
+        careers?: string[] | null; // Added fallback just in case old DB structure is still there
         university_id: number | null;
         hero_image_url?: string | null;
         university?: {
@@ -34,13 +35,15 @@ function sortByYear<T extends { year: number }>(items: T[] | null | undefined): 
 export default function CourseDetailsShow({ courseDetail }: Props) {
     const modules = sortByYear(courseDetail.year_wise_modules);
     const fees = sortByYear(courseDetail.fees);
-    const careers_summary = courseDetail.careers_summary;
+    
+    // Safely check for new string format or old array format from DB
+    const careersData = courseDetail.careers_summary || courseDetail.careers;
 
     const sections = [
         { id: 'overview', label: 'Overview', show: Boolean(courseDetail.summary) },
         { id: 'study', label: 'What you will study', show: modules.length > 0 },
         { id: 'fees', label: 'Fees and funding', show: fees.length > 0 },
-        { id: 'careers', label: 'Career Prospectus', show: Boolean(careers_summary) },
+        { id: 'careers', label: 'Career Prospectus', show: true }, // Changed to always show so you can see it!
     ].filter((s) => s.show);
 
     const [activeTab, setActiveTab] = useState<number>(() => {
@@ -156,9 +159,11 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                 <h2 className="gcu-heading">Overview</h2>
                             </div>
                             <div className="gcu-col-content">
-                                <div className="gcu-prose">
-                                    {courseDetail.summary}
-                                </div>
+                                {/* FIXED: Now renders the HTML properly instead of raw text tags */}
+                                <div 
+                                    className="gcu-prose gcu-html-content"
+                                    dangerouslySetInnerHTML={{ __html: courseDetail.summary }}
+                                />
                             </div>
                         </div>
                     </section>
@@ -253,34 +258,39 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     </section>
                 )}
 
-                {/* Career Prospectus (Mild Black Background with Background Image) */}
-                {careers_summary && (
-                    <section 
-                        id="careers" 
-                        className="gcu-panel full-bleed scheme--mild-black-bg"
-                        style={{
-                            backgroundImage: `url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')`
-                        }}
-                    >
-                        <div className="gcu-wrap">
-                            <div className="gcu-row">
-                                <div className="gcu-col-title">
-                                    <h2 className="gcu-heading">Career<br />Prospectus</h2>
-                                </div>
-                                <div className="gcu-col-content">
-                                    <p className="gcu-section-intro">Our course helps set the trajectory for career positions such as:</p>
-                                    <div className="gcu-html-content" dangerouslySetInnerHTML={{ __html: careers_summary }} />
-                                </div>
+                {/* Career Prospectus (Mild Black Background with Background Image) ALWAYS SHOWS NOW */}
+                <section 
+                    id="careers" 
+                    className="gcu-panel full-bleed scheme--mild-black-bg"
+                    style={{
+                        backgroundImage: `url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')`
+                    }}
+                >
+                    <div className="gcu-wrap">
+                        <div className="gcu-row">
+                            <div className="gcu-col-title">
+                                <h2 className="gcu-heading">Career<br />Prospectus</h2>
+                            </div>
+                            <div className="gcu-col-content">
+                                <p className="gcu-section-intro">Our course helps set the trajectory for career positions such as:</p>
+                                
+                                {/* Handling string (new DB), array (old DB), or Empty data formats safely */}
+                                {typeof careersData === 'string' ? (
+                                    <div className="gcu-html-content" dangerouslySetInnerHTML={{ __html: careersData }} />
+                                ) : Array.isArray(careersData) && careersData.length > 0 ? (
+                                    <div className="gcu-html-content">
+                                        <ul>{careersData.map((c, i) => <li key={i}>{c}</li>)}</ul>
+                                    </div>
+                                ) : (
+                                    <p style={{ color: 'rgba(255,255,255,0.7)', fontStyle: 'italic' }}>
+                                        No detailed career prospectus information has been published for this course yet.
+                                    </p>
+                                )}
+
                             </div>
                         </div>
-                    </section>
-                )}
-
-                {!courseDetail.summary && modules.length === 0 && !careers_summary && fees.length === 0 && (
-                    <section className="gcu-panel">
-                        <p className="gcu-muted text-center">Detailed course structure information hasn't been published yet.</p>
-                    </section>
-                )}
+                    </div>
+                </section>
 
             </main>
 
@@ -586,7 +596,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 .gcu-panel.scheme--mild-black-bg .gcu-html-content {
                     color: rgba(255, 255, 255, 0.9);
                 }
-                /* Update the old list item visual inside the HTML content for dark bg */
+                /* Ensure career bullet lists in HTML adapt for the dark background */
                 .gcu-panel.scheme--mild-black-bg .gcu-html-content ul li {
                     background: rgba(255, 255, 255, 0.1);
                     border-left-color: var(--color-skyblue);
@@ -737,11 +747,10 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: var(--color-muted-text);
                 }
 
-                /* Default HTML styling (used by other sections if needed) */
+                /* Default HTML styling */
                 .gcu-html-content {
                     font-size: 1.05rem;
                     line-height: 1.75;
-                    color: var(--color-black);
                 }
                 .gcu-html-content ul {
                     list-style: none;
