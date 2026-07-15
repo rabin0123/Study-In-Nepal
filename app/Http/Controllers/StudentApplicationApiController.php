@@ -125,9 +125,23 @@ class StudentApplicationApiController extends Controller
             });
         }
 
-        $query->where(function ($sub) use ($q) {
-            $sub->where('student_name', 'like', "%{$q}%")
-                ->orWhere('app_id', 'like', "%{$q}%");
+        // Substring-anywhere name search via FULLTEXT boolean mode
+        // (wildcard suffix on each word), OR'd with an app_id prefix/substring
+        // match. FULLTEXT is what keeps "anywhere in the name" fast at
+        // 1000+ rows instead of a full table scan.
+        $ftBoolean = collect(preg_split('/\s+/', $q))
+            ->filter()
+            ->map(fn ($word) => '+' . addcslashes($word, '+-<>()~*"@') . '*')
+            ->implode(' ');
+
+        $query->where(function ($sub) use ($q, $ftBoolean) {
+            if ($ftBoolean !== '') {
+                $sub->whereRaw(
+                    'MATCH(student_name) AGAINST (? IN BOOLEAN MODE)',
+                    [$ftBoolean]
+                );
+            }
+            $sub->orWhere('app_id', 'like', "%{$q}%");
         });
 
         // Since each student can have multiple application rows (one per
@@ -139,8 +153,11 @@ class StudentApplicationApiController extends Controller
         $results = [];
 
         foreach ($matches as $application) {
-            // app_id identifies the student across their applications.
-            $key = $application->app_id;
+            // A student may have several application rows (one per course
+            // applied to). original_app_id (falling back to their own
+            // app_id for a first-ever application) identifies the same
+            // student across all of those rows, so de-duplicate on it.
+            $key = $application->original_app_id ?: $application->app_id;
 
             if (isset($seen[$key])) {
                 continue;
@@ -150,6 +167,7 @@ class StudentApplicationApiController extends Controller
             $results[] = [
                 'id' => $application->id,
                 'app_id' => $application->app_id,
+                'original_app_id' => $application->original_app_id,
                 'student_name' => $application->student_name,
                 'email' => $application->email,
                 'phone_number' => $application->phone_number,
@@ -162,6 +180,87 @@ class StudentApplicationApiController extends Controller
             ];
 
             if (count($results) >= 20) {
+                break;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $results,
+        ]);
+    }
+
+    /**
+     * GET /api/agent/applications/recent-students
+     *
+     * Returns the most recently active 50-100 unique students, for
+     * instant prefetch in the "Apply Now" modal — no query string
+     * needed, no waiting for a search round-trip on first open.
+     * Deduplicated the same way as searchStudents().
+     */
+    public function recentStudents(Request $request): JsonResponse
+    {
+        $user = $request->user() ?? auth()->user();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated.'
+            ], 401);
+        }
+
+        if (!$user->hasPermissionTo('view.application')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This action is unauthorized.'
+            ], 403);
+        }
+
+        $limit = (int) $request->query('limit', 75);
+        $limit = max(10, min($limit, 100));
+
+        $query = StudentApplication::query();
+
+        $isInternalUser = $user->hasAnyRole(['developer', 'main-agent', 'main-agent-staff']);
+
+        if (!$isInternalUser) {
+            $agencyName = $user->agency_name;
+            $query->whereHas('creator', function ($query) use ($agencyName) {
+                $query->where('agency_name', $agencyName);
+            });
+        }
+
+        // Pull a wider slice than $limit since we de-duplicate per student
+        // afterward (a student with 3 applications only counts once).
+        $recentRows = $query->latest('updated_at')->limit($limit * 3)->get();
+
+        $seen = [];
+        $results = [];
+
+        foreach ($recentRows as $application) {
+            $key = $application->original_app_id ?: $application->app_id;
+
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+
+            $results[] = [
+                'id' => $application->id,
+                'app_id' => $application->app_id,
+                'original_app_id' => $application->original_app_id,
+                'student_name' => $application->student_name,
+                'email' => $application->email,
+                'phone_number' => $application->phone_number,
+                'country' => $application->country,
+                'avatar_url' => $application->avatar_url,
+                'university_name' => $application->university_name,
+                'college_name' => $application->college_name,
+                'course_name' => $application->course_name,
+                'status' => $application->status,
+            ];
+
+            if (count($results) >= $limit) {
                 break;
             }
         }
@@ -214,8 +313,16 @@ class StudentApplicationApiController extends Controller
             'course_name' => 'required|string|max:255',
         ]);
 
+        // A student's "root" identity is their original_app_id if this row
+        // is itself a follow-on application, otherwise it's their own
+        // app_id (meaning $application is the student's first-ever row).
+        $rootAppId = $application->original_app_id ?: $application->app_id;
+
         // Prevent an accidental duplicate: same student, same course/college/university.
-        $duplicate = StudentApplication::where('app_id', $application->app_id)
+        $duplicate = StudentApplication::where(function ($q) use ($rootAppId) {
+                $q->where('app_id', $rootAppId)
+                  ->orWhere('original_app_id', $rootAppId);
+            })
             ->where('university_name', $validated['university_name'])
             ->where('college_name', $validated['college_name'])
             ->where('course_name', $validated['course_name'])
@@ -247,10 +354,12 @@ class StudentApplicationApiController extends Controller
             'agency_reference_notes',
         ]))->toArray();
 
-        // Keep the same app_id so this new row is recognized as belonging
-        // to the same student across their multiple course applications.
+        // app_id is unique per row and is auto-generated by the model's
+        // boot() hook — do NOT set it here. Instead, original_app_id links
+        // this new row back to the student's root application so all of
+        // their applications can be found together.
         $newApplication = StudentApplication::create($carriedOverData + [
-            'app_id'          => $application->app_id,
+            'original_app_id' => $rootAppId,
             'university_name' => $validated['university_name'],
             'college_name'    => $validated['college_name'],
             'course_name'     => $validated['course_name'],
@@ -261,26 +370,22 @@ class StudentApplicationApiController extends Controller
             'user_agent'      => (string) $request->userAgent(),
         ]);
 
-        // The boot() creating hook overwrites app_id with a freshly
-        // generated one, so re-apply the student's original app_id and save.
-        $newApplication->app_id = $application->app_id;
-        $newApplication->save();
-
         $this->logActivity(
             $user,
             $newApplication,
-            "applied existing student '{$newApplication->student_name}' ({$newApplication->app_id}) to '{$validated['course_name']}' at '{$validated['college_name']}'",
+            "applied existing student '{$newApplication->student_name}' (new app_id {$newApplication->app_id}, linked to {$rootAppId}) to '{$validated['course_name']}' at '{$validated['college_name']}'",
             [
                 'action' => 'created_application',
                 'old'    => null,
                 'new'    => [
-                    'student_name'    => $newApplication->student_name,
-                    'app_id'          => $newApplication->app_id,
-                    'university_name' => $newApplication->university_name,
-                    'college_name'    => $newApplication->college_name,
-                    'course_name'     => $newApplication->course_name,
-                    'status'          => $newApplication->status,
-                    'assigned_to'     => $assignedUser?->id,
+                    'student_name'     => $newApplication->student_name,
+                    'app_id'           => $newApplication->app_id,
+                    'original_app_id'  => $newApplication->original_app_id,
+                    'university_name'  => $newApplication->university_name,
+                    'college_name'     => $newApplication->college_name,
+                    'course_name'      => $newApplication->course_name,
+                    'status'           => $newApplication->status,
+                    'assigned_to'      => $assignedUser?->id,
                 ],
             ]
         );
