@@ -348,62 +348,20 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
                 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-                html, body {
-    overflow-x: hidden;
-}
-
-.gcu-page {
-    background: var(--color-white);
-    color: var(--color-black);
-    font-family: -apple-system, BlinkMacSystemFont, "Montserrat", "Segoe UI", Arial, sans-serif;
-    min-height: 100vh;
-    line-height: 1.5;
-    overflow-x: hidden;
-    width: 100%;
-}
+                .gcu-page {
+                    background: var(--color-white);
+                    color: var(--color-black);
+                    font-family: -apple-system, BlinkMacSystemFont, "Montserrat", "Segoe UI", Arial, sans-serif;
+                    min-height: 100vh;
+                    line-height: 1.5;
+                }
 
                 .gcu-wrap {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 40px;
-    width: 100%;
-}
-
-@media (max-width: 640px) {
-    .gcu-wrap {
-        padding: 0 16px;
-    }
-}
-    @media (max-width: 500px) {
-    .gcu-banner-info__title {
-        font-size: 1.4rem;
-        line-height: 1.25;
-    }
-    .gcu-banner-info {
-        padding: 18px;
-    }
-    .gcu-banner-info__award {
-        font-size: 0.65rem;
-        padding: 3px 10px;
-    }
-}
-    @media (max-width: 640px) {
-    .gcu-hero-university {
-        margin-left: 16px;
-        gap: 8px;
-    }
-    .gcu-hero-university-logo {
-        width: 44px;
-        height: 44px;
-    }
-    .gcu-hero-univ-name {
-        font-size: 0.85rem;
-    }
-}
-    html, body, #app, .gcu-page {
-    max-width: 100vw;
-    overflow-x: hidden;
-}
+                    max-width: 1140px;
+                    margin: 0 auto;
+                    padding: 0 24px;
+                    width: 100%;
+                }
 
                 .gcu-top-nav {
                     background: var(--color-white);
@@ -452,7 +410,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     display: flex;
                     align-items: flex-end;
                     background: #111;
-                    overflow: hidden;
+                    overflow: visible;
                 }
                 .gcu-header__bg {
                     position: absolute;
@@ -613,7 +571,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     top: 0;
                     z-index: 30;
                     box-shadow: 0 4px 6px -4px rgba(0,0,0,0.05);
-                     overflow-x: hidden; 
                 }
                 .gcu-subnav__list {
                     list-style: none;
