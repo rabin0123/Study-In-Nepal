@@ -511,7 +511,7 @@ export default function Profile({ user, status, canEdit, isSelf, canVerify = fal
                                         </div>
                                         <h6 className="sad-value fs-4 fw-semibold mb-0">Manual Verification Needed</h6>
                                     </div>
-                                    <p className="fs-3 text-body-secondary fw-medium mb-4">
+                                    <p className="fs-4 text-body-secondary fw-medium mb-4">
                                         This user cannot log in until their account is manually verified by your agency. Confirm their details are legitimate before approving.
                                     </p>
                                     <button
