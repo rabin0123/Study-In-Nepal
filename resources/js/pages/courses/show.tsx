@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 
 type YearModule = { year: number; title?: string | null; modules?: string[] | null };
 type YearFee = { year: number; amount?: string | null; currency?: string | null; note?: string | null };
@@ -60,16 +60,22 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
     const fees = sortByYear(courseDetail.fees);
     const careersData = normalizeCareersData(courseDetail.careers);
 
-    const sections = [
-        { id: 'overview', label: 'Overview', show: Boolean(courseDetail.summary) },
-        { id: 'study', label: 'What you will study', show: modules.length > 0 },
-        { id: 'fees', label: 'Fees and funding', show: fees.length > 0 },
-        { id: 'careers', label: 'Career Prospectus', show: true },
-    ].filter((s) => s.show);
+    // Memoize the sections array so we can safely use it in our useEffect observer
+    const sections = useMemo(() => {
+        return [
+            { id: 'overview', label: 'Overview', show: Boolean(courseDetail.summary) },
+            { id: 'study', label: 'What you will study', show: modules.length > 0 },
+            { id: 'fees', label: 'Fees and funding', show: fees.length > 0 },
+            { id: 'careers', label: 'Career Prospectus', show: true },
+        ].filter((s) => s.show);
+    }, [courseDetail.summary, modules.length, fees.length]);
 
     const [activeTab, setActiveTab] = useState<number>(() => {
         return modules.length > 0 ? modules[0].year : 1;
     });
+
+    // New state to track the active section for the sticky sub-navigation
+    const [activeSection, setActiveSection] = useState<string>('');
 
     const jumpTo = (id: string) => {
         const el = document.getElementById(id);
@@ -122,6 +128,31 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
             isMounted = false;
         };
     }, [courseDetail.university_name, courseDetail.college_name]);
+
+    // Intersection Observer to highlight active navigation link based on scroll position
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    // Make the section active when it comes into our defined threshold
+                    if (entry.isIntersecting) {
+                        setActiveSection(entry.target.id);
+                    }
+                });
+            },
+            // rootMargin logic: 
+            // -100px accounts for the sticky header height
+            // -60% ensures the bottom sections don't trigger until they are well into the viewport
+            { rootMargin: '-100px 0px -60% 0px', threshold: 0 }
+        );
+
+        sections.forEach((s) => {
+            const el = document.getElementById(s.id);
+            if (el) observer.observe(el);
+        });
+
+        return () => observer.disconnect();
+    }, [sections]);
 
     return (
         <div className="gcu-page bg-circle">
@@ -188,7 +219,11 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                         <ul className="gcu-subnav__list">
                             {sections.map((s) => (
                                 <li key={s.id}>
-                                    <button type="button" onClick={() => jumpTo(s.id)} className="gcu-subnav__link">
+                                    <button 
+                                        type="button" 
+                                        onClick={() => jumpTo(s.id)} 
+                                        className={`gcu-subnav__link ${activeSection === s.id ? 'is-active' : ''}`}
+                                    >
                                         {s.label}
                                     </button>
                                 </li>
@@ -564,7 +599,11 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: var(--color-skyblue);
                     border-bottom-color: var(--color-border);
                 }
-                .gcu-subnav__link:focus, .gcu-subnav__link:active {
+                
+                /* Active state CSS targeting .is-active */
+                .gcu-subnav__link.is-active,
+                .gcu-subnav__link:focus, 
+                .gcu-subnav__link:active {
                     color: var(--color-skyblue);
                     border-bottom-color: var(--color-skyblue);
                 }
