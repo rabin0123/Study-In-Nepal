@@ -77,6 +77,26 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 </div>
             </header>
 
+            {/* NEW: Breadcrumbs and University Name (Clean White Block above Hero) */}
+            <div className="gcu-page-header">
+                <div className="gcu-wrap">
+                    <nav aria-label="Breadcrumb" className="gcu-breadcrumb">
+                        <ol className="gcu-breadcrumb__order">
+                            <li className="gcu-breadcrumb__item">
+                                <span className="gcu-breadcrumb__link">{courseDetail.university_name}</span>
+                            </li>
+                            <li className="gcu-breadcrumb__item">
+                                <span className="gcu-breadcrumb__link">{courseDetail.college_name}</span>
+                            </li>
+                            <li className="gcu-breadcrumb__item">
+                                <span className="gcu-breadcrumb__current" aria-current="page">{courseDetail.course_name}</span>
+                            </li>
+                        </ol>
+                    </nav>
+                    <h2 className="gcu-page-univ-name">{courseDetail.university_name}</h2>
+                </div>
+            </div>
+
             {/* Hero Section */}
             <div className="gcu-header-section">
                 <div 
@@ -86,29 +106,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     }}
                 />
                 
-                {/* Top-left container for Breadcrumbs and University Name */}
-                <div className="gcu-hero-top-left">
-                    <div className="gcu-wrap">
-                        
-                        {/* MOVED: Breadcrumbs now sit above the University name in the Hero */}
-                        <nav aria-label="Breadcrumb" className="gcu-breadcrumb">
-                            <ol className="gcu-breadcrumb__order">
-                                <li className="gcu-breadcrumb__item">
-                                    <span className="gcu-breadcrumb__link">{courseDetail.university_name}</span>
-                                </li>
-                                <li className="gcu-breadcrumb__item">
-                                    <span className="gcu-breadcrumb__link">{courseDetail.college_name}</span>
-                                </li>
-                                <li className="gcu-breadcrumb__item">
-                                    <span className="gcu-breadcrumb__current" aria-current="page">{courseDetail.course_name}</span>
-                                </li>
-                            </ol>
-                        </nav>
-
-                        <span className="gcu-hero-univ-name">{courseDetail.university_name}</span>
-                    </div>
-                </div>
-
                 <div className="gcu-wrap">
                     <div className="gcu-banner-info scheme--skyblue">
                         <div className="gcu-banner-info__wrap">
@@ -142,6 +139,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 </div>
             </div>
 
+            {/* Subnav */}
             {sections.length > 1 && (
                 <nav className="gcu-subnav" aria-label="Course Sections">
                     <div className="gcu-wrap">
@@ -163,7 +161,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
             )}
 
             <main className="gcu-wrap gcu-main-content">
-
+                
                 {courseDetail.summary && (
                     <section id="overview" className="gcu-panel">
                         <div className="gcu-row">
@@ -334,6 +332,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     width: 100%;
                 }
 
+                /* Top Navigation */
                 .gcu-top-nav {
                     background: var(--color-white);
                     border-bottom: 1px solid var(--color-border);
@@ -375,9 +374,47 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: var(--color-skyblue-dark);
                 }
 
+                /* White Page Header for Breadcrumbs and University Name */
+                .gcu-page-header {
+                    background: var(--color-white);
+                    padding: 24px 0 20px;
+                }
+                
+                .gcu-breadcrumb {
+                    margin-bottom: 8px;
+                }
+                .gcu-breadcrumb__order {
+                    display: flex;
+                    flex-wrap: wrap;
+                    list-style: none;
+                    margin: 0;
+                    padding: 0;
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    color: var(--color-muted-text);
+                }
+                .gcu-breadcrumb__item::after {
+                    content: '/';
+                    margin: 0 8px;
+                    opacity: 0.6;
+                }
+                .gcu-breadcrumb__item:last-child::after { content: none; }
+                .gcu-breadcrumb__current {
+                    color: var(--color-skyblue-dark);
+                }
+                
+                .gcu-page-univ-name {
+                    font-size: 1.6rem;
+                    font-weight: 800;
+                    color: var(--color-black);
+                    margin: 0;
+                    padding: 0;
+                }
+
+                /* Hero Section */
                 .gcu-header-section {
                     position: relative;
-                    min-height: 480px;
+                    min-height: 440px; /* slightly smaller since text moved above it */
                     display: flex;
                     align-items: flex-end;
                     background: var(--color-skyblue-dark);
@@ -396,50 +433,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     inset: 0;
                     background: linear-gradient(0deg, rgba(3, 105, 161, 0.9) 0%, rgba(3, 105, 161, 0.4) 100%);
                     pointer-events: none;
-                }
-
-                /* Hero Top Left Container */
-                .gcu-hero-top-left {
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    padding-top: 32px;
-                    z-index: 20;
-                }
-                
-                /* Breadcrumbs restyled for Dark Hero Background */
-                .gcu-breadcrumb {
-                    margin-bottom: 12px;
-                    position: relative;
-                }
-                .gcu-breadcrumb__order {
-                    display: flex;
-                    flex-wrap: wrap;
-                    list-style: none;
-                    font-size: 0.85rem;
-                    font-weight: 600;
-                    color: rgba(255, 255, 255, 0.7); /* Light translucent white */
-                }
-                .gcu-breadcrumb__item::after {
-                    content: '/';
-                    margin: 0 8px;
-                    opacity: 0.6;
-                }
-                .gcu-breadcrumb__item:last-child::after { content: none; }
-                .gcu-breadcrumb__current {
-                    color: var(--color-white); /* Solid white for current page */
-                }
-
-                /* University Name in Top Left */
-                .gcu-hero-univ-name {
-                    display: inline-block;
-                    color: var(--color-white);
-                    font-size: 1.4rem;
-                    font-weight: 800;
-                    text-shadow: 0 4px 15px rgba(0,0,0,0.4);
-                    border-bottom: 3px solid var(--color-skyblue);
-                    padding-bottom: 4px;
                 }
 
                 .gcu-banner-info {
@@ -485,6 +478,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     gap: 20px;
                     border-top: 1px solid rgba(255, 255, 255, 0.15);
                     padding-top: 20px;
+                    margin: 0;
                     font-size: 0.88rem;
                     font-weight: 600;
                 }
@@ -513,6 +507,8 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     gap: 24px;
                     overflow-x: auto;
                     scrollbar-width: none;
+                    margin: 0;
+                    padding: 0;
                 }
                 .gcu-subnav__list::-webkit-scrollbar { display: none; }
                 .gcu-subnav__link {
@@ -538,7 +534,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 }
 
                 .gcu-main-content {
-                    padding-top: 50px; /* Reduced since breadcrumbs moved */
+                    padding-top: 70px;
                     padding-bottom: 100px;
                 }
 
@@ -597,7 +593,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: var(--color-black);
                 }
 
-
                 /* CAREERS SECTION - MILD BLACK BG WITH IMAGE */
                 .gcu-panel.scheme--mild-black-bg {
                     background-color: #1e293b; 
@@ -628,15 +623,14 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 .gcu-panel.scheme--mild-black-bg .gcu-html-content {
                     color: rgba(255, 255, 255, 0.9);
                 }
-                /* Career List Items explicitly restyled for height and dark bg */
+                
+                /* BIGGER CARDS FIX FOR CAREER LIST */
                 .gcu-panel.scheme--mild-black-bg .gcu-html-content ul li {
                     background: rgba(255, 255, 255, 0.08);
                     border-left-color: var(--color-skyblue);
                     color: var(--color-white);
                     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
                     backdrop-filter: blur(4px);
-                    
-                    /* BIGGER CARDS FIX */
                     min-height: 110px;
                     display: flex;
                     align-items: center;
@@ -787,7 +781,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: var(--color-muted-text);
                 }
 
-                /* Default HTML styling (used by other sections if needed) */
+                /* Default HTML styling */
                 .gcu-html-content {
                     font-size: 1.05rem;
                     line-height: 1.75;
@@ -798,6 +792,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
                     gap: 16px;
                     margin-top: 16px;
+                    padding: 0;
                 }
                 .gcu-html-content ul li {
                     background: var(--color-grey);
@@ -806,8 +801,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     border-radius: 0 4px 4px 0;
                     font-weight: 700;
                     color: var(--color-skyblue-dark);
-                    
-                    /* BIGGER CARDS FIX FOR OTHER SECTIONS */
                     min-height: 110px;
                     display: flex;
                     align-items: center;
