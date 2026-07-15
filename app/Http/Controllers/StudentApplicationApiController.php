@@ -572,7 +572,7 @@ class StudentApplicationApiController extends Controller
         $formattedComments = $remarks->map(function ($remark) {
             return [
                 'id' => $remark->id,
-                'avatar_url' => $remark->avatar,
+                'avatar_url' => $remark->user ? $remark->user->avatar_url : asset('assets/avatar/default.jpg'), 
                 'application_id' => $remark->student_application_id,
                 'author_name' => $remark->user ? $remark->user->name : 'Unknown',
                 'author_id' => $remark->user_id,
