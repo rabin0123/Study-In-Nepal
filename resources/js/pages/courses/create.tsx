@@ -22,6 +22,10 @@ function csrfToken(): string {
     return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
 }
 
+function defaultYearModules(): YearModule[] {
+    return [{ year: 1, title: 'Year 1', modules: [''] }];
+}
+
 // ---------------------------------------------------------------------------
 // 1. ComboboxInput — Searchable dropdown combined with text input (For Course)
 // ---------------------------------------------------------------------------
@@ -237,9 +241,12 @@ export default function CourseDetailsCreate() {
     // Content fields (WYSIWYG)
     const [summaryHtml, setSummaryHtml] = useState('');
     const [careersHtml, setCareersHtml] = useState('');
-    
-    // Unified Repeaters (No longer tabbed)
-    const [yearModules, setYearModules] = useState<YearModule[]>([{ year: 1, title: 'Year 1', modules: [''] }]);
+
+    // Per-institution year-wise modules: { [instKey]: YearModule[] }
+    const [yearModulesByInst, setYearModulesByInst] = useState<Record<string, YearModule[]>>({});
+    // Which institution tab is currently active in the modules section
+    const [activeModuleTab, setActiveModuleTab] = useState<string | null>(null);
+
     const [fees, setFees] = useState<YearFee[]>([{ year: 1, amount: '', currency: '', note: '' }]);
 
     // UI States
@@ -293,11 +300,38 @@ export default function CourseDetailsCreate() {
         return Array.from(unique.values());
     }, [masterData, courseName]);
 
+    // Lookup map so tabs can show label/subLabel without re-deriving each render
+    const institutionLookup = useMemo(() => {
+        const map = new Map<string, { label: string; subLabel: string }>();
+        availableInstitutions.forEach((i) => map.set(i.key, { label: i.label, subLabel: i.subLabel }));
+        return map;
+    }, [availableInstitutions]);
+
     // Clear selections if course changes and old selections don't match anymore
     useEffect(() => {
         const validKeys = availableInstitutions.map(i => i.key);
         setSelectedInstKeys(prev => prev.filter(k => validKeys.includes(k)));
     }, [availableInstitutions]);
+
+    // Keep yearModulesByInst in sync with selectedInstKeys:
+    // - seed a default block for newly selected institutions
+    // - drop entries for institutions that are no longer selected
+    useEffect(() => {
+        setYearModulesByInst((prev) => {
+            const next: Record<string, YearModule[]> = {};
+            selectedInstKeys.forEach((key) => {
+                next[key] = prev[key] ?? defaultYearModules();
+            });
+            return next;
+        });
+
+        // Keep the active tab valid: default to the first selected institution,
+        // or clear it if nothing is selected.
+        setActiveModuleTab((prevActive) => {
+            if (prevActive && selectedInstKeys.includes(prevActive)) return prevActive;
+            return selectedInstKeys.length > 0 ? selectedInstKeys[0] : null;
+        });
+    }, [selectedInstKeys]);
 
     // ── Handlers ──
     const toggleInstitution = (key: string) => {
@@ -306,24 +340,76 @@ export default function CourseDetailsCreate() {
         );
     };
 
-    // ---- Unified Modules Repeaters Handlers ----
-    const addYear = () => setYearModules((prev) => [...prev, { year: nextYear(prev), title: '', modules: [''] }]);
-    const removeYear = (index: number) => setYearModules((prev) => prev.filter((_, i) => i !== index));
-    const updateYear = (index: number, patch: Partial<YearModule>) =>
-        setYearModules((prev) => prev.map((y, i) => (i === index ? { ...y, ...patch } : y)));
-    
-    const addModuleLine = (yearIndex: number) =>
-        setYearModules((prev) => prev.map((y, i) => (i === yearIndex ? { ...y, modules: [...y.modules, ''] } : y)));
-    const updateModuleLine = (yearIndex: number, moduleIndex: number, value: string) =>
-        setYearModules((prev) =>
-            prev.map((y, i) =>
+    // ---- Per-institution Modules Repeaters Handlers ----
+    // All handlers operate on the currently active tab's institution key.
+    const addYear = () => {
+        if (!activeModuleTab) return;
+        setYearModulesByInst((prev) => ({
+            ...prev,
+            [activeModuleTab]: [...prev[activeModuleTab], { year: nextYear(prev[activeModuleTab]), title: '', modules: [''] }],
+        }));
+    };
+
+    const removeYear = (index: number) => {
+        if (!activeModuleTab) return;
+        setYearModulesByInst((prev) => ({
+            ...prev,
+            [activeModuleTab]: prev[activeModuleTab].filter((_, i) => i !== index),
+        }));
+    };
+
+    const updateYear = (index: number, patch: Partial<YearModule>) => {
+        if (!activeModuleTab) return;
+        setYearModulesByInst((prev) => ({
+            ...prev,
+            [activeModuleTab]: prev[activeModuleTab].map((y, i) => (i === index ? { ...y, ...patch } : y)),
+        }));
+    };
+
+    const addModuleLine = (yearIndex: number) => {
+        if (!activeModuleTab) return;
+        setYearModulesByInst((prev) => ({
+            ...prev,
+            [activeModuleTab]: prev[activeModuleTab].map((y, i) =>
+                i === yearIndex ? { ...y, modules: [...y.modules, ''] } : y,
+            ),
+        }));
+    };
+
+    const updateModuleLine = (yearIndex: number, moduleIndex: number, value: string) => {
+        if (!activeModuleTab) return;
+        setYearModulesByInst((prev) => ({
+            ...prev,
+            [activeModuleTab]: prev[activeModuleTab].map((y, i) =>
                 i === yearIndex ? { ...y, modules: y.modules.map((m, mi) => (mi === moduleIndex ? value : m)) } : y,
             ),
-        );
-    const removeModuleLine = (yearIndex: number, moduleIndex: number) =>
-        setYearModules((prev) =>
-            prev.map((y, i) => (i === yearIndex ? { ...y, modules: y.modules.filter((_, mi) => mi !== moduleIndex) } : y)),
-        );
+        }));
+    };
+
+    const removeModuleLine = (yearIndex: number, moduleIndex: number) => {
+        if (!activeModuleTab) return;
+        setYearModulesByInst((prev) => ({
+            ...prev,
+            [activeModuleTab]: prev[activeModuleTab].map((y, i) =>
+                i === yearIndex ? { ...y, modules: y.modules.filter((_, mi) => mi !== moduleIndex) } : y,
+            ),
+        }));
+    };
+
+    // Convenience: copy the active tab's modules to all other selected institutions
+    const copyToAllInstitutions = () => {
+        if (!activeModuleTab) return;
+        const source = yearModulesByInst[activeModuleTab];
+        setYearModulesByInst((prev) => {
+            const next = { ...prev };
+            selectedInstKeys.forEach((key) => {
+                if (key !== activeModuleTab) {
+                    next[key] = JSON.parse(JSON.stringify(source));
+                }
+            });
+            return next;
+        });
+    };
 
     // ---- Fees Handlers ----
     const addFeeYear = () => setFees((prev) => [...prev, { year: nextYear(prev), amount: '', currency: '', note: '' }]);
@@ -347,22 +433,22 @@ export default function CourseDetailsCreate() {
         setSaving(true);
         setErrors({});
 
-        // Prepare the unified modules list
-        const cleanModules = yearModules
-            .filter((y) => y.year)
-            .map((y) => ({
-                year: y.year,
-                title: y.title.trim() || null,
-                modules: y.modules.map((m) => m.trim()).filter(Boolean),
-            }));
+        const cleanModulesFor = (key: string) =>
+            (yearModulesByInst[key] ?? [])
+                .filter((y) => y.year)
+                .map((y) => ({
+                    year: y.year,
+                    title: y.title.trim() || null,
+                    modules: y.modules.map((m) => m.trim()).filter(Boolean),
+                }));
 
-        // Map selected keys back into objects, assigning the SAME modules to every selected institution
+        // Map selected keys back into objects, each with its OWN modules
         const institutionsPayload = selectedInstKeys.map((key) => {
             const [uni, col] = key.split('|||');
             return {
                 university_name: uni,
                 college_name: col,
-                year_wise_modules: cleanModules,
+                year_wise_modules: cleanModulesFor(key),
             };
         });
 
@@ -402,6 +488,8 @@ export default function CourseDetailsCreate() {
             .catch((err) => console.error('Failed to save course details', err))
             .finally(() => setSaving(false));
     };
+
+    const activeYearModules = activeModuleTab ? (yearModulesByInst[activeModuleTab] ?? []) : [];
 
     return (
         <div className="container-fluid py-4">
@@ -493,84 +581,128 @@ export default function CourseDetailsCreate() {
                     </div>
                 </div>
 
-                {/* 4. Unified Year-wise modules */}
+                {/* 4. Per-institution Year-wise modules */}
                 <div className="card mb-4">
                     <div className="card-body">
-                        <div className="d-flex align-items-center justify-content-between mb-3">
+                        <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
                             <div>
                                 <h5 className="fw-semibold mb-1">4. Course Modules</h5>
                                 <p className="text-body-secondary fs-6 mb-0">
-                                    These modules will be applied to all the institutions you selected above.
+                                    Each institution below has its own independent module list. Switch tabs to edit each one.
                                 </p>
                             </div>
-                            <button type="button" className="btn btn-sm btn-outline-primary" onClick={addYear}>
-                                + Add year
-                            </button>
+                            {activeModuleTab && (
+                                <div className="d-flex gap-2">
+                                    {selectedInstKeys.length > 1 && (
+                                        <button
+                                            type="button"
+                                            className="btn btn-sm btn-outline-secondary"
+                                            onClick={copyToAllInstitutions}
+                                            title="Copy this institution's modules to all other selected institutions"
+                                        >
+                                            Copy to all institutions
+                                        </button>
+                                    )}
+                                    <button type="button" className="btn btn-sm btn-outline-primary" onClick={addYear}>
+                                        + Add year
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
-                        {yearModules.map((yearBlock, yearIndex) => (
-                            <div key={yearIndex} className="border rounded p-3 mb-3 bg-light bg-opacity-50">
-                                <div className="row g-2 align-items-center mb-3">
-                                    <div className="col-auto">
-                                        <label className="form-label mb-0 small text-body-secondary fw-bold">Year</label>
-                                        <input
-                                            type="number"
-                                            min={1}
-                                            className="form-control"
-                                            style={{ width: 90 }}
-                                            value={yearBlock.year}
-                                            onChange={(e) => updateYear(yearIndex, { year: Number(e.target.value) || 1 })}
-                                        />
-                                    </div>
-                                    <div className="col">
-                                        <label className="form-label mb-0 small text-body-secondary fw-bold">Title (optional)</label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            placeholder={`e.g. Year ${yearBlock.year} Fundamentals`}
-                                            value={yearBlock.title}
-                                            onChange={(e) => updateYear(yearIndex, { title: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="col-auto align-self-end">
-                                        {yearModules.length > 1 && (
-                                            <button
-                                                type="button"
-                                                className="btn btn-sm btn-outline-danger"
-                                                onClick={() => removeYear(yearIndex)}
-                                            >
-                                                Remove year
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
+                        {selectedInstKeys.length === 0 ? (
+                            <div className="text-muted p-3 border rounded bg-light text-center">
+                                Select at least one institution above to start adding modules.
+                            </div>
+                        ) : (
+                            <>
+                                {/* Institution Tabs */}
+                                <ul className="nav nav-tabs mb-3 flex-nowrap overflow-auto">
+                                    {selectedInstKeys.map((key) => {
+                                        const info = institutionLookup.get(key);
+                                        const isActive = key === activeModuleTab;
+                                        return (
+                                            <li className="nav-item" key={key} style={{ whiteSpace: 'nowrap' }}>
+                                                <button
+                                                    type="button"
+                                                    className={`nav-link ${isActive ? 'active' : ''}`}
+                                                    onClick={() => setActiveModuleTab(key)}
+                                                >
+                                                    {info ? info.label : key}
+                                                    <span className="text-muted small d-block" style={{ fontWeight: 400 }}>
+                                                        {info?.subLabel}
+                                                    </span>
+                                                </button>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
 
-                                <label className="form-label small text-body-secondary fw-bold">Modules List</label>
-                                {yearBlock.modules.map((moduleValue, moduleIndex) => (
-                                    <div key={moduleIndex} className="d-flex gap-2 mb-2">
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            placeholder={`Module ${moduleIndex + 1}`}
-                                            value={moduleValue}
-                                            onChange={(e) => updateModuleLine(yearIndex, moduleIndex, e.target.value)}
-                                        />
-                                        {yearBlock.modules.length > 1 && (
-                                            <button
-                                                type="button"
-                                                className="btn btn-outline-danger"
-                                                onClick={() => removeModuleLine(yearIndex, moduleIndex)}
-                                            >
-                                                ×
-                                            </button>
-                                        )}
+                                {activeYearModules.map((yearBlock, yearIndex) => (
+                                    <div key={yearIndex} className="border rounded p-3 mb-3 bg-light bg-opacity-50">
+                                        <div className="row g-2 align-items-center mb-3">
+                                            <div className="col-auto">
+                                                <label className="form-label mb-0 small text-body-secondary fw-bold">Year</label>
+                                                <input
+                                                    type="number"
+                                                    min={1}
+                                                    className="form-control"
+                                                    style={{ width: 90 }}
+                                                    value={yearBlock.year}
+                                                    onChange={(e) => updateYear(yearIndex, { year: Number(e.target.value) || 1 })}
+                                                />
+                                            </div>
+                                            <div className="col">
+                                                <label className="form-label mb-0 small text-body-secondary fw-bold">Title (optional)</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    placeholder={`e.g. Year ${yearBlock.year} Fundamentals`}
+                                                    value={yearBlock.title}
+                                                    onChange={(e) => updateYear(yearIndex, { title: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="col-auto align-self-end">
+                                                {activeYearModules.length > 1 && (
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-sm btn-outline-danger"
+                                                        onClick={() => removeYear(yearIndex)}
+                                                    >
+                                                        Remove year
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <label className="form-label small text-body-secondary fw-bold">Modules List</label>
+                                        {yearBlock.modules.map((moduleValue, moduleIndex) => (
+                                            <div key={moduleIndex} className="d-flex gap-2 mb-2">
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    placeholder={`Module ${moduleIndex + 1}`}
+                                                    value={moduleValue}
+                                                    onChange={(e) => updateModuleLine(yearIndex, moduleIndex, e.target.value)}
+                                                />
+                                                {yearBlock.modules.length > 1 && (
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-outline-danger"
+                                                        onClick={() => removeModuleLine(yearIndex, moduleIndex)}
+                                                    >
+                                                        ×
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                        <button type="button" className="btn btn-sm btn-light border mt-1" onClick={() => addModuleLine(yearIndex)}>
+                                            + Add module line
+                                        </button>
                                     </div>
                                 ))}
-                                <button type="button" className="btn btn-sm btn-light border mt-1" onClick={() => addModuleLine(yearIndex)}>
-                                    + Add module line
-                                </button>
-                            </div>
-                        ))}
+                            </>
+                        )}
                     </div>
                 </div>
 
