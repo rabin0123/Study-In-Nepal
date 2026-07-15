@@ -439,10 +439,10 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     inset: 0;
                    background: linear-gradient(
     135deg,
-    rgba(3, 105, 161, 0.7) 100%
+    rgba(3, 105, 161, 0.7) 10%
     rgba(2, 6, 23, 0.88) 45%,
     
-    rgba(0, 0, 0, 0.92) 10%,
+    rgba(0, 0, 0, 0.92) 100%,
 );                    pointer-events: none;
                 }
 
