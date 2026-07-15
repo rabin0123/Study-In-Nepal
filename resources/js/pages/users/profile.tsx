@@ -281,34 +281,33 @@ export default function Profile({ user, status, canEdit, isSelf, canVerify = fal
     };
 
     return (
-        <div className="min-vh-100 font-['Rajdhani']" style={{ background: "var(--surface-bg)" }}>
-            <Head title={isSelf ? 'Profile ' : `${localUser.name} - Profile`} />
+        <div className="profile-page-scope min-vh-100 font-['Rajdhani']" style={{ background: "var(--surface-bg)" }}>
+            <Head title={isSelf ? 'My Profile' : `${localUser.name} - Profile`} />
 
             <style>
                 {`
                     @import url('https://fonts.googleapis.com/css2?family=Castoro+Titling&family=Rajdhani:wght@400;500;600;700&display=swap');
 
-                    .sad-value {
+                    .profile-page-scope .sad-value {
                         color: #1e2633 !important;
                     }
-                    .sad-label {
+                    .profile-page-scope .sad-label {
                         letter-spacing: 0.06em;
                     }
-                    .sad-field-row:last-child {
+                    .profile-page-scope .sad-field-row:last-child {
                         border-bottom: none !important;
                         padding-bottom: 0 !important;
                     }
-                    .sad-field-row:first-child {
+                    .profile-page-scope .sad-field-row:first-child {
                         padding-top: 0 !important;
                     }
-                    .sad-icon-chip iconify-icon {
+                    .profile-page-scope .sad-icon-chip iconify-icon {
                         font-size: 18px;
                     }
 
-                    /* Consistent input styles for general input text and nested password text boxes */
-                    .survey-input,
-                    .relative input,
-                    [class*="relative"] input {
+                    /* Scoped input styles for general input text and nested password text boxes */
+                    .profile-page-scope .survey-input,
+                    .profile-page-scope .relative input {
                         width: 100% !important;
                         border: 1.5px solid var(--border-color, #dee2e6) !important;
                         border-radius: 0.75rem !important;
@@ -325,14 +324,13 @@ export default function Profile({ user, status, canEdit, isSelf, canVerify = fal
                     }
 
                     /* Unified focus border outline ring settings */
-                    .survey-input:focus,
-                    .relative input:focus,
-                    [class*="relative"] input:focus {
+                    .profile-page-scope .survey-input:focus,
+                    .profile-page-scope .relative input:focus {
                         border-color: ${PRIMARY} !important;
                         box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.08) !important;
                     }
 
-                    .survey-label {
+                    .profile-page-scope .survey-label {
                         display: flex;
                         align-items: center;
                         gap: 0.5rem;
@@ -344,24 +342,23 @@ export default function Profile({ user, status, canEdit, isSelf, canVerify = fal
                         color: var(--text-muted);
                         margin-bottom: 0.45rem;
                     }
-                    .section-divider {
+                    .profile-page-scope .section-divider {
                         border-top: 1px solid var(--border-color-soft);
                         margin: 2.5rem 0;
                     }
 
-                    /* ── FALLBACK ALIGNMENT FOR PASSWORDINPUT WITHOUT TAILWIND ── */
-                    .relative, [class*="relative"] {
+                    /* ── FALLBACK ALIGNMENT FOR PASSWORDINPUT WITHIN PROFILE CONTENT ONLY ── */
+                    .profile-page-scope .relative {
                         position: relative !important;
                         width: 100%;
                     }
 
-                    .absolute, [class*="absolute"] {
+                    .profile-page-scope .absolute {
                         position: absolute !important;
                     }
 
-                    /* Absolute positioning alignment for the password toggle eye button */
-                    .relative button, 
-                    [class*="relative"] button {
+                    /* Absolute positioning alignment for the password toggle eye button within profile scope */
+                    .profile-page-scope .relative button {
                         position: absolute !important;
                         right: 4px !important;
                         top: 50% !important;
@@ -379,8 +376,7 @@ export default function Profile({ user, status, canEdit, isSelf, canVerify = fal
                         z-index: 5 !important;
                     }
 
-                    .relative button:hover, 
-                    [class*="relative"] button:hover {
+                    .profile-page-scope .relative button:hover {
                         background: transparent !important;
                         color: var(--text-strong) !important;
                     }
@@ -391,7 +387,6 @@ export default function Profile({ user, status, canEdit, isSelf, canVerify = fal
                 <div className="row g-6 align-items-start">
 
                     {/* ── LEFT COLUMN: SUMMARY + INLINE EDITABLE FIELDS ── */}
-                    {/* Fixed zIndex and top sticky offset to cleanly slide under your horizontal header navbar */}
                     <div className="col-12 col-lg-4 sticky-lg-top" style={{ top: '85px', zIndex: 10 }}>
                         <div className="d-flex flex-column gap-6">
 
@@ -418,6 +413,9 @@ export default function Profile({ user, status, canEdit, isSelf, canVerify = fal
 
                                         <div className="min-w-0 grow">
                                             <h5 className="fw-semibold mb-1 text-strong-custom text-truncate">{localUser.name}</h5>
+                                            <p className="fs-3 text-body-secondary fw-semibold mb-2 text-truncate" title={localUser.agency_name}>
+                                                {localUser.agency_name}
+                                            </p>
                                             <div className="d-flex flex-wrap gap-2">
                                                 <span className={`badge ${verified ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning'} fw-semibold fs-2 gap-2 d-inline-flex align-items-center`}>
                                                     <iconify-icon icon={verified ? "solar:shield-check-line-duotone" : "solar:shield-warning-line-duotone"} className="fs-3"></iconify-icon>
