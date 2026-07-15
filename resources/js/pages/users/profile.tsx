@@ -554,7 +554,7 @@ export default function Profile({ user, status, canEdit, isSelf, canVerify = fal
                                     >
                                         <span
                                             style={{
-                                                width: 44, height: 18, borderRadius: 999,
+                                                width: 44, height: 24, borderRadius: 999,
                                                 background: localUser.can_verify_users ? PRIMARY : 'var(--border-color, #dee2e6)',
                                                 position: 'relative', transition: 'background 0.2s ease', display: 'inline-block'
                                             }}
@@ -563,7 +563,7 @@ export default function Profile({ user, status, canEdit, isSelf, canVerify = fal
                                                 style={{
                                                     position: 'absolute', top: 2,
                                                     left: localUser.can_verify_users ? 22 : 2,
-                                                    width: 20, height: 10, borderRadius: '50%', background: 'white',
+                                                    width: 20, height: 20, borderRadius: '50%', background: 'white',
                                                     boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transition: 'left 0.2s ease',
                                                 }}
                                             />
