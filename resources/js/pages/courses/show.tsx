@@ -67,7 +67,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 <div 
                     className="gcu-header__bg"
                     style={{
-                        backgroundImage: `url(${courseDetail.hero_image_url || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80'})`
+                        backgroundImage: `url(${courseDetail.hero_image_url || 'https://https://www.studyinnepal.com/images/event_hallway.png'})`
                     }}
                 />
                 
