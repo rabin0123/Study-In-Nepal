@@ -640,7 +640,7 @@ export default function CourseSearch() {
   const fetchRecentStudents = useCallback(async () => {
     setRecentStudentsLoading(true);
     try {
-      const res = await fetch("https://admin.studyinnepal.com/api/agent/applications/recent-students?limit=75", {
+      const res = await fetch("/api/agent/applications/recent-students?limit=75", {
         headers: { "Accept": "application/json" },
         credentials: "include",
       });
