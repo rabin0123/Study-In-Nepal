@@ -632,7 +632,7 @@ export default function Profile({ user, status, canEdit, isSelf, canVerify = fal
                                                     </div>
                                                 </div>
                                                 <div className="d-flex justify-content-end pt-3">
-                                                    <button type="submit" disabled={processing} className="btn btn-primary d-inline-flex align-items-center gap-2" style={{ borderRadius: '0.5rem', fontWeight: 600 }}>
+                                                    <button type="submit" disabled={processing} className="btn btn-primary1 d-inline-flex align-items-center gap-2" style={{ borderRadius: '0.5rem', fontWeight: 600 }}>
                                                         {processing && <LocalSpinner className="text-white" />}
                                                         <span>{processing ? "Updating..." : "Update Password"}</span>
                                                     </button>
