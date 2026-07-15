@@ -274,7 +274,7 @@ function ApplyNowModal({ courseTarget, onClose }: ApplyModalProps) {
     setSearching(true);
     setSearchError(null);
     try {
-      const res = await fetch(`https://admin.studyinnepal.com/api/agent/applications/search-students?q=${encodeURIComponent(q)}`, {
+      const res = await fetch(`/api/agent/applications/search-students?q=${encodeURIComponent(q)}`, {
         headers: { "Accept": "application/json" },
         credentials: "include",
       });
