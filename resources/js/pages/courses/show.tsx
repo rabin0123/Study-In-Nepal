@@ -75,22 +75,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 <div className="gcu-hero-top-left">
                     <div className="gcu-wrap">
                         
-                        {/* MOVED: Breadcrumbs now sit above the University name in the Hero */}
-                        <nav aria-label="Breadcrumb" className="gcu-breadcrumb">
-                            <ol className="gcu-breadcrumb__order">
-                                <li className="gcu-breadcrumb__item">
-                                    <span className="gcu-breadcrumb__link">{courseDetail.university_name}</span>
-                                </li>
-                                <li className="gcu-breadcrumb__item">
-                                    <span className="gcu-breadcrumb__link">{courseDetail.college_name}</span>
-                                </li>
-                                <li className="gcu-breadcrumb__item">
-                                    <span className="gcu-breadcrumb__current" aria-current="page">{courseDetail.course_name}</span>
-                                </li>
-                            </ol>
-                        </nav>
-
-                        <span className="gcu-hero-univ-name">{courseDetail.university_name}</span>
+                         <span className="gcu-hero-univ-name">{courseDetail.university_name}</span>
                     </div>
                 </div>
 
