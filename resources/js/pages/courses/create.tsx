@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { router } from '@inertiajs/react';
-import AppSidebarLayout from '@/layouts/app/app-sidebar-layout';
+
 
 type YearModule = { year: number; title: string; modules: string[] };
 type YearFee = { year: number; amount: string; currency: string; note: string };
