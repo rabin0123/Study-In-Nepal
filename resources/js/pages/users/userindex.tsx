@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import Avatar from '../../components/avatar';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 
@@ -577,7 +576,18 @@ export default function UsersIndex({
                                                 <td className="ps-6">
                                                     <div className="d-flex align-items-center">
                                                         <span className="shrink-0">
-                                                            <Avatar name={user.name} size={40} {...{ url: user.avatar_url, src: user.avatar_url } as any} />
+                                                            <img
+    src={user.avatar_url}
+    alt={user.name}
+    width={40}
+    height={40}
+    style={{
+        width: 40,
+        height: 40,
+        borderRadius: '50%',
+        objectFit: 'cover'
+    }}
+/>
                                                         </span>
                                                         <div className="ms-3 text-truncate grow">
                                                             <h6 className="fs-4 fw-semibold mb-0 text-truncate d-flex align-items-center gap-1.5">
