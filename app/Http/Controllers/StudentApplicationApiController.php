@@ -121,7 +121,7 @@ class StudentApplicationApiController extends Controller
             $application->makeHidden(['assigned_to']);
         }
 
-        // Fetch and format the comments/remarks associated with this application
+        // 1. Fetch and format the comments
         $remarks = $application->remarks()->with('user')->get();
         $formattedComments = $remarks->map(function ($remark) {
             return [
@@ -134,14 +134,65 @@ class StudentApplicationApiController extends Controller
                 'created_at' => $remark->created_at->toIso8601String(),
             ];
         });
-
-        // Append the formatted comments as a dynamic attribute to the model
         $application->setAttribute('comments', $formattedComments);
+
+        // 2. Fetch and format the activities
+        $activities = Activity::where('subject_type', StudentApplication::class)
+            ->where('subject_id', $application->id)
+            ->with('causer')
+            ->latest()
+            ->get()
+            ->map(function (Activity $activity) {
+                $action = $activity->properties['action'] ?? null;
+
+                $type = 'update';
+                if ($action === 'created_application') {
+                    $type = 'creation';
+                } elseif ($action === 'updated_status') {
+                    $type = 'status_change';
+                }
+
+                return [
+                    'id' => $activity->id,
+                    'type' => $type,
+                    'description' => $activity->description,
+                    'user_name' => $activity->causer ? $activity->causer->name : 'System',
+                    'created_at' => $activity->created_at->toIso8601String(),
+                    'old' => $activity->properties['old'] ?? null,
+                    'new' => $activity->properties['new'] ?? null,
+                ];
+            });
+        $application->setAttribute('activities', $activities);
+
+        // 3. Format status mapping configurations
+        $statusMapping = [
+            'PENDING REVIEW' => [
+                'label' => 'Pending Review',
+                'color' => '#fbbf24',
+            ],
+            'APPROVED' => [
+                'label' => 'Approved',
+                'color' => '#22c55e',
+            ],
+            'REJECTED' => [
+                'label' => 'Rejected',
+                'color' => '#ef4444',
+            ],
+        ];
+
+        $statuses = collect(StudentApplication::STATUSES)->map(function ($status) use ($statusMapping) {
+            return [
+                'value' => $status,
+                'label' => $statusMapping[$status]['label'] ?? ucwords(strtolower($status)),
+                'color' => $statusMapping[$status]['color'] ?? '#94a3b8',
+            ];
+        })->values();
 
         $payload = [
             'success' => true,
             'data' => $application,
             'can_manage_assignment' => $canManageAssignment,
+            'statuses' => $statuses,
         ];
 
         if ($canManageAssignment) {
