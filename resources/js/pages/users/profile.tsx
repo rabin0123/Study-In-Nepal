@@ -583,7 +583,7 @@ export default function Profile({ user, status, canEdit, isSelf, canVerify = fal
                             <Card>
                                 <SectionHeading icon="solar:key-square-2-line-duotone">Reset Password</SectionHeading>
                                 <div className="pt-3 mb-5">
-                                    <p className="fs-6 text-body-secondary fw-medium mb-4">
+                                    <p className="fs-4 text-body-secondary fw-medium mb-4">
                                         {isSelf ? 'Enter your current password, then choose a new one.' : 'Set a new password for this user.'}
                                     </p>
 
