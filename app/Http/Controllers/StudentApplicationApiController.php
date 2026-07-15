@@ -527,6 +527,7 @@ class StudentApplicationApiController extends Controller
 
         $formattedComment = [
             'id' => $remark->id,
+             'avatar_url' => $remark->user ? $remark->user->avatar_url : null, 
             'application_id' => $remark->student_application_id,
             'author_name' => $remark->user ? $remark->user->name : 'Unknown',
             'author_id' => $remark->user_id,
