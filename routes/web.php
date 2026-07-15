@@ -145,20 +145,12 @@ Route::put('/agent/applications/{application}/assign', [StudentApplicationApiCon
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
 
 
-// Admin/editor page — renders the Inertia edit form (courses/edit.tsx).
-Route::get('/courses/{university}/edit', [CourseDetailController::class, 'editPage'])
-    ->name('courses.edit');
-
-// Save endpoint — called via fetch() from the edit form component above.
-// POST is used for both create and update since CourseDetailController::store
-// upserts on university_id; one route/method means the frontend never has
-// to know in advance whether a details row already exists.
-Route::post('/courses/{university}', [CourseDetailController::class, 'store'])
-    ->name('courses.store');
-
-Route::delete('/courses/{university}', [CourseDetailController::class, 'destroy'])
-    ->name('courses.destroy');
-
+Route::get('/course-details', [CourseDetailController::class, 'index'])->name('index');
+    Route::get('/course-details/create', [CourseDetailController::class, 'create'])->name('create');
+    Route::post('/course-details', [CourseDetailController::class, 'store'])->name('store');
+    Route::get('/course-details/{courseDetail:uuid}/edit', [CourseDetailController::class, 'edit'])->name('edit');
+    Route::put('/course-details/{courseDetail:uuid}', [CourseDetailController::class, 'update'])->name('update');
+    Route::delete('/course-details/{courseDetail:uuid}', [CourseDetailController::class, 'destroy'])->name('destroy');
 
 });
 });
