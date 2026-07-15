@@ -374,6 +374,32 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
         padding: 0 16px;
     }
 }
+    @media (max-width: 500px) {
+    .gcu-banner-info__title {
+        font-size: 1.4rem;
+        line-height: 1.25;
+    }
+    .gcu-banner-info {
+        padding: 18px;
+    }
+    .gcu-banner-info__award {
+        font-size: 0.65rem;
+        padding: 3px 10px;
+    }
+}
+    @media (max-width: 640px) {
+    .gcu-hero-university {
+        margin-left: 16px;
+        gap: 8px;
+    }
+    .gcu-hero-university-logo {
+        width: 44px;
+        height: 44px;
+    }
+    .gcu-hero-univ-name {
+        font-size: 0.85rem;
+    }
+}
 
                 .gcu-top-nav {
                     background: var(--color-white);
