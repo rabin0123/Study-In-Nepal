@@ -12,12 +12,22 @@ return new class extends Migration
             $table->id();
             $table->uuid('uuid')->unique();
 
-            // 1:1 — each row in `universities` represents one (college, course)
-            // pairing, so a course detail belongs to exactly one of those rows.
+            // Entered directly on the standalone form — not pulled from an
+            // existing universities row. These are what get matched against
+            // universities.University / .College / .Course later on.
+            $table->string('university_name');
+            $table->string('college_name');
+            $table->string('course_name');
+
+            // Nullable and filled in automatically once a matching row shows
+            // up in `universities` (see LinkCourseDetailsToUniversities).
+            // Left null means "not linked yet" — the details still display
+            // fine on their own, they just won't be reachable from a
+            // university/course search result until linked.
             $table->foreignId('university_id')
-                ->unique()
+                ->nullable()
                 ->constrained('universities')
-                ->cascadeOnDelete();
+                ->nullOnDelete();
 
             $table->longText('summary')->nullable();
 
@@ -33,6 +43,11 @@ return new class extends Migration
             $table->json('careers')->nullable();
 
             $table->timestamps();
+
+            // Speeds up the matching job/listener that looks up
+            // course_details by (university_name, college_name, course_name)
+            // whenever a universities row is created/imported.
+            $table->index(['university_name', 'college_name', 'course_name'], 'course_details_match_idx');
         });
     }
 
