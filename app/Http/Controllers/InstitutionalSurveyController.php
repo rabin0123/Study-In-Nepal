@@ -12,7 +12,7 @@ class InstitutionalSurveyController extends Controller
 {
     /**
      * Display a listing of institutional survey submissions.
-     * Modified to allow returning all entries or dynamically paginating based on the request.
+     * Modified to allow returning all entries or dynamically paginating based on the requ
      */
 
     public function index(Request $request)
