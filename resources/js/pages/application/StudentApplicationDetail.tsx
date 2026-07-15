@@ -1014,14 +1014,51 @@ export default function StudentApplicationDetail({ application: initialApplicati
           .sad-icon-chip iconify-icon {
             font-size: 18px;
           }
+          
           /* Custom adaptive theme toggle buttons */
           .btn-toggle-custom {
             background-color: var(--bs-body-secondary-bg, #f8f9fa) !important;
-            color: var(--bs-body-color, #6c757d) !important;
-            border: 1px solid var(--bs-border-color, rgba(0, 0, 0, 0.1)) !important;
+            color: var(--bs-body-color, #495057) !important;
+            border: 1px solid var(--bs-border-color, rgba(0, 0, 0, 0.12)) !important;
           }
           .btn-toggle-custom:hover {
             background-color: var(--bs-body-tertiary-bg, #e9ecef) !important;
+            color: var(--bs-body-color, #212529) !important;
+          }
+          
+          /* Enforce high contrast and background visibility in dark mode setups */
+          [data-bs-theme="dark"] .btn-toggle-custom,
+          .dark .btn-toggle-custom {
+            background-color: var(--bs-body-secondary-bg, #2b3035) !important;
+            color: var(--bs-body-color, #f8f9fa) !important;
+            border-color: var(--bs-border-color, rgba(255, 255, 255, 0.15)) !important;
+          }
+          [data-bs-theme="dark"] .btn-toggle-custom:hover,
+          .dark .btn-toggle-custom:hover {
+            background-color: var(--bs-body-tertiary-bg, #3d444d) !important;
+            color: var(--bs-body-color, #ffffff) !important;
+          }
+
+          /* Slim Scrollbar CSS Styles */
+          .custom-scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(100, 116, 139, 0.4) transparent;
+          }
+          
+          /* Modern scrollbar properties for webkit engines (Chrome, Safari, Edge) */
+          .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: rgba(100, 116, 139, 0.4);
+            border-radius: 8px;
+          }
+          .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(100, 116, 139, 0.6);
           }
         `}
       </style>
@@ -1132,7 +1169,7 @@ export default function StudentApplicationDetail({ application: initialApplicati
                     </p>
                   </div>
 
-                  {/* {editingField === "date_of_birth" ? (
+                  {editingField === "date_of_birth" ? (
                     <div ref={activeRowRef} className="col-6" onDoubleClick={(e) => e.stopPropagation()}>
                       <span className="fs-2 fw-semibold text-uppercase text-body-secondary d-block mb-1">DOB</span>
                       <input
@@ -1165,7 +1202,7 @@ export default function StudentApplicationDetail({ application: initialApplicati
                         {student?.date_of_birth ? student.date_of_birth.split("T")[0] : <span className="text-body-secondary fw-normal fst-italic">Not set</span>}
                       </p>
                     </div>
-                  )} */}
+                  )}
                 </div>
               </div>
             </div>
@@ -1349,7 +1386,7 @@ export default function StudentApplicationDetail({ application: initialApplicati
                     No logged activity events found.
                   </div>
                 ) : (
-                  <div className="overflow-auto px-1" style={{ maxHeight: "1050px" }}>
+                  <div className="overflow-auto custom-scrollbar px-1" style={{ maxHeight: "1050px" }}>
                     <div className="position-relative border-start ms-3 ps-6 pt-5" style={{ borderColor: 'var(--bs-border-color)' }}>
                       {activities.map((activity) => {
                         let badgeColor = "bg-info-subtle text-info";
@@ -1483,8 +1520,8 @@ export default function StudentApplicationDetail({ application: initialApplicati
               </div>
             </div>
 
-            {/* Scrollable remark list */}
-            <div className="flex-grow-1 overflow-auto px-6 py-4" style={{ minHeight: 0 }}>
+            {/* Scrollable remark list with custom slim scrollbar styles */}
+            <div className="flex-grow-1 overflow-auto custom-scrollbar px-6 py-4" style={{ minHeight: 0 }}>
               {loadingComments ? (
                 <div className="d-flex align-items-center justify-content-center gap-2 py-8 fs-2 fw-semibold text-body-secondary text-uppercase">
                   <LocalSpinner />
