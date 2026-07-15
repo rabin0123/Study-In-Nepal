@@ -542,14 +542,13 @@ export default function UsersIndex({
                     <div className="card-body p-0">
                         {/* Fixed-height scroll container with slim scrollbar styling */}
                         <div className="table-responsive slim-scroll users-table-scroll">
-                            <table className="table users-table mb-0 align-middle" style={{ tableLayout: 'fixed', width: '100%', minWidth: 900 }}>
+                            <table className="table users-table mb-0 align-middle" style={{ tableLayout: 'fixed', width: '100%' }}>
                                 <colgroup>
-                                    <col style={{ width: '32%' }} />
-                                    <col style={{ width: '28%' }} />
-                                    <col style={{ width: '12%' }} />
-                                    <col style={{ width: '13%' }} />
-                                    <col style={{ width: '11%' }} />
-                                    <col style={{ width: '4%' }} />
+                                    <col style={{ width: '30%' }} />
+                                    <col style={{ width: '26%' }} />
+                                    <col style={{ width: '14%' }} />
+                                    <col style={{ width: '16%' }} />
+                                    <col style={{ width: '14%' }} />
                                 </colgroup>
                                 <thead className="text-dark fs-4" style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bs-card-bg, #fff)' }}>
                                     <tr>
@@ -557,14 +556,13 @@ export default function UsersIndex({
                                         <th>Email</th>
                                         <th>Country</th>
                                         <th>Role</th>
-                                        <th>Status</th>
-                                        <th className="pe-6"></th>
+                                        <th className="pe-6">Status</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {users.data.length === 0 && (
                                         <tr>
-                                            <td colSpan={6} className="text-center py-16 text-body-secondary fw-semibold">
+                                            <td colSpan={5} className="text-center py-16 text-body-secondary fw-semibold">
                                                 No users found.
                                             </td>
                                         </tr>
@@ -592,7 +590,7 @@ export default function UsersIndex({
                                                 style={{ cursor: 'pointer' }}
                                                 onClick={() => router.get(`/users/${user.id}`)}
                                             >
-                                                {/* Column 1: Avatar, Name, Contact details */}
+                                                {/* Column 1: Avatar, Name, Contact details + row actions (fixed beside name, hover-revealed) */}
                                                 <td className="ps-6">
                                                     <div className="d-flex align-items-center">
                                                         <span className="shrink-0">
@@ -622,6 +620,59 @@ export default function UsersIndex({
                                                                 {user.contact_number || '—'}
                                                             </span>
                                                         </div>
+
+                                                        {/* Row actions: fixed slot beside the name, only visible on row hover, requires delete.user permission */}
+                                                        {auth?.permissions?.includes('delete.user') && !user.is_protected && (
+                                                            <div
+                                                                className="dropdown shrink-0 ms-2"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            >
+                                                                <a
+                                                                    href="javascript:void(0)"
+                                                                    className="text-muted action-trigger d-flex align-items-center justify-content-center rounded-2"
+                                                                    id={`user-actions-${user.id}`}
+                                                                    data-bs-toggle="dropdown"
+                                                                    aria-expanded="false"
+                                                                    style={{ width: 32, height: 32 }}
+                                                                >
+                                                                    <iconify-icon icon="solar:menu-dots-vertical-bold-duotone" className="fs-5" />
+                                                                </a>
+                                                                <ul className="dropdown-menu" aria-labelledby={`user-actions-${user.id}`}>
+                                                                    <li>
+                                                                        <Link
+                                                                            href={`/users/${user.id}`}
+                                                                            className="dropdown-item d-flex align-items-center justify-content-between gap-3 py-2 text-uppercase fw-bold fs-2 text-body-secondary"
+                                                                        >
+                                                                            <span>View</span>
+                                                                            <iconify-icon icon="solar:arrow-right-line-duotone" className="fs-4" />
+                                                                        </Link>
+                                                                    </li>
+                                                                    <li>
+                                                                        <button
+                                                                            onClick={() => toggleUserStatus(user)}
+                                                                            className="dropdown-item d-flex align-items-center justify-content-between gap-3 py-2 text-uppercase fw-bold fs-2 text-body-secondary"
+                                                                        >
+                                                                            <span>{active ? 'Deactivate' : 'Activate'}</span>
+                                                                            {active ? (
+                                                                                <iconify-icon icon="solar:forbidden-line-duotone" className="text-warning fs-4" />
+                                                                            ) : (
+                                                                                <iconify-icon icon="solar:power-line-duotone" className="text-success fs-4" />
+                                                                            )}
+                                                                        </button>
+                                                                    </li>
+                                                                    <li><hr className="dropdown-divider" /></li>
+                                                                    <li>
+                                                                        <button
+                                                                            onClick={() => deleteUser(user)}
+                                                                            className="dropdown-item d-flex align-items-center justify-content-between gap-3 py-2 text-uppercase fw-bold fs-2 text-danger"
+                                                                        >
+                                                                            <span>Delete</span>
+                                                                            <iconify-icon icon="solar:trash-bin-trash-line-duotone" className="fs-4" />
+                                                                        </button>
+                                                                    </li>
+                                                                </ul>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </td>
 
@@ -670,8 +721,8 @@ export default function UsersIndex({
                                                     )}
                                                 </td>
 
-                                                {/* Column 5: Status Badges */}
-                                                <td>
+                                                {/* Column 5: Status Badges (now last column, gets right padding) */}
+                                                <td className="pe-6">
                                                     <div className="d-flex flex-column gap-1 align-items-start text-nowrap">
                                                         <span className={`badge ${
                                                             verified ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning'
@@ -687,59 +738,6 @@ export default function UsersIndex({
                                                             {active ? 'Active' : 'Deactivated'}
                                                         </span>
                                                     </div>
-                                                </td>
-
-                                                {/* Column 6: Contextual Dropdown (Trigger shows vertical dots on row hover) */}
-                                                <td className="pe-6 text-end" onClick={(e) => e.stopPropagation()}>
-                                                    {auth?.permissions?.includes('delete.user') && (
-                                                        <div className="dropdown d-inline-block">
-                                                            <a
-                                                                href="javascript:void(0)"
-                                                                className="text-muted action-trigger d-flex align-items-center justify-content-center"
-                                                                id={`user-actions-${user.id}`}
-                                                                data-bs-toggle="dropdown"
-                                                                aria-expanded="false"
-                                                            >
-                                                                <iconify-icon icon="solar:menu-dots-vertical-bold-duotone" className="fs-5" />
-                                                            </a>
-                                                            <ul className="dropdown-menu dropdown-menu-end" aria-labelledby={`user-actions-${user.id}`}>
-                                                                <li>
-                                                                    <Link
-                                                                        href={`/users/${user.id}`}
-                                                                        className="dropdown-item d-flex align-items-center justify-content-between gap-3 py-2 text-uppercase fw-bold fs-2 text-body-secondary"
-                                                                    >
-                                                                        <span>View</span>
-                                                                        <iconify-icon icon="solar:arrow-right-line-duotone" className="fs-4" />
-                                                                    </Link>
-                                                                </li>
-                                                                <li>
-                                                                    <button
-                                                                        onClick={() => toggleUserStatus(user)}
-                                                                        disabled={user.is_protected}
-                                                                        className="dropdown-item d-flex align-items-center justify-content-between gap-3 py-2 text-uppercase fw-bold fs-2 text-body-secondary"
-                                                                    >
-                                                                        <span>{active ? 'Deactivate' : 'Activate'}</span>
-                                                                        {active ? (
-                                                                            <iconify-icon icon="solar:forbidden-line-duotone" className="text-warning fs-4" />
-                                                                        ) : (
-                                                                            <iconify-icon icon="solar:power-line-duotone" className="text-success fs-4" />
-                                                                        )}
-                                                                    </button>
-                                                                </li>
-                                                                <li><hr className="dropdown-divider" /></li>
-                                                                <li>
-                                                                    <button
-                                                                        onClick={() => deleteUser(user)}
-                                                                        disabled={user.is_protected}
-                                                                        className="dropdown-item d-flex align-items-center justify-content-between gap-3 py-2 text-uppercase fw-bold fs-2 text-danger"
-                                                                    >
-                                                                        <span>Delete</span>
-                                                                        <iconify-icon icon="solar:trash-bin-trash-line-duotone" className="fs-4" />
-                                                                    </button>
-                                                                </li>
-                                                            </ul>
-                                                        </div>
-                                                    )}
                                                 </td>
                                             </tr>
                                         );
