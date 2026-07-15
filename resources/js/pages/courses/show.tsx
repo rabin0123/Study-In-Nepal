@@ -563,6 +563,10 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     opacity: 0.8;
                     display: inline-block;
                 }
+                    .bg-circle {
+    position: relative !important;
+    overflow: hidden !important; /* clips the ::after circle to this element's bounds */
+}
 
                 .gcu-subnav {
                     background: var(--color-white);
