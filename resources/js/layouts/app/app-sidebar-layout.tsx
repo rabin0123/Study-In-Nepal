@@ -250,9 +250,9 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
                     overflow-y: auto;
                     scrollbar-width: thin;
                 }
-                    .notif-message {
+                   .notif-message {
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
     white-space: normal;
