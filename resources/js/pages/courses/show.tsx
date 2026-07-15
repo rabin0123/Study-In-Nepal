@@ -442,7 +442,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     object-fit: contain;
                     background: #fff;
                     padding: 6px;
-                    margin-left:10px;
+                    margin-left:15px;
                     border-radius: 8px;
                     flex-shrink: 0;
                 }
