@@ -524,6 +524,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     margin-bottom: 16px;
                     letter-spacing: -0.01em;
                     color: #dae4f3;
+                    border-radius: 24px;
                 }
                 .gcu-banner-info__meta {
                     margin-bottom: 24px;
