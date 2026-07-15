@@ -92,8 +92,8 @@ Route::prefix('api')->middleware(['auth', 'verified'])->group(function () {
     Route::delete('/agency/survey/{survey}', [AgencySurveyApiController::class, 'destroy']);
 
 
-Route::get('applications/search-students', [StudentApplicationApiController::class, 'searchStudents']);
-Route::get('applications/recent-students', [StudentApplicationApiController::class, 'recentStudents']);
+Route::get('/agent/applications/search-students', [StudentApplicationApiController::class, 'searchStudents']);
+Route::get('/agent/applications/recent-students', [StudentApplicationApiController::class, 'recentStudents']);
 Route::post('applications/{application}/apply-to-course', [StudentApplicationApiController::class, 'applyToCourse']);
 Route::post('/agent/applications', [StudentApplicationApiController::class, 'store']);
 Route::get('/agent/applications', [StudentApplicationApiController::class, 'index']);
