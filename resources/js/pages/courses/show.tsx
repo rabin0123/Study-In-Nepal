@@ -431,7 +431,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     inset: 0;
                     background-size: cover;
                     background-position: center;
-                    opacity: 0.85;
+                    opacity: 0.70;
                 }
                 .gcu-header-section::after {
                     content: '';
