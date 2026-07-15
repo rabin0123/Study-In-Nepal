@@ -27,8 +27,11 @@ class StudentApplication extends Model
      * Mass-assignable columns.
      */
     protected $fillable = [
-        'created_by',
-'app_id',
+        'created_by', 'app_id',
+        // Links this application row back to the app_id of the same
+        // student's very first application. Null on a student's first
+        // ever application row.
+        'original_app_id',
         // Student details
         'student_name',
         'phone_number',
@@ -51,7 +54,8 @@ class StudentApplication extends Model
 
         // Agency details
         'agency_reference_notes',
-        'status', 
+        'status',
+
         'assigned_to',
         // Metadata
         'ip_address',
@@ -143,7 +147,7 @@ protected function avatarUrl(): Attribute
     'REJECTED',
 ];
 
-protected static function boot()
+    protected static function boot()
 {
     parent::boot();
 
@@ -164,4 +168,29 @@ public function assignedAgent()
 {
     return $this->belongsTo(User::class, 'assigned_to');
 }
+
+    /**
+     * The "root" app_id that identifies this student across every
+     * application row they have. If this row is itself the student's
+     * first application (original_app_id is null), that root is its
+     * own app_id.
+     */
+    public function getStudentRootAppIdAttribute(): string
+    {
+        return $this->original_app_id ?: $this->app_id;
+    }
+
+    /**
+     * All application rows (across every course/college/university)
+     * that belong to the same student as this one, including this row.
+     */
+    public function scopeForSameStudentAs($query, StudentApplication $application)
+    {
+        $rootAppId = $application->original_app_id ?: $application->app_id;
+
+        return $query->where(function ($q) use ($rootAppId) {
+            $q->where('app_id', $rootAppId)
+              ->orWhere('original_app_id', $rootAppId);
+        });
+    }
 }
