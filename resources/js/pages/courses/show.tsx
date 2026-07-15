@@ -40,7 +40,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
         { id: 'overview', label: 'Overview', show: Boolean(courseDetail.summary) },
         { id: 'study', label: 'What you will study', show: modules.length > 0 },
         { id: 'fees', label: 'Fees and funding', show: fees.length > 0 },
-        { id: 'careers', label: 'Careers', show: Boolean(careers_summary) },
+        { id: 'careers', label: 'Career Prospectus', show: Boolean(careers_summary) },
     ].filter((s) => s.show);
 
     const [activeTab, setActiveTab] = useState<number>(() => {
@@ -164,7 +164,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     </section>
                 )}
 
-                {/* UPDATED: Black Card Scheme for "What you will study" */}
                 {modules.length > 0 && (
                     <section id="study" className="gcu-panel full-bleed scheme--black-card">
                         <div className="gcu-wrap">
@@ -252,11 +251,12 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     </section>
                 )}
 
+                {/* Updated Title to Career Prospectus */}
                 {careers_summary && (
                     <section id="careers" className="gcu-panel">
                         <div className="gcu-row">
                             <div className="gcu-col-title">
-                                <h2 className="gcu-heading">Careers</h2>
+                                <h2 className="gcu-heading">Career<br />Prospectus</h2>
                             </div>
                             <div className="gcu-col-content">
                                 <p className="gcu-section-intro">Our course helps set the trajectory for career positions such as:</p>
@@ -283,7 +283,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     
                     --color-grey: #f4f6f8;
                     --color-border: #bae6fd;
-                    --color-black: #12181f; /* Used for the black panel */
+                    --color-black: #12181f; 
                     --color-muted-text: #4c5764;
                 }
 
@@ -511,7 +511,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     border-bottom: none;
                 }
                 .gcu-panel.scheme--black-card .gcu-heading {
-                    color: var(--color-white); /* White text for black bg */
+                    color: var(--color-white); 
                 }
                 .gcu-panel.scheme--black-card .gcu-tab-headers {
                     border-bottom: 2px solid rgba(255, 255, 255, 0.2);
@@ -531,7 +531,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: rgba(255, 255, 255, 0.6);
                 }
                 
-                /* Accordion modules styling on black background */
                 .gcu-panel.scheme--black-card .gcu-module-row {
                     background-color: var(--color-white);
                     border: none;
