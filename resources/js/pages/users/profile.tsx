@@ -568,7 +568,7 @@ export default function Profile({ user, status, canEdit, isSelf, canVerify = fal
                                                 }}
                                             />
                                         </span>
-                                        <span className="fs-6 fw-bold sad-value">
+                                        <span className="fs-3 fw-bold sad-value">
                                             {localUser.can_verify_users ? 'Enabled' : 'Disabled'}
                                         </span>
                                     </button>
