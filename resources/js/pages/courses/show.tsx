@@ -132,7 +132,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 </div>
 
                 <div className="gcu-wrap">
-                    <div className="gcu-banner-info scheme--skyblue">
+                    <div className="gcu-banner-info">
                         <div className="gcu-banner-info__wrap">
                             <span className="gcu-banner-info__award">
                                 {courseDetail.university?.level || 'Postgraduate'}
@@ -495,19 +495,20 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     padding-bottom: 4px;
                 }
 
+                /* NEW BLACK TO BLUE GRADIENT FOR BANNER INFO */
                 .gcu-banner-info {
                     position: relative;
                     z-index: 20;
-                    background: linear-gradient(135deg, var(--color-skyblue-dark) 0%, var(--color-skyblue) 100%);
+                    background: linear-gradient(135deg, #0a0a0a 0%, var(--color-skyblue-dark) 100%);
                     color: var(--color-white);
                     padding: 40px;
                     margin-bottom: -50px;
-                    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
-                    border-radius: 4px;
+                    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+                    border-radius: 8px;
                 }
                 .gcu-banner-info__award {
                     display: inline-block;
-                    background: rgba(255, 255, 255, 0.2);
+                    background: rgba(255, 255, 255, 0.15);
                     padding: 4px 12px;
                     border-radius: 3px;
                     font-size: 0.75rem;
@@ -520,7 +521,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     font-size: 2.3rem;
                     font-weight: 800;
                     line-height: 1.15;
-                    margin-bottom: 8px;
+                    margin-bottom: 16px;
                     letter-spacing: -0.01em;
                 }
                 .gcu-banner-info__meta {
@@ -529,7 +530,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 .gcu-banner-info__tagline {
                     font-size: 1.1rem;
                     font-weight: 600;
-                    opacity: 0.9;
+                    opacity: 0.95;
                     display: flex;
                     align-items: center;
                     gap: 14px;
