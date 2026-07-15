@@ -61,7 +61,11 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
         <div className="gcu-page bg-circle">
             <Head title={`${courseDetail.course_name} | ${courseDetail.university_name}`} />
 
-            {/* Breadcrumbs */}
+            
+
+            {/* GCU Full-Bleed Image Background with Overlapping Course Banner Card */}
+            <div className="gcu-header-section">
+                {/* Breadcrumbs */}
                 <nav aria-label="Breadcrumb" className="gcu-breadcrumb">
                     <ol className="gcu-breadcrumb__order">
                         <li className="gcu-breadcrumb__item">
@@ -75,9 +79,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                         </li>
                     </ol>
                 </nav>
-
-            {/* GCU Full-Bleed Image Background with Overlapping Course Banner Card */}
-            <div className="gcu-header-section">
                 <div 
                     className="gcu-header__bg"
                     style={{
