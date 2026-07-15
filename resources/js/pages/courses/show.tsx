@@ -65,7 +65,15 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
             {/* GCU Full-Bleed Image Background with Overlapping Course Banner Card */}
             <div className="gcu-header-section">
-             
+                
+                <div 
+                    className="gcu-header__bg"
+                    style={{
+                        backgroundImage: `url(${courseDetail.hero_image_url || 'https://www.gcu.ac.uk/__data/assets/image/0020/162803/Global-MBA.jpg'})`
+                    }}
+                />
+                {/* Breadcrumbs */}
+                <nav aria-label="Breadcrumb" className="gcu-breadcrumb">
                     <ol className="gcu-breadcrumb__order">
                         <li className="gcu-breadcrumb__item">
                             <span className="gcu-breadcrumb__link">{courseDetail.university_name}</span>
@@ -77,13 +85,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                             <span className="gcu-breadcrumb__current" aria-current="page">{courseDetail.course_name}</span>
                         </li>
                     </ol>
-              
-                <div 
-                    className="gcu-header__bg"
-                    style={{
-                        backgroundImage: `url(${courseDetail.hero_image_url || 'https://www.gcu.ac.uk/__data/assets/image/0020/162803/Global-MBA.jpg'})`
-                    }}
-                />
+                </nav>
                 <div className="gcu-wrap">
                     <div className="gcu-banner-info scheme--pink-purple">
                         <div className="gcu-banner-info__wrap">
