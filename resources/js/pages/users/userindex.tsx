@@ -262,23 +262,6 @@ export default function UsersIndex({
                         color: var(--bs-body-color) !important;
                         padding: 0.375rem 0 !important;
                     }
-                    
-                    /* Custom Scrollbar for Table Container */
-                    .sidebar-nav-scroll::-webkit-scrollbar {
-                        width: 6px;
-                        height: 6px;
-                    }
-                    .sidebar-nav-scroll::-webkit-scrollbar-track {
-                        background: rgba(0, 0, 0, 0.02);
-                        border-radius: 4px;
-                    }
-                    .sidebar-nav-scroll::-webkit-scrollbar-thumb {
-                        background: rgba(0, 0, 0, 0.15);
-                        border-radius: 4px;
-                    }
-                    .sidebar-nav-scroll::-webkit-scrollbar-thumb:hover {
-                        background: rgba(0, 0, 0, 0.25);
-                    }
                 `}
             </style>
 
@@ -476,16 +459,15 @@ export default function UsersIndex({
                         <form onSubmit={handleSearchSubmit} className="position-relative flex-grow-1" style={{ minWidth: 260 }}>
                             <iconify-icon
                                 icon="solar:magnifer-line-duotone"
-                                className="position-absolute text-body-secondary fs-5"
-                                style={{ left: '0.9rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', zIndex: 5 }}
+                                className="position-absolute top-50 translate-middle-y text-body-secondary fs-5"
+                                style={{ left: '0.9rem' }}
                             ></iconify-icon>
                             <input
                                 type="text"
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
                                 placeholder="Search user, name, email..."
-                                className="form-control"
-                                style={{ paddingLeft: '2.5rem' }}
+                                className="form-control ps-11"
                             />
                         </form>
 
@@ -505,8 +487,7 @@ export default function UsersIndex({
                 {/* Table Container Card */}
                 <div className="card">
                     <div className="card-body p-0">
-                        {/* Scroll limits set to ~415px to prompt scrollbar beyond ~5 items */}
-                        <div className="table-responsive sidebar-nav-scroll" style={{ maxHeight: 415, overflowY: 'auto', width: '100%' }}>
+                        <div className="table-responsive sidebar-nav-scroll" style={{ maxHeight: 520, overflowY: 'auto', width: '100%' }}>
                             <table className="table mb-0 align-middle" style={{ tableLayout: 'fixed', width: '100%', minWidth: 900 }}>
                                 <colgroup>
                                     <col style={{ width: '30%' }} />
@@ -574,18 +555,17 @@ export default function UsersIndex({
                                                             </span>
                                                         </div>
 
-                                                        {/* Contextual Dropdown (matching design with iconify icon replacement) */}
+                                                        {/* Contextual Dropdown (Native Bootstrap style matching StudentApplicationsIndex) */}
                                                         {auth?.permissions?.includes('delete.user') && (
                                                             <div className="dropdown ms-2" onClick={(e) => e.stopPropagation()}>
                                                                 <a
                                                                     href="javascript:void(0)"
-                                                                    className="text-muted d-inline-flex align-items-center justify-content-center"
+                                                                    className="text-muted"
                                                                     id={`user-actions-${user.id}`}
                                                                     data-bs-toggle="dropdown"
                                                                     aria-expanded="false"
-                                                                    style={{ width: '30px', height: '30px', borderRadius: '50%' }}
                                                                 >
-                                                                    <iconify-icon icon="solar:menu-dots-bold-duotone" className="fs-5"></iconify-icon>
+                                                                    <i className="ti ti-dots fs-5"></i>
                                                                 </a>
                                                                 <ul className="dropdown-menu" aria-labelledby={`user-actions-${user.id}`}>
                                                                     <li>
@@ -730,9 +710,9 @@ export default function UsersIndex({
                                                 }`}
                                             >
                                                 {isPrevious ? (
-                                                    <iconify-icon icon="solar:alt-arrow-left-line-duotone" className="fs-5"></iconify-icon>
+                                                    <i className="ti ti-chevron-left fs-4"></i>
                                                 ) : isNext ? (
-                                                    <iconify-icon icon="solar:alt-arrow-right-line-duotone" className="fs-5"></iconify-icon>
+                                                    <i className="ti ti-chevron-right fs-4"></i>
                                                 ) : (
                                                     <span dangerouslySetInnerHTML={{ __html: link.label }} />
                                                 )}
