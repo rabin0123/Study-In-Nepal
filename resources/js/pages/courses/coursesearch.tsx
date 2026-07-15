@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 
 // ── Helper to dynamically map stream to actual homepage assets ─────────────
 const getStreamImage = (stream: string, id: number): string => {
@@ -113,6 +113,21 @@ interface UniversityEntry {
   requireddocuments: string | null;
 }
 
+// Shape returned by GET /api/agent/applications/search-students
+interface StudentResult {
+  id: string;
+  app_id: string;
+  student_name: string;
+  email: string | null;
+  phone_number: string | null;
+  country: string | null;
+  avatar_url: string | null;
+  university_name: string | null;
+  college_name: string | null;
+  course_name: string | null;
+  status: string;
+}
+
 const validUrl = (url: string | null | undefined): string | null => {
   if (!url) return null;
   const trimmed = url.trim();
@@ -211,6 +226,337 @@ function DropdownFilter({ label, options, selected, toggleOption }: DropdownProp
   );
 }
 
+// ── Apply Now Modal ─────────────────────────────────────────────────────────
+// Two-step flow inside a single modal:
+//   1. Search step  – live (debounced) search of existing students by name or app_id
+//   2. Confirm step – "Apply <student> to <course> at <college>?" yes/no
+interface ApplyModalProps {
+  courseTarget: {
+    university: string;
+    college: string;
+    course: string;
+  };
+  onClose: () => void;
+}
+
+type ModalStep = "search" | "confirm" | "submitting" | "success" | "error";
+
+function ApplyNowModal({ courseTarget, onClose }: ApplyModalProps) {
+  const [step, setStep] = useState<ModalStep>("search");
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<StudentResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<StudentResult | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  // Close on Escape
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  const runSearch = useCallback(async (q: string) => {
+    if (!q.trim()) {
+      setResults([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    setSearchError(null);
+    try {
+      const res = await fetch(`https://admin.studyinnepal.com/api/agent/applications/search-students?q=${encodeURIComponent(q)}`, {
+        headers: { "Accept": "application/json" },
+        credentials: "include",
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setSearchError(json.message || "Unable to search students right now.");
+        setResults([]);
+      } else {
+        setResults(json.data || []);
+      }
+    } catch (err) {
+      setSearchError("Network error while searching. Please try again.");
+      setResults([]);
+    } finally {
+      setSearching(false);
+    }
+  }, []);
+
+  // Debounced live search as the user types
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      runSearch(query);
+    }, 350);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [query, runSearch]);
+
+  const handlePickStudent = (student: StudentResult) => {
+    setSelectedStudent(student);
+    setStep("confirm");
+  };
+
+  const handleBackToSearch = () => {
+    setSelectedStudent(null);
+    setStep("search");
+  };
+
+  const handleConfirmApply = async () => {
+    if (!selectedStudent) return;
+    setStep("submitting");
+    setErrorMessage(null);
+    try {
+      const res = await fetch(
+        `https://admin.studyinnepal.com/api/agent/applications/${selectedStudent.id}/apply-to-course`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            university_name: courseTarget.university,
+            college_name: courseTarget.college,
+            course_name: courseTarget.course,
+          }),
+        }
+      );
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setErrorMessage(json.message || "Could not submit this application. Please try again.");
+        setStep("error");
+        return;
+      }
+      setStep("success");
+    } catch (err) {
+      setErrorMessage("Network error while submitting. Please try again.");
+      setStep("error");
+    }
+  };
+
+  return (
+    <div
+      className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+      style={{ background: "rgba(15, 23, 42, 0.55)", backdropFilter: "blur(4px)", zIndex: 2000 }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="bg-white rounded-4 shadow-lg d-flex flex-column"
+        style={{
+          width: "min(520px, 92vw)",
+          maxHeight: "82vh",
+          fontFamily: "'Manrope', sans-serif",
+          overflow: "hidden",
+        }}
+      >
+        {/* Modal Header */}
+        <div className="d-flex align-items-center justify-content-between px-4 py-3 border-bottom">
+          <div>
+            <h2 className="h6 fw-bold mb-0 text-body">
+              {step === "search" && "Find a Student"}
+              {step === "confirm" && "Confirm Application"}
+              {step === "submitting" && "Submitting..."}
+              {step === "success" && "Application Submitted"}
+              {step === "error" && "Something Went Wrong"}
+            </h2>
+            <p className="small text-muted mb-0" style={{ fontSize: "12px" }}>
+              {courseTarget.course} &middot; {courseTarget.college}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="btn btn-sm btn-light rounded-circle d-flex align-items-center justify-content-center"
+            style={{ width: "32px", height: "32px" }}
+            aria-label="Close"
+          >
+            <iconify-icon icon="solar:close-circle-line-duotone" style={{ fontSize: "18px" }} />
+          </button>
+        </div>
+
+        {/* Modal Body */}
+        <div className="p-4 overflow-auto" style={{ flex: 1 }}>
+          {step === "search" && (
+            <>
+              <div className="position-relative mb-3">
+                <span className="position-absolute top-50 translate-middle-y start-0 ps-3 d-flex align-items-center">
+                  <iconify-icon icon="solar:magnifer-line-duotone" style={{ fontSize: "18px", color: "#008ce3" }} />
+                </span>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search by student name or App ID..."
+                  className="form-control rounded-pill ps-5 py-2 border"
+                  style={{ fontSize: "14px" }}
+                />
+              </div>
+
+              {searching && (
+                <div className="text-center text-muted small py-4">Searching...</div>
+              )}
+
+              {!searching && searchError && (
+                <div className="text-center text-danger small py-4">{searchError}</div>
+              )}
+
+              {!searching && !searchError && query.trim() && results.length === 0 && (
+                <div className="text-center text-muted small py-4">
+                  No students found matching &ldquo;{query}&rdquo;.
+                </div>
+              )}
+
+              {!searching && !query.trim() && (
+                <div className="text-center text-muted small py-4">
+                  Start typing a student&rsquo;s name or App ID to search.
+                </div>
+              )}
+
+              {!searching && results.length > 0 && (
+                <div className="d-flex flex-column gap-2">
+                  {results.map((student) => (
+                    <button
+                      key={student.id}
+                      onClick={() => handlePickStudent(student)}
+                      className="btn text-start d-flex align-items-center gap-3 p-2 rounded-3 border"
+                      style={{ background: "white" }}
+                    >
+                      <img
+                        src={student.avatar_url || "/images/default-avatar.png"}
+                        alt={student.student_name}
+                        className="rounded-circle"
+                        style={{ width: "40px", height: "40px", objectFit: "cover" }}
+                        onError={(e) => { e.currentTarget.style.visibility = "hidden"; }}
+                      />
+                      <div className="flex-grow-1">
+                        <div className="fw-bold small text-body">{student.student_name}</div>
+                        <div className="text-muted" style={{ fontSize: "12px" }}>
+                          App ID: {student.app_id}
+                          {student.email ? ` · ${student.email}` : ""}
+                        </div>
+                      </div>
+                      <iconify-icon icon="solar:arrow-right-linear" style={{ fontSize: "16px", color: "#008ce3" }} />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {step === "confirm" && selectedStudent && (
+            <div>
+              <div className="d-flex align-items-center gap-3 p-3 rounded-3 mb-3" style={{ background: "rgba(0, 140, 227, 0.06)" }}>
+                <img
+                  src={selectedStudent.avatar_url || "/images/default-avatar.png"}
+                  alt={selectedStudent.student_name}
+                  className="rounded-circle"
+                  style={{ width: "48px", height: "48px", objectFit: "cover" }}
+                />
+                <div>
+                  <div className="fw-bold text-body">{selectedStudent.student_name}</div>
+                  <div className="text-muted small">App ID: {selectedStudent.app_id}</div>
+                </div>
+              </div>
+
+              <p className="small text-body mb-3">
+                Do you want to apply <strong>{selectedStudent.student_name}</strong> to this program?
+              </p>
+
+              <div className="rounded-3 border p-3 mb-3 small">
+                <div className="d-flex justify-content-between py-1">
+                  <span className="text-muted">Course</span>
+                  <span className="fw-bold text-body text-end">{courseTarget.course}</span>
+                </div>
+                <div className="d-flex justify-content-between py-1">
+                  <span className="text-muted">College</span>
+                  <span className="fw-bold text-body text-end">{courseTarget.college}</span>
+                </div>
+                <div className="d-flex justify-content-between py-1">
+                  <span className="text-muted">University</span>
+                  <span className="fw-bold text-body text-end">{courseTarget.university}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === "submitting" && (
+            <div className="text-center text-muted small py-5">Submitting application...</div>
+          )}
+
+          {step === "success" && selectedStudent && (
+            <div className="text-center py-4">
+              <iconify-icon icon="solar:check-circle-bold-duotone" style={{ fontSize: "48px", color: "#22c55e" }} />
+              <p className="small text-body mt-3 mb-0">
+                <strong>{selectedStudent.student_name}</strong> has been applied to {courseTarget.course} at {courseTarget.college}.
+              </p>
+            </div>
+          )}
+
+          {step === "error" && (
+            <div className="text-center py-4">
+              <iconify-icon icon="solar:danger-triangle-bold-duotone" style={{ fontSize: "40px", color: "#ef4444" }} />
+              <p className="small text-body mt-3 mb-0">{errorMessage}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Modal Footer */}
+        {step === "confirm" && (
+          <div className="d-flex gap-2 px-4 py-3 border-top">
+            <button onClick={handleBackToSearch} className="btn btn-light flex-fill fw-bold rounded-pill" style={{ fontSize: "13px" }}>
+              Back
+            </button>
+            <button
+              onClick={handleConfirmApply}
+              className="btn flex-fill fw-bold rounded-pill text-white"
+              style={{ background: "#008ce3", fontSize: "13px" }}
+            >
+              Yes, Apply
+            </button>
+          </div>
+        )}
+
+        {step === "error" && (
+          <div className="d-flex gap-2 px-4 py-3 border-top">
+            <button onClick={handleBackToSearch} className="btn btn-light flex-fill fw-bold rounded-pill" style={{ fontSize: "13px" }}>
+              Back to Search
+            </button>
+            <button onClick={onClose} className="btn btn-outline-secondary flex-fill fw-bold rounded-pill" style={{ fontSize: "13px" }}>
+              Close
+            </button>
+          </div>
+        )}
+
+        {step === "success" && (
+          <div className="d-flex px-4 py-3 border-top">
+            <button
+              onClick={onClose}
+              className="btn flex-fill fw-bold rounded-pill text-white"
+              style={{ background: "#008ce3", fontSize: "13px" }}
+            >
+              Done
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page Component ────────────────────────────────────────────────────
 export default function CourseSearch() {
   const [data, setData] = useState<UniversityEntry[]>([]);
@@ -225,6 +571,9 @@ export default function CourseSearch() {
   const [selectedUniversities, setSelectedUniversities] = useState<string[]>([]);
   const [selectedColleges, setSelectedColleges] = useState<string[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+
+  // Apply Now modal state — tracks which course card triggered it
+  const [applyTarget, setApplyTarget] = useState<{ university: string; college: string; course: string } | null>(null);
 
   useEffect(() => {
     fetchUniversities();
@@ -592,23 +941,22 @@ export default function CourseSearch() {
                           </div>
                         </div>
 
-                        {/* CTA Link Button */}
-                        <a href="/student-inquiry" className="text-decoration-none">
-                          <button
-                            className="btn btn-primary btn-sm d-flex align-items-center gap-2 px-3 py-2 text-uppercase fw-bold"
-                            style={{
-                              background: "#008ce3",
-                              borderColor: "#008ce3",
-                              fontFamily: "'Rajdhani', sans-serif",
-                              fontSize: "12px",
-                              letterSpacing: "0.05em",
-                              transition: "all 0.2s"
-                            }}
-                          >
-                            <span>Apply Now</span>
-                            <iconify-icon icon="solar:arrow-right-linear" style={{ fontSize: "14px" }} />
-                          </button>
-                        </a>
+                        {/* CTA Button — opens the Apply Now modal instead of navigating away */}
+                        <button
+                          onClick={() => setApplyTarget({ university: stdUni, college: stdCol, course: stdCourse })}
+                          className="btn btn-primary btn-sm d-flex align-items-center gap-2 px-3 py-2 text-uppercase fw-bold"
+                          style={{
+                            background: "#008ce3",
+                            borderColor: "#008ce3",
+                            fontFamily: "'Rajdhani', sans-serif",
+                            fontSize: "12px",
+                            letterSpacing: "0.05em",
+                            transition: "all 0.2s"
+                          }}
+                        >
+                          <span>Apply Now</span>
+                          <iconify-icon icon="solar:arrow-right-linear" style={{ fontSize: "14px" }} />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -618,6 +966,14 @@ export default function CourseSearch() {
           </div>
         )}
       </div>
+
+      {/* Apply Now Modal — shown when a course card's Apply Now button is clicked */}
+      {applyTarget && (
+        <ApplyNowModal
+          courseTarget={applyTarget}
+          onClose={() => setApplyTarget(null)}
+        />
+      )}
 
       {/* CSS Rules */}
       <style>{`
