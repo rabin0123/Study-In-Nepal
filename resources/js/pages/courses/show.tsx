@@ -164,9 +164,9 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     </section>
                 )}
 
-                {/* UPDATED: Yellow Card Scheme for "What you will study" */}
+                {/* UPDATED: Black Card Scheme for "What you will study" */}
                 {modules.length > 0 && (
-                    <section id="study" className="gcu-panel full-bleed scheme--yellow-card">
+                    <section id="study" className="gcu-panel full-bleed scheme--black-card">
                         <div className="gcu-wrap">
                             <div className="gcu-row">
                                 <div className="gcu-col-title">
@@ -279,12 +279,11 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     --color-skyblue: #0284c7;
                     --color-skyblue-dark: #0369a1;
                     --color-skyblue-deep: #075985;
-                    --color-yellow: #FFCC00; /* Added Yellow Variable */
                     --color-white: #ffffff;
                     
                     --color-grey: #f4f6f8;
                     --color-border: #bae6fd;
-                    --color-black: #12181f;
+                    --color-black: #12181f; /* Used for the black panel */
                     --color-muted-text: #4c5764;
                 }
 
@@ -505,42 +504,43 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     padding: 60px 0;
                 }
 
-                /* YELLOW CARD STYLING FOR "WHAT YOU WILL STUDY" */
-                .gcu-panel.scheme--yellow-card {
-                    background-color: var(--color-yellow);
-                    color: var(--color-black);
+                /* BLACK CARD STYLING FOR "WHAT YOU WILL STUDY" */
+                .gcu-panel.scheme--black-card {
+                    background-color: var(--color-black);
+                    color: var(--color-white);
                     border-bottom: none;
                 }
-                .gcu-panel.scheme--yellow-card .gcu-heading {
-                    color: var(--color-black); /* Override heading to black */
+                .gcu-panel.scheme--black-card .gcu-heading {
+                    color: var(--color-white); /* White text for black bg */
                 }
-                .gcu-panel.scheme--yellow-card .gcu-tab-headers {
-                    border-bottom: 2px solid rgba(0, 0, 0, 0.15);
+                .gcu-panel.scheme--black-card .gcu-tab-headers {
+                    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
                 }
-                .gcu-panel.scheme--yellow-card .gcu-tab-header-btn {
-                    color: rgba(0, 0, 0, 0.6);
+                .gcu-panel.scheme--black-card .gcu-tab-header-btn {
+                    color: rgba(255, 255, 255, 0.6);
                 }
-                .gcu-panel.scheme--yellow-card .gcu-tab-header-btn.is-active,
-                .gcu-panel.scheme--yellow-card .gcu-tab-header-btn:hover {
-                    color: var(--color-black);
-                    border-bottom-color: var(--color-black);
+                .gcu-panel.scheme--black-card .gcu-tab-header-btn.is-active,
+                .gcu-panel.scheme--black-card .gcu-tab-header-btn:hover {
+                    color: var(--color-white);
+                    border-bottom-color: var(--color-white);
                 }
-                .gcu-panel.scheme--yellow-card .gcu-single-year-title {
-                    color: var(--color-black);
+                .gcu-panel.scheme--black-card .gcu-single-year-title {
+                    color: var(--color-white);
                 }
-                .gcu-panel.scheme--yellow-card .gcu-muted {
-                    color: rgba(0,0,0,0.7);
+                .gcu-panel.scheme--black-card .gcu-muted {
+                    color: rgba(255, 255, 255, 0.6);
                 }
                 
-                /* Adjust Accodion Elements to pop correctly on yellow background */
-                .gcu-panel.scheme--yellow-card .gcu-module-row {
-                    border: 1px solid rgba(0,0,0,0.1);
-                    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+                /* Accordion modules styling on black background */
+                .gcu-panel.scheme--black-card .gcu-module-row {
+                    background-color: var(--color-white);
+                    border: none;
+                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
                 }
-                .gcu-panel.scheme--yellow-card .gcu-module-row__head {
+                .gcu-panel.scheme--black-card .gcu-module-row__head {
                     color: var(--color-black);
                 }
-                .gcu-panel.scheme--yellow-card .gcu-module-row__arrow {
+                .gcu-panel.scheme--black-card .gcu-module-row__arrow {
                     color: var(--color-black);
                 }
 
