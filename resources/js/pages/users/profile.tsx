@@ -284,7 +284,108 @@ export default function Profile({ user, status, canEdit, isSelf, canVerify = fal
         <div className="min-vh-100 font-['Rajdhani']" style={{ background: "var(--surface-bg)" }}>
             <Head title={isSelf ? 'My Profile' : `${localUser.name} - Profile`} />
 
-            
+            <style>
+                {`
+                    @import url('https://fonts.googleapis.com/css2?family=Castoro+Titling&family=Rajdhani:wght@400;500;600;700&display=swap');
+
+                    .sad-value {
+                        color: #1e2633 !important;
+                    }
+                    .sad-label {
+                        letter-spacing: 0.06em;
+                    }
+                    .sad-field-row:last-child {
+                        border-bottom: none !important;
+                        padding-bottom: 0 !important;
+                    }
+                    .sad-field-row:first-child {
+                        padding-top: 0 !important;
+                    }
+                    .sad-icon-chip iconify-icon {
+                        font-size: 18px;
+                    }
+
+                    /* Consistent input styles for general input text and nested password text boxes */
+                    .survey-input,
+                    .relative input,
+                    [class*="relative"] input {
+                        width: 100% !important;
+                        border: 1.5px solid var(--border-color, #dee2e6) !important;
+                        border-radius: 0.75rem !important;
+                        padding: 0.65rem 1rem !important;
+                        padding-right: 45px !important; /* Keep space for eye toggle button */
+                        font-family: 'Rajdhani', sans-serif !important;
+                        font-size: 0.95rem !important;
+                        font-weight: 600 !important;
+                        color: var(--text-strong) !important;
+                        background: var(--surface-card, #fff) !important;
+                        outline: none !important;
+                        transition: all 0.2s ease !important;
+                        height: auto !important;
+                    }
+
+                    /* Unified focus border outline ring settings */
+                    .survey-input:focus,
+                    .relative input:focus,
+                    [class*="relative"] input:focus {
+                        border-color: ${PRIMARY} !important;
+                        box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.08) !important;
+                    }
+
+                    .survey-label {
+                        display: flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                        font-family: 'Rajdhani', sans-serif !important;
+                        font-weight: 700 !important;
+                        font-size: 0.8rem !important;
+                        letter-spacing: 0.08em !important;
+                        text-transform: uppercase;
+                        color: var(--text-muted);
+                        margin-bottom: 0.45rem;
+                    }
+                    .section-divider {
+                        border-top: 1px solid var(--border-color-soft);
+                        margin: 2.5rem 0;
+                    }
+
+                    /* ── FALLBACK ALIGNMENT FOR PASSWORDINPUT WITHOUT TAILWIND ── */
+                    .relative, [class*="relative"] {
+                        position: relative !important;
+                        width: 100%;
+                    }
+
+                    .absolute, [class*="absolute"] {
+                        position: absolute !important;
+                    }
+
+                    /* Absolute positioning alignment for the password toggle eye button */
+                    .relative button, 
+                    [class*="relative"] button {
+                        position: absolute !important;
+                        right: 4px !important;
+                        top: 50% !important;
+                        transform: translateY(-50%) !important;
+                        background: transparent !important;
+                        border: none !important;
+                        height: 100% !important;
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        padding: 0 12px !important;
+                        cursor: pointer !important;
+                        color: var(--text-muted, #94a3b8) !important;
+                        box-shadow: none !important;
+                        z-index: 5 !important;
+                    }
+
+                    .relative button:hover, 
+                    [class*="relative"] button:hover {
+                        background: transparent !important;
+                        color: var(--text-strong) !important;
+                    }
+                `}
+            </style>
 
             <div className="container-fluid px-3 px-md-4 px-lg-5 py-4 py-lg-5" style={{ maxWidth: '1720px', margin: '0 auto' }}>
                 <div className="row g-6 align-items-start">
