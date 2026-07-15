@@ -24,8 +24,8 @@ type Props = {
 
 export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
-    const [universityLogos, setUniversityLogos] = useState<Record<number, string>>({});
-    const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
+    const [collegeLogos, setCollegeLogos] = useState<Record<string, string>>({});
+    const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
     const isFirstRender = useRef(true);
 
     // Fetch logos from the external API on mount
@@ -35,27 +35,25 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                 const response = await fetch('https://admin.studyinnepal.com/api/university');
                 const result = await response.json();
                 
-                // Accommodate potential API structures (direct array or paginated object)
-                let uniList = [];
+                let dataList = [];
                 if (Array.isArray(result)) {
-                    uniList = result;
+                    dataList = result;
                 } else if (result.data && Array.isArray(result.data)) {
-                    uniList = result.data;
-                } else if (result.data?.data && Array.isArray(result.data.data)) {
-                    uniList = result.data.data;
+                    dataList = result.data;
                 }
 
-                // Map university ID to its logo
-                const logosMap: Record<number, string> = {};
-                uniList.forEach((uni: any) => {
-                    if (uni.id && (uni.logo || uni.image || uni.logo_url)) {
-                        logosMap[uni.id] = uni.logo || uni.image || uni.logo_url;
+                // Map 'College' name to 'college_logo_url'
+                const logosMap: Record<string, string> = {};
+                dataList.forEach((item: any) => {
+                    if (item.College && item.college_logo_url) {
+                        // Using trim() to prevent mismatch due to trailing spaces
+                        logosMap[item.College.trim()] = item.college_logo_url;
                     }
                 });
                 
-                setUniversityLogos(logosMap);
+                setCollegeLogos(logosMap);
             } catch (error) {
-                console.error('Failed to fetch university logos:', error);
+                console.error('Failed to fetch college logos:', error);
             }
         };
 
@@ -88,8 +86,8 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
         router.visit(`/course-details/${uuid}/edit`);
     };
 
-    const handleImageError = (universityId: number) => {
-        setImageErrors(prev => ({ ...prev, [universityId]: true }));
+    const handleImageError = (collegeName: string) => {
+        setImageErrors(prev => ({ ...prev, [collegeName]: true }));
     };
 
     return (
@@ -165,7 +163,9 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                                     </tr>
                                 ) : (
                                     courseDetails.data.map((row) => {
-                                        const hasValidLogo = row.university_id && universityLogos[row.university_id] && !imageErrors[row.university_id];
+                                        const cleanCollegeName = row.college_name.trim();
+                                        const logoUrl = collegeLogos[cleanCollegeName];
+                                        const hasValidLogo = logoUrl && !imageErrors[cleanCollegeName];
 
                                         return (
                                             <tr 
@@ -179,10 +179,10 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                                                         <div className="h-10 w-10 flex-shrink-0 rounded-lg border border-gray-200 bg-white shadow-sm flex items-center justify-center overflow-hidden">
                                                             {hasValidLogo ? (
                                                                 <img 
-                                                                    src={universityLogos[row.university_id!]} 
+                                                                    src={logoUrl} 
                                                                     alt={`${row.college_name} logo`}
                                                                     className="h-full w-full object-contain p-1.5"
-                                                                    onError={() => handleImageError(row.university_id!)}
+                                                                    onError={() => handleImageError(cleanCollegeName)}
                                                                 />
                                                             ) : (
                                                                 <span className="text-gray-400 font-bold text-sm bg-gray-50 w-full h-full flex items-center justify-center">
