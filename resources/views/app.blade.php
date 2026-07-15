@@ -76,9 +76,6 @@
         <script src="/assets/js/theme/theme.js"></script>
         <script src="/assets/js/theme/app.min.js"></script>
         <script src="/assets/js/theme/sidebarmenu-default.js"></script>
-        <script src="https://code.iconify.design/iconify-icon/1.0.8/iconify-icon.min.js"></script>
-        {{-- iconify-icon custom element, used throughout MaterialM markup
-             (e.g. <iconify-icon icon="solar:widget-add-line-duotone">) --}}
-        <script src="https://code.iconify.design/iconify-icon/1.0.8/iconify-icon.min.js"></script>
+        <script src="https://code.iconify.design/iconify-icon/latest/iconify-icon.min.js"></script>
     </body>
 </html>
