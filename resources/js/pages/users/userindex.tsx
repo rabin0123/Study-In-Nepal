@@ -15,6 +15,7 @@ type UserRow = {
     created_at: string;
     is_active: boolean;
     is_protected: boolean;
+    avatar_url?: string;
 };
 
 type PaginatedUsers = {
@@ -262,6 +263,39 @@ export default function UsersIndex({
                         color: var(--bs-body-color) !important;
                         padding: 0.375rem 0 !important;
                     }
+
+                    /* Interactive Row Action CSS */
+                    .user-row .action-trigger {
+                        opacity: 0;
+                        transition: opacity 0.15s ease-in-out;
+                    }
+                    .user-row:hover .action-trigger,
+                    .user-row .show .action-trigger {
+                        opacity: 1;
+                    }
+
+                    /* Custom Slim Scrollbar styling */
+                    .slim-scroll {
+                        scrollbar-width: thin;
+                        scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+                    }
+                    .slim-scroll::-webkit-scrollbar {
+                        width: 6px;
+                        height: 6px;
+                    }
+                    .slim-scroll::-webkit-scrollbar-track {
+                        background: transparent;
+                    }
+                    .slim-scroll::-webkit-scrollbar-thumb {
+                        background-color: rgba(0, 0, 0, 0.12);
+                        border-radius: 10px;
+                    }
+                    .slim-scroll::-webkit-scrollbar-thumb:hover {
+                        background-color: rgba(0, 0, 0, 0.24);
+                    }
+                    [data-bs-theme="dark"] .slim-scroll::-webkit-scrollbar-thumb {
+                        background-color: rgba(255, 255, 255, 0.15);
+                    }
                 `}
             </style>
 
@@ -275,15 +309,15 @@ export default function UsersIndex({
                         style={{ background: 'var(--bs-card-bg, #fff)' }}
                     >
                         <div className="d-flex p-3">
-                            <div className="toast-body p-0 d-flex align-items-center gap-2 flex-grow-1 text-dark">
+                            <div className="toast-body p-0 d-flex align-items-center gap-2 grow text-dark">
                                 {toast.type === 'success' && (
-                                    <iconify-icon icon="solar:check-circle-line-duotone" className="text-success fs-5 flex-shrink-0" />
+                                    <iconify-icon icon="solar:check-circle-line-duotone" className="text-success fs-5 shrink-0" />
                                 )}
                                 {toast.type === 'error' && (
-                                    <iconify-icon icon="solar:danger-line-duotone" className="text-danger fs-5 flex-shrink-0" />
+                                    <iconify-icon icon="solar:danger-line-duotone" className="text-danger fs-5 shrink-0" />
                                 )}
                                 {toast.type === 'info' && (
-                                    <iconify-icon icon="solar:info-circle-line-duotone" className="text-info fs-5 flex-shrink-0" />
+                                    <iconify-icon icon="solar:info-circle-line-duotone" className="text-info fs-5 shrink-0" />
                                 )}
                                 <span className="fs-3 fw-semibold text-wrap">{toast.message}</span>
                             </div>
@@ -456,7 +490,7 @@ export default function UsersIndex({
                     </div>
 
                     <div className="d-flex align-items-center gap-3 flex-wrap">
-                        <form onSubmit={handleSearchSubmit} className="position-relative flex-grow-1" style={{ minWidth: 260 }}>
+                        <form onSubmit={handleSearchSubmit} className="position-relative grow" style={{ minWidth: 260 }}>
                             <iconify-icon
                                 icon="solar:magnifer-line-duotone"
                                 className="position-absolute top-50 translate-middle-y text-body-secondary fs-5"
@@ -487,14 +521,16 @@ export default function UsersIndex({
                 {/* Table Container Card */}
                 <div className="card">
                     <div className="card-body p-0">
-                        <div className="table-responsive sidebar-nav-scroll" style={{ maxHeight: 520, overflowY: 'auto', width: '100%' }}>
+                        {/* Fixed scroll container with slim scrollbar styling */}
+                        <div className="table-responsive slim-scroll" style={{ height: '450px', overflowY: 'auto', width: '100%' }}>
                             <table className="table mb-0 align-middle" style={{ tableLayout: 'fixed', width: '100%', minWidth: 900 }}>
                                 <colgroup>
-                                    <col style={{ width: '30%' }} />
-                                    <col style={{ width: '25%' }} />
-                                    <col style={{ width: '15%' }} />
-                                    <col style={{ width: '15%' }} />
-                                    <col style={{ width: '15%' }} />
+                                    <col style={{ width: '32%' }} />
+                                    <col style={{ width: '28%' }} />
+                                    <col style={{ width: '12%' }} />
+                                    <col style={{ width: '13%' }} />
+                                    <col style={{ width: '11%' }} />
+                                    <col style={{ width: '4%' }} />
                                 </colgroup>
                                 <thead className="text-dark fs-4" style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bs-card-bg, #fff)' }}>
                                     <tr>
@@ -503,12 +539,13 @@ export default function UsersIndex({
                                         <th>Country</th>
                                         <th>Role</th>
                                         <th>Status</th>
+                                        <th className="pe-6"></th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {users.data.length === 0 && (
                                         <tr>
-                                            <td colSpan={5} className="text-center py-16 text-body-secondary fw-semibold">
+                                            <td colSpan={6} className="text-center py-16 text-body-secondary fw-semibold">
                                                 No users found.
                                             </td>
                                         </tr>
@@ -532,21 +569,22 @@ export default function UsersIndex({
                                         return (
                                             <tr 
                                                 key={user.id} 
+                                                className="user-row"
                                                 style={{ cursor: 'pointer' }}
                                                 onClick={() => router.get(`/users/${user.id}`)}
                                             >
-                                                {/* Column 1: Avatar, Name, Contact details, and Action Dropdown */}
+                                                {/* Column 1: Avatar, Name, Contact details */}
                                                 <td className="ps-6">
                                                     <div className="d-flex align-items-center">
-                                                        <span className="flex-shrink-0">
-                                                            <Avatar name={user.name} size={40} />
+                                                        <span className="shrink-0">
+                                                            <Avatar name={user.name} size={40} {...{ url: user.avatar_url, src: user.avatar_url } as any} />
                                                         </span>
-                                                        <div className="ms-3 text-truncate flex-grow-1">
+                                                        <div className="ms-3 text-truncate grow">
                                                             <h6 className="fs-4 fw-semibold mb-0 text-truncate d-flex align-items-center gap-1.5">
                                                                 {user.name}
                                                                 {user.is_protected && (
                                                                     <span title="Protected system account">
-                                                                        <iconify-icon icon="solar:lock-password-line-duotone" className="text-warning fs-3 flex-shrink-0"></iconify-icon>
+                                                                        <iconify-icon icon="solar:lock-password-line-duotone" className="text-warning fs-3 shrink-0"></iconify-icon>
                                                                     </span>
                                                                 )}
                                                             </h6>
@@ -554,67 +592,16 @@ export default function UsersIndex({
                                                                 {user.contact_number || '—'}
                                                             </span>
                                                         </div>
-
-                                                        {/* Contextual Dropdown (Native Bootstrap style matching StudentApplicationsIndex) */}
-                                                        {auth?.permissions?.includes('delete.user') && (
-                                                            <div className="dropdown ms-2" onClick={(e) => e.stopPropagation()}>
-                                                                <a
-                                                                    href="javascript:void(0)"
-                                                                    className="text-muted"
-                                                                    id={`user-actions-${user.id}`}
-                                                                    data-bs-toggle="dropdown"
-                                                                    aria-expanded="false"
-                                                                >
-                                                                    <i className="ti ti-dots fs-5"></i>
-                                                                </a>
-                                                                <ul className="dropdown-menu" aria-labelledby={`user-actions-${user.id}`}>
-                                                                    <li>
-                                                                        <Link
-                                                                            href={`/users/${user.id}`}
-                                                                            className="dropdown-item d-flex align-items-center justify-content-between gap-3 py-2 text-uppercase fw-bold fs-2 text-body-secondary"
-                                                                        >
-                                                                            <span>View</span>
-                                                                            <iconify-icon icon="solar:arrow-right-line-duotone" className="fs-4" />
-                                                                        </Link>
-                                                                    </li>
-                                                                    <li>
-                                                                        <button
-                                                                            onClick={() => toggleUserStatus(user)}
-                                                                            disabled={user.is_protected}
-                                                                            className="dropdown-item d-flex align-items-center justify-content-between gap-3 py-2 text-uppercase fw-bold fs-2 text-body-secondary"
-                                                                        >
-                                                                            <span>{active ? 'Deactivate' : 'Activate'}</span>
-                                                                            {active ? (
-                                                                                <iconify-icon icon="solar:forbidden-line-duotone" className="text-warning fs-4" />
-                                                                            ) : (
-                                                                                <iconify-icon icon="solar:power-line-duotone" className="text-success fs-4" />
-                                                                            )}
-                                                                        </button>
-                                                                    </li>
-                                                                    <li><hr className="dropdown-divider" /></li>
-                                                                    <li>
-                                                                        <button
-                                                                            onClick={() => deleteUser(user)}
-                                                                            disabled={user.is_protected}
-                                                                            className="dropdown-item d-flex align-items-center justify-content-between gap-3 py-2 text-uppercase fw-bold fs-2 text-danger"
-                                                                        >
-                                                                            <span>Delete</span>
-                                                                            <iconify-icon icon="solar:trash-bin-trash-line-duotone" className="fs-4" />
-                                                                        </button>
-                                                                    </li>
-                                                                </ul>
-                                                            </div>
-                                                        )}
                                                     </div>
                                                 </td>
 
                                                 {/* Column 2: Email */}
-                                                <td className="text-body-secondary select-all">
+                                                <td className="text-body-secondary select-all text-truncate">
                                                     {user.email}
                                                 </td>
 
                                                 {/* Column 3: Country */}
-                                                <td className="text-body-secondary">
+                                                <td className="text-body-secondary text-truncate">
                                                     {user.country || '—'}
                                                 </td>
 
@@ -627,8 +614,8 @@ export default function UsersIndex({
                                                                 disabled={updatingRoleId === user.id}
                                                                 onChange={(e) => handleRoleChange(user, e.target.value)}
                                                                 onClick={(e) => e.stopPropagation()}
-                                                                className="form-select form-select-sm border-0 bg-transparent text-uppercase fw-bold fs-2 text-body-secondary"
-                                                                style={{ paddingRight: '1.5rem', cursor: 'pointer', width: 'auto' }}
+                                                                className="form-select form-select-sm border-0 bg-transparent text-uppercase fw-bold fs-2 text-body-secondary p-0 pe-4 shadow-none"
+                                                                style={{ cursor: 'pointer', width: 'auto' }}
                                                             >
                                                                 {availableRoles.map((roleName) => {
                                                                     if (
@@ -655,7 +642,7 @@ export default function UsersIndex({
 
                                                 {/* Column 5: Status Badges */}
                                                 <td>
-                                                    <div className="d-flex flex-column gap-1 align-items-start">
+                                                    <div className="d-flex flex-column gap-1 align-items-start text-nowrap">
                                                         <span className={`badge ${
                                                             verified ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning'
                                                         } fw-semibold fs-2 gap-1 d-inline-flex align-items-center`}>
@@ -670,6 +657,59 @@ export default function UsersIndex({
                                                             {active ? 'Active' : 'Deactivated'}
                                                         </span>
                                                     </div>
+                                                </td>
+
+                                                {/* Column 6: Contextual Dropdown (Trigger shows vertical dots on row hover) */}
+                                                <td className="pe-6 text-end" onClick={(e) => e.stopPropagation()}>
+                                                    {auth?.permissions?.includes('delete.user') && (
+                                                        <div className="dropdown d-inline-block">
+                                                            <a
+                                                                href="javascript:void(0)"
+                                                                className="text-muted action-trigger d-flex align-items-center justify-content-center"
+                                                                id={`user-actions-${user.id}`}
+                                                                data-bs-toggle="dropdown"
+                                                                aria-expanded="false"
+                                                            >
+                                                                <iconify-icon icon="solar:menu-dots-vertical-bold-duotone" className="fs-5" />
+                                                            </a>
+                                                            <ul className="dropdown-menu dropdown-menu-end" aria-labelledby={`user-actions-${user.id}`}>
+                                                                <li>
+                                                                    <Link
+                                                                        href={`/users/${user.id}`}
+                                                                        className="dropdown-item d-flex align-items-center justify-content-between gap-3 py-2 text-uppercase fw-bold fs-2 text-body-secondary"
+                                                                    >
+                                                                        <span>View</span>
+                                                                        <iconify-icon icon="solar:arrow-right-line-duotone" className="fs-4" />
+                                                                    </Link>
+                                                                </li>
+                                                                <li>
+                                                                    <button
+                                                                        onClick={() => toggleUserStatus(user)}
+                                                                        disabled={user.is_protected}
+                                                                        className="dropdown-item d-flex align-items-center justify-content-between gap-3 py-2 text-uppercase fw-bold fs-2 text-body-secondary"
+                                                                    >
+                                                                        <span>{active ? 'Deactivate' : 'Activate'}</span>
+                                                                        {active ? (
+                                                                            <iconify-icon icon="solar:forbidden-line-duotone" className="text-warning fs-4" />
+                                                                        ) : (
+                                                                            <iconify-icon icon="solar:power-line-duotone" className="text-success fs-4" />
+                                                                        )}
+                                                                    </button>
+                                                                </li>
+                                                                <li><hr className="dropdown-divider" /></li>
+                                                                <li>
+                                                                    <button
+                                                                        onClick={() => deleteUser(user)}
+                                                                        disabled={user.is_protected}
+                                                                        className="dropdown-item d-flex align-items-center justify-content-between gap-3 py-2 text-uppercase fw-bold fs-2 text-danger"
+                                                                    >
+                                                                        <span>Delete</span>
+                                                                        <iconify-icon icon="solar:trash-bin-trash-line-duotone" className="fs-4" />
+                                                                    </button>
+                                                                </li>
+                                                            </ul>
+                                                        </div>
+                                                    )}
                                                 </td>
                                             </tr>
                                         );
@@ -710,9 +750,9 @@ export default function UsersIndex({
                                                 }`}
                                             >
                                                 {isPrevious ? (
-                                                    <i className="ti ti-chevron-left fs-4"></i>
+                                                    <iconify-icon icon="solar:alt-arrow-left-line-duotone" className="fs-4"></iconify-icon>
                                                 ) : isNext ? (
-                                                    <i className="ti ti-chevron-right fs-4"></i>
+                                                    <iconify-icon icon="solar:alt-arrow-right-line-duotone" className="fs-4"></iconify-icon>
                                                 ) : (
                                                     <span dangerouslySetInnerHTML={{ __html: link.label }} />
                                                 )}

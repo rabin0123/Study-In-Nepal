@@ -63,6 +63,7 @@ class UserApiController extends Controller
                 'id' => $user->id,
                 'role' => $user->getRoleNames()->first(),
                 'agency_name' => $user->agency_name,
+                'avatar_url' => $user->avatar_url,
                 'name' => $user->name,
                 'country' => $user->country,
                 'contact_number' => $user->contact_number,
