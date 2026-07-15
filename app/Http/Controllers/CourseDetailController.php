@@ -81,7 +81,7 @@ class CourseDetailController extends Controller
                 $courseDetail = CourseDetail::create([
                     'course_name'       => $validated['course_name'],
                     'summary'           => $validated['summary'] ?? null,
-                    'careers_summary'   => $validated['careers_summary'] ?? null,
+                    'careers'   => $validated['careers'] ?? null,
                     'fees'              => $validated['fees'] ?? null,
                     
                     'university_name'   => $inst['university_name'],
