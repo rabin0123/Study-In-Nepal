@@ -40,7 +40,7 @@ function defaultYearFee(): YearFee[] {
 }
 
 // ---------------------------------------------------------------------------
-// 1. ComboboxInput 
+// 1. ComboboxInput — Searchable dropdown combined with text input
 // ---------------------------------------------------------------------------
 function ComboboxInput({
     placeholder, value, onChange, options, disabled, error
@@ -71,10 +71,7 @@ function ComboboxInput({
 
     return (
         <div ref={wrapperRef} className="relative">
-            <div 
-                className={`flex items-center shadow-sm bg-white border px-2 ${error ? 'border-red-500' : 'border-gray-200 focus-within:border-[#008AE6] focus-within:ring-1 focus-within:ring-[#008AE6]'}`}
-                style={{ borderRadius: '9999px' }}
-            >
+            <div className={`flex items-center rounded-full shadow-sm bg-white border px-2 ${error ? 'border-red-500' : 'border-gray-200 focus-within:border-[#008AE6] focus-within:ring-1 focus-within:ring-[#008AE6]'}`}>
                 <span className="flex items-center pl-3 pr-2 text-gray-400">
                     <Search size={16} />
                 </span>
@@ -89,8 +86,7 @@ function ComboboxInput({
                         setIsOpen(true);
                     }}
                     onFocus={() => setIsOpen(true)}
-                    className="w-full py-2.5 pr-4 text-sm text-gray-900 placeholder-gray-400 focus:outline-none bg-transparent"
-                    style={{ borderRadius: '9999px' }}
+                    className="w-full py-2.5 pr-4 rounded-full text-sm text-gray-900 placeholder-gray-400 focus:outline-none bg-transparent"
                     autoComplete="off"
                 />
             </div>
@@ -119,7 +115,7 @@ function ComboboxInput({
 }
 
 // ---------------------------------------------------------------------------
-// 2. MultiSelect Dropdown
+// 2. MultiSelect Dropdown — Checkbox dropdown
 // ---------------------------------------------------------------------------
 function MultiSelectDropdown({
     options, selectedKeys, onToggle, disabled, placeholder
@@ -150,8 +146,7 @@ function MultiSelectDropdown({
     return (
         <div ref={wrapperRef} className="relative">
             <div
-                className={`flex items-center justify-between shadow-sm px-5 py-2.5 text-sm transition-colors ${disabled ? 'bg-gray-50 text-gray-400 border border-gray-200 cursor-not-allowed' : 'bg-white text-gray-900 border border-gray-200 hover:border-[#008AE6] cursor-pointer'}`}
-                style={{ borderRadius: '9999px' }}
+                className={`flex items-center justify-between rounded-full shadow-sm px-5 py-2.5 text-sm transition-colors ${disabled ? 'bg-gray-50 text-gray-400 border border-gray-200 cursor-not-allowed' : 'bg-white text-gray-900 border border-gray-200 hover:border-[#008AE6] cursor-pointer'}`}
                 onClick={() => !disabled && setIsOpen(!isOpen)}
             >
                 <div className="flex items-center gap-3">
@@ -202,7 +197,7 @@ function MultiSelectDropdown({
 }
 
 // ---------------------------------------------------------------------------
-// 3. Rich Text Editor
+// 3. Rich Text Editor — Word-like toolbar (execCommand based, saves as HTML)
 // ---------------------------------------------------------------------------
 const FONT_FAMILIES = [
     { label: 'Default', value: '' },
@@ -211,6 +206,7 @@ const FONT_FAMILIES = [
     { label: 'Georgia', value: 'Georgia, serif' },
     { label: 'Verdana', value: 'Verdana, sans-serif' },
     { label: 'Calibri', value: 'Calibri, sans-serif' },
+    { label: 'Courier New', value: "'Courier New', monospace" },
 ];
 
 const FONT_SIZES = [
@@ -220,6 +216,7 @@ const FONT_SIZES = [
     { label: '14', value: '4' },
     { label: '18', value: '5' },
     { label: '24', value: '6' },
+    { label: '32', value: '7' },
 ];
 
 const HIGHLIGHT_COLORS = ['#FFF59D', '#A5D6A7', '#90CAF9', '#EF9A9A', '#CE93D8', '#FFCC80', 'transparent'];
@@ -232,8 +229,7 @@ function ToolbarButton({ icon: Icon, title, onClick, active }: { icon: any; titl
             title={title}
             onMouseDown={(e) => e.preventDefault()}
             onClick={onClick}
-            className={`flex items-center justify-center w-8 h-8 border transition-colors ${active ? 'bg-[#008AE6]/10 border-[#008AE6]/30 text-[#008AE6]' : 'bg-white border-transparent hover:bg-gray-100 text-gray-700'}`}
-            style={{ borderRadius: '9999px' }}
+            className={`flex items-center justify-center w-8 h-8 rounded-full border transition-colors ${active ? 'bg-[#008AE6]/10 border-[#008AE6]/30 text-[#008AE6]' : 'bg-white border-transparent hover:bg-gray-100 text-gray-700'}`}
         >
             <Icon size={14} />
         </button>
@@ -261,8 +257,7 @@ function SwatchPopover({
                 title={title}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => setOpen((o) => !o)}
-                className="flex items-center justify-center w-8 h-8 border border-transparent hover:bg-gray-100 text-gray-700 transition-colors"
-                style={{ borderRadius: '9999px' }}
+                className="flex items-center justify-center w-8 h-8 rounded-full border border-transparent hover:bg-gray-100 text-gray-700 transition-colors"
             >
                 <Icon size={14} />
             </button>
@@ -274,8 +269,8 @@ function SwatchPopover({
                             type="button"
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={() => { onPick(c); setOpen(false); }}
-                            className="w-6 h-6 border border-gray-200 hover:scale-110 transition-transform"
-                            style={{ borderRadius: '9999px', background: c === 'transparent' ? 'repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%) 50% / 8px 8px' : c }}
+                            className="w-6 h-6 rounded-full border border-gray-200 hover:scale-110 transition-transform"
+                            style={{ background: c === 'transparent' ? 'repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%) 50% / 8px 8px' : c }}
                             title={c}
                         />
                     ))}
@@ -294,32 +289,43 @@ function RichTextEditor({ value, onChange, placeholder, error }: { value: string
         }
     }, [value]);
 
+    const focusEditor = () => editorRef.current?.focus();
+
     const exec = (cmd: string, arg?: string) => {
-        editorRef.current?.focus();
+        focusEditor();
         document.execCommand(cmd, false, arg);
         if (editorRef.current) onChange(editorRef.current.innerHTML);
     };
 
+    const applyBlock = (tag: string) => exec('formatBlock', tag);
+
     return (
         <div className={`rounded-2xl shadow-sm bg-white overflow-hidden border ${error ? 'border-red-500' : 'border-gray-200'}`}>
             <div className="bg-gray-50/80 p-2 border-b border-gray-100 flex flex-wrap items-center gap-1.5">
+                {/* Paragraph / Heading style */}
                 <select
-                    onChange={(e) => exec('formatBlock', e.target.value)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onChange={(e) => applyBlock(e.target.value)}
                     defaultValue=""
-                    className="text-xs border border-gray-200 px-3 py-1.5 bg-white text-gray-700 shadow-sm focus:outline-none focus:border-[#008AE6] hover:bg-gray-50 transition-colors cursor-pointer"
-                    style={{ borderRadius: '9999px' }}
+                    className="text-xs border border-gray-200 rounded-full px-3 py-1.5 bg-white text-gray-700 shadow-sm focus:outline-none focus:border-[#008AE6] hover:bg-gray-50 transition-colors cursor-pointer"
+                    title="Paragraph style"
                 >
                     <option value="" disabled>Style</option>
                     <option value="P">Paragraph</option>
                     <option value="H1">Heading 1</option>
                     <option value="H2">Heading 2</option>
+                    <option value="H3">Heading 3</option>
+                    <option value="BLOCKQUOTE">Quote</option>
                 </select>
 
+                {/* Font family */}
                 <select
+                    onMouseDown={(e) => e.stopPropagation()}
                     onChange={(e) => exec('fontName', e.target.value)}
                     defaultValue=""
-                    className="text-xs border border-gray-200 px-3 py-1.5 bg-white text-gray-700 shadow-sm focus:outline-none focus:border-[#008AE6] hover:bg-gray-50 transition-colors cursor-pointer"
-                    style={{ borderRadius: '9999px', maxWidth: 120 }}
+                    className="text-xs border border-gray-200 rounded-full px-3 py-1.5 bg-white text-gray-700 shadow-sm focus:outline-none focus:border-[#008AE6] hover:bg-gray-50 transition-colors cursor-pointer"
+                    title="Font family"
+                    style={{ maxWidth: 120 }}
                 >
                     <option value="" disabled>Font</option>
                     {FONT_FAMILIES.map((f) => (
@@ -327,18 +333,56 @@ function RichTextEditor({ value, onChange, placeholder, error }: { value: string
                     ))}
                 </select>
 
+                {/* Font size */}
+                <select
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onChange={(e) => exec('fontSize', e.target.value)}
+                    defaultValue=""
+                    className="text-xs border border-gray-200 rounded-full px-3 py-1.5 bg-white text-gray-700 shadow-sm focus:outline-none focus:border-[#008AE6] hover:bg-gray-50 transition-colors cursor-pointer"
+                    title="Font size"
+                >
+                    <option value="" disabled>Size</option>
+                    {FONT_SIZES.map((s) => (
+                        <option key={s.value} value={s.value}>{s.label}</option>
+                    ))}
+                </select>
+
                 <div className="w-px h-6 bg-gray-200 mx-1" />
+
                 <ToolbarButton icon={Bold} title="Bold" onClick={() => exec('bold')} />
                 <ToolbarButton icon={Italic} title="Italic" onClick={() => exec('italic')} />
                 <ToolbarButton icon={Underline} title="Underline" onClick={() => exec('underline')} />
-                
+                <ToolbarButton icon={Strikethrough} title="Strikethrough" onClick={() => exec('strikeThrough')} />
+
                 <div className="w-px h-6 bg-gray-200 mx-1" />
+
                 <SwatchPopover icon={Type} title="Text color" colors={TEXT_COLORS} onPick={(c) => exec('foreColor', c)} />
                 <SwatchPopover icon={Highlighter} title="Highlight color" colors={HIGHLIGHT_COLORS} onPick={(c) => exec('hiliteColor', c === 'transparent' ? 'transparent' : c)} />
-                
+
                 <div className="w-px h-6 bg-gray-200 mx-1" />
+
+                <ToolbarButton icon={AlignLeft} title="Align left" onClick={() => exec('justifyLeft')} />
+                <ToolbarButton icon={AlignCenter} title="Align center" onClick={() => exec('justifyCenter')} />
+                <ToolbarButton icon={AlignRight} title="Align right" onClick={() => exec('justifyRight')} />
+                <ToolbarButton icon={AlignJustify} title="Justify" onClick={() => exec('justifyFull')} />
+
+                <div className="w-px h-6 bg-gray-200 mx-1" />
+
                 <ToolbarButton icon={List} title="Bullet list" onClick={() => exec('insertUnorderedList')} />
                 <ToolbarButton icon={ListOrdered} title="Numbered list" onClick={() => exec('insertOrderedList')} />
+                <ToolbarButton icon={Outdent} title="Decrease indent" onClick={() => exec('outdent')} />
+                <ToolbarButton icon={Indent} title="Increase indent" onClick={() => exec('indent')} />
+
+                <div className="w-px h-6 bg-gray-200 mx-1" />
+
+                <ToolbarButton icon={LinkIcon} title="Insert link" onClick={() => {
+                    const url = window.prompt('Enter URL');
+                    if (url) exec('createLink', url);
+                }} />
+                <ToolbarButton icon={Unlink} title="Remove link" onClick={() => exec('unlink')} />
+                <ToolbarButton icon={Eraser} title="Clear formatting" onClick={() => exec('removeFormat')} />
+                <ToolbarButton icon={Undo2} title="Undo" onClick={() => exec('undo')} />
+                <ToolbarButton icon={Redo2} title="Redo" onClick={() => exec('redo')} />
             </div>
             <div
                 ref={editorRef}
@@ -364,8 +408,13 @@ export default function CourseDetailsCreate() {
     const [summaryHtml, setSummaryHtml] = useState('');
     const [careersHtml, setCareersHtml] = useState('');
 
+    // Modules per institution
     const [yearModulesByInst, setYearModulesByInst] = useState<Record<string, YearModule[]>>({});
+
+    // Fees per institution
     const [feesByInst, setFeesByInst] = useState<Record<string, YearFee[]>>({});
+
+    // Single shared tab drives BOTH modules and fees sections
     const [activeInstTab, setActiveInstTab] = useState<string | null>(null);
 
     const [saving, setSaving] = useState(false);
@@ -411,6 +460,7 @@ export default function CourseDetailsCreate() {
         setSelectedInstKeys(prev => prev.filter(k => validKeys.includes(k)));
     }, [availableInstitutions]);
 
+    // Keep Modules and Fees in sync with selected institutions, and drive the single shared tab
     useEffect(() => {
         setYearModulesByInst((prev) => {
             const next: Record<string, YearModule[]> = {};
@@ -429,6 +479,7 @@ export default function CourseDetailsCreate() {
 
     const toggleInstitution = (key: string) => setSelectedInstKeys((prev) => prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]);
 
+    // -- Module Handlers --
     const addYear = () => {
         if (!activeInstTab) return;
         setYearModulesByInst((prev) => ({ ...prev, [activeInstTab]: [...prev[activeInstTab], { year: nextYear(prev[activeInstTab]), title: '', modules: [''] }] }));
@@ -463,6 +514,7 @@ export default function CourseDetailsCreate() {
         });
     };
 
+    // -- Fee Handlers --
     const addFeeYear = () => {
         if (!activeInstTab) return;
         setFeesByInst((prev) => ({ ...prev, [activeInstTab]: [...prev[activeInstTab], { year: nextYear(prev[activeInstTab]), amount: '', currency: '', note: '' }] }));
@@ -487,23 +539,29 @@ export default function CourseDetailsCreate() {
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
+
         if (!courseName.trim()) { setErrors({ course_name: 'Course name is required.' }); return; }
         if (selectedInstKeys.length === 0) { setErrors({ institutions: 'Please select at least one institution from the dropdown.' }); return; }
 
         setSaving(true);
         setErrors({});
 
+        // Prepare institutions array containing both modules and fees
         const institutionsPayload = selectedInstKeys.map((key) => {
             const [uni, col] = key.split('|||');
+
             const cleanModules = (yearModulesByInst[key] ?? []).filter((y) => y.year).map((y) => ({
                 year: y.year, title: y.title.trim() || null, modules: y.modules.map((m) => m.trim()).filter(Boolean)
             }));
+
             const cleanFees = (feesByInst[key] ?? []).filter((f) => f.year).map((f) => ({
                 year: f.year, amount: f.amount.trim() || null, currency: f.currency.trim() || null, note: f.note.trim() || null
             }));
+
             return { university_name: uni, college_name: col, year_wise_modules: cleanModules, fees: cleanFees };
         });
 
+        // Maintain global fees array just in case the backend still requires it at root level
         const globalFees = selectedInstKeys.flatMap(key => {
             const [uni, col] = key.split('|||');
             return (feesByInst[key] ?? []).filter(f => f.year).map(f => ({
@@ -544,6 +602,7 @@ export default function CourseDetailsCreate() {
         <div className="max-w-full py-8 px-4 sm:px-6 bg-[#fafafa] min-h-screen">
             <form onSubmit={handleSubmit} className="mx-auto" style={{ maxWidth: '900px' }}>
 
+                {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-8 border-b border-gray-200">
                     <div>
                         <h4 className="mb-2 font-serif text-gray-900 flex items-center gap-3 text-3xl">
@@ -554,19 +613,14 @@ export default function CourseDetailsCreate() {
                             Define a course once and securely link it to multiple colleges effortlessly.
                         </p>
                     </div>
-                    <button 
-                        type="submit" 
-                        className="inline-flex items-center justify-center gap-2 bg-[#008AE6] hover:bg-[#0071bf] text-white shadow-md px-6 py-3 transition-colors disabled:opacity-60" 
-                        disabled={saving}
-                        style={{ borderRadius: '9999px' }}
-                    >
+                    <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-full bg-[#008AE6] hover:bg-[#0071bf] text-white shadow-md px-6 py-3 transition-colors disabled:opacity-60" disabled={saving}>
                         {saving ? <Loader2 size={18} className="spin" /> : <Save size={18} />}
                         <span className="font-bold text-xs uppercase tracking-widest">{saving ? 'Saving...' : 'Save details'}</span>
                     </button>
                 </div>
 
                 {savedMessage && (
-                    <div className="flex items-center gap-3 bg-green-50 text-green-800 border border-green-200 shadow-sm px-5 py-3 mb-6 text-sm" style={{ borderRadius: '9999px' }}>
+                    <div className="flex items-center gap-3 bg-green-50 text-green-800 border border-green-200 shadow-sm rounded-full px-5 py-3 mb-6 text-sm">
                         <CheckCircle2 size={20} className="text-green-600" />
                         <span className="font-semibold">{savedMessage}</span>
                     </div>
@@ -595,7 +649,7 @@ export default function CourseDetailsCreate() {
                     </div>
                 </div>
 
-                {/* 2. Select Institutions */}
+                {/* 2. Colleges & Universities */}
                 <div className="bg-white shadow-sm rounded-3xl mb-6 border border-gray-100">
                     <div className="p-6 md:p-8">
                         <h6 className="font-bold mb-2 text-gray-900 flex items-center gap-3 text-base">
@@ -645,7 +699,7 @@ export default function CourseDetailsCreate() {
                     </div>
                 </div>
 
-                {/* 4 & 5. Modules + Fees */}
+                {/* 4 & 5. Modules + Fees — single shared institution tab */}
                 <div className="bg-white shadow-sm rounded-3xl mb-8 border border-gray-100">
                     <div className="p-6 md:p-8">
                         <h6 className="font-bold mb-2 text-gray-900 flex items-center gap-3 text-base">
@@ -662,7 +716,7 @@ export default function CourseDetailsCreate() {
                                 </div>
                             ) : (
                                 <>
-                                    {/* Tabs */}
+                                    {/* Single shared tab bar */}
                                     <ul className="flex flex-nowrap overflow-x-auto pb-3 gap-3 mb-6 custom-scrollbar">
                                         {selectedInstKeys.map((key) => {
                                             const info = institutionLookup.get(key);
@@ -671,9 +725,9 @@ export default function CourseDetailsCreate() {
                                                 <li key={key} className="flex-shrink-0">
                                                     <button
                                                         type="button"
-                                                        className={`border px-5 py-2.5 text-left flex flex-col transition-all ${isActive ? 'bg-[#008AE6] border-[#008AE6] shadow-md text-white' : 'bg-white text-gray-700 border-gray-200 hover:border-[#008AE6] hover:text-[#008AE6]'}`}
+                                                        className={`rounded-full border px-5 py-2.5 text-left flex flex-col transition-all ${isActive ? 'bg-[#008AE6] border-[#008AE6] shadow-md text-white' : 'bg-white text-gray-700 border-gray-200 hover:border-[#008AE6] hover:text-[#008AE6]'}`}
                                                         onClick={() => setActiveInstTab(key)}
-                                                        style={{ minWidth: '160px', borderRadius: '9999px' }}
+                                                        style={{ minWidth: '160px' }}
                                                     >
                                                         <span className="font-bold block truncate text-sm" style={{ maxWidth: '180px' }}>{info ? info.label : key}</span>
                                                         <span className={`block truncate ${isActive ? 'text-white/80' : 'text-gray-400'}`} style={{ maxWidth: '180px', fontSize: '0.65rem' }}>{info?.subLabel}</span>
@@ -683,31 +737,20 @@ export default function CourseDetailsCreate() {
                                         })}
                                     </ul>
 
-                                    {/* -- Modules -- */}
+                                    {/* -- Modules block -- */}
                                     <div className="mb-10">
                                         <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
                                             <div className="font-bold text-gray-900 text-base flex items-center gap-2">
                                                 <BookOpen size={18} className="text-[#008AE6]" /> Course Modules
                                             </div>
                                             {activeInstTab && (
-                                                <div className="flex" style={{ gap: '8px' }}>
+                                                <div className="flex gap-2">
                                                     {selectedInstKeys.length > 1 && (
-                                                        <button 
-                                                            type="button" 
-                                                            className="inline-flex items-center justify-center gap-2 bg-white border border-gray-200 shadow-sm px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50 hover:text-[#008AE6] transition-colors uppercase tracking-wider" 
-                                                            onClick={copyToAllInstitutions} 
-                                                            title="Copy to all"
-                                                            style={{ borderRadius: '9999px' }}
-                                                        >
+                                                        <button type="button" className="inline-flex items-center gap-2 rounded-full bg-white border border-gray-200 shadow-sm px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50 hover:text-[#008AE6] transition-colors uppercase tracking-wider" onClick={copyToAllInstitutions} title="Copy to all">
                                                             <Copy size={14} /> <span className="hidden sm:inline">Apply to all</span>
                                                         </button>
                                                     )}
-                                                    <button 
-                                                        type="button" 
-                                                        className="inline-flex items-center justify-center gap-2 bg-[#008AE6] hover:bg-[#0071bf] text-white shadow-sm px-4 py-2 text-xs font-bold transition-colors uppercase tracking-wider" 
-                                                        onClick={addYear}
-                                                        style={{ borderRadius: '9999px' }}
-                                                    >
+                                                    <button type="button" className="inline-flex items-center gap-2 rounded-full bg-[#008AE6] hover:bg-[#0071bf] text-white shadow-sm px-4 py-2 text-xs font-bold transition-colors uppercase tracking-wider" onClick={addYear}>
                                                         <Plus size={14} /> Add Year
                                                     </button>
                                                 </div>
@@ -719,12 +762,7 @@ export default function CourseDetailsCreate() {
                                                 <div key={yearIndex} className="border border-gray-200 bg-gray-50/50 rounded-2xl p-5 relative">
                                                     
                                                     {activeYearModules.length > 1 && (
-                                                        <button 
-                                                            type="button" 
-                                                            className="absolute top-4 right-4 text-red-400 hover:text-red-600 bg-white hover:bg-red-50 p-2 transition-colors border border-gray-200 shadow-sm" 
-                                                            onClick={() => removeYear(yearIndex)}
-                                                            style={{ borderRadius: '9999px' }}
-                                                        >
+                                                        <button type="button" className="absolute top-4 right-4 text-red-400 hover:text-red-600 bg-white hover:bg-red-50 rounded-full p-2 transition-colors border border-gray-200 shadow-sm" onClick={() => removeYear(yearIndex)}>
                                                             <Trash2 size={14} />
                                                         </button>
                                                     )}
@@ -736,11 +774,11 @@ export default function CourseDetailsCreate() {
                                                     <div className="grid grid-cols-12 gap-4 mb-5 pr-10">
                                                         <div className="col-span-12 sm:col-span-3 lg:col-span-2">
                                                             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Year Num</label>
-                                                            <input type="number" min={1} className="w-full border border-gray-200 px-4 py-2 text-sm shadow-sm focus:outline-none focus:border-[#008AE6] focus:ring-1 focus:ring-[#008AE6]" style={{ borderRadius: '9999px' }} value={yearBlock.year} onChange={(e) => updateYear(yearIndex, { year: Number(e.target.value) || 1 })} />
+                                                            <input type="number" min={1} className="w-full rounded-full border border-gray-200 px-4 py-2 text-sm shadow-sm focus:outline-none focus:border-[#008AE6] focus:ring-1 focus:ring-[#008AE6]" value={yearBlock.year} onChange={(e) => updateYear(yearIndex, { year: Number(e.target.value) || 1 })} />
                                                         </div>
                                                         <div className="col-span-12 sm:col-span-9 lg:col-span-10">
                                                             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Year Title (Optional)</label>
-                                                            <input type="text" className="w-full border border-gray-200 px-4 py-2 text-sm shadow-sm focus:outline-none focus:border-[#008AE6] focus:ring-1 focus:ring-[#008AE6]" style={{ borderRadius: '9999px' }} placeholder={`e.g. Year ${yearBlock.year} - Core Fundamentals`} value={yearBlock.title} onChange={(e) => updateYear(yearIndex, { title: e.target.value })} />
+                                                            <input type="text" className="w-full rounded-full border border-gray-200 px-4 py-2 text-sm shadow-sm focus:outline-none focus:border-[#008AE6] focus:ring-1 focus:ring-[#008AE6]" placeholder={`e.g. Year ${yearBlock.year} - Core Fundamentals`} value={yearBlock.title} onChange={(e) => updateYear(yearIndex, { title: e.target.value })} />
                                                         </div>
                                                     </div>
 
@@ -748,29 +786,17 @@ export default function CourseDetailsCreate() {
                                                         <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest">Modules / Subjects</label>
                                                         {yearBlock.modules.map((moduleValue, moduleIndex) => (
                                                             <div key={moduleIndex} className="flex gap-2 items-center">
-                                                                <div className="flex items-center flex-1 border border-gray-200 bg-white shadow-sm overflow-hidden focus-within:border-[#008AE6] focus-within:ring-1 focus-within:ring-[#008AE6]" style={{ borderRadius: '9999px' }}>
+                                                                <div className="flex items-center flex-1 rounded-full border border-gray-200 bg-white shadow-sm overflow-hidden focus-within:border-[#008AE6] focus-within:ring-1 focus-within:ring-[#008AE6]">
                                                                     <span className="bg-gray-50 text-gray-400 px-4 py-2.5 text-sm border-r border-gray-200 font-medium">{moduleIndex + 1}.</span>
                                                                     <input type="text" className="flex-1 px-4 py-2.5 text-sm focus:outline-none bg-transparent" placeholder="Module Name..." value={moduleValue} onChange={(e) => updateModuleLine(yearIndex, moduleIndex, e.target.value)} />
                                                                 </div>
                                                                 {yearBlock.modules.length > 1 && (
-                                                                    <button 
-                                                                        type="button" 
-                                                                        className="border border-gray-200 shadow-sm text-red-500 bg-white hover:bg-red-50 p-2.5 flex-shrink-0 transition-colors" 
-                                                                        onClick={() => removeModuleLine(yearIndex, moduleIndex)}
-                                                                        style={{ borderRadius: '9999px' }}
-                                                                    >
-                                                                        <X size={16} />
-                                                                    </button>
+                                                                    <button type="button" className="rounded-full border border-gray-200 shadow-sm text-red-500 bg-white hover:bg-red-50 p-2.5 flex-shrink-0 transition-colors" onClick={() => removeModuleLine(yearIndex, moduleIndex)}><X size={16} /></button>
                                                                 )}
                                                             </div>
                                                         ))}
                                                     </div>
-                                                    <button 
-                                                        type="button" 
-                                                        className="inline-flex items-center gap-2 border border-gray-300 text-gray-600 px-4 py-2 mt-4 hover:bg-white hover:text-[#008AE6] transition-colors shadow-sm text-xs font-bold uppercase tracking-wider" 
-                                                        onClick={() => addModuleLine(yearIndex)}
-                                                        style={{ borderRadius: '9999px' }}
-                                                    >
+                                                    <button type="button" className="inline-flex items-center gap-2 rounded-full border border-gray-300 text-gray-600 px-4 py-2 mt-4 hover:bg-white hover:text-[#008AE6] transition-colors shadow-sm text-xs font-bold uppercase tracking-wider" onClick={() => addModuleLine(yearIndex)}>
                                                         <Plus size={14} /> Add Subject
                                                     </button>
                                                 </div>
@@ -780,31 +806,20 @@ export default function CourseDetailsCreate() {
 
                                     <hr className="my-8 border-gray-200" />
 
-                                    {/* -- Fees -- */}
+                                    {/* -- Fees block -- */}
                                     <div>
                                         <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
                                             <div className="font-bold text-gray-900 text-base flex items-center gap-2">
                                                 <Coins size={18} className="text-[#008AE6]" /> Fee Structure
                                             </div>
                                             {activeInstTab && (
-                                                <div className="flex" style={{ gap: '8px' }}>
+                                                <div className="flex gap-2">
                                                     {selectedInstKeys.length > 1 && (
-                                                        <button 
-                                                            type="button" 
-                                                            className="inline-flex items-center justify-center gap-2 bg-white border border-gray-200 shadow-sm px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50 hover:text-[#008AE6] transition-colors uppercase tracking-wider" 
-                                                            onClick={copyFeesToAllInstitutions} 
-                                                            title="Copy to all"
-                                                            style={{ borderRadius: '9999px' }}
-                                                        >
+                                                        <button type="button" className="inline-flex items-center gap-2 rounded-full bg-white border border-gray-200 shadow-sm px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50 hover:text-[#008AE6] transition-colors uppercase tracking-wider" onClick={copyFeesToAllInstitutions} title="Copy to all">
                                                             <Copy size={14} /> <span className="hidden sm:inline">Apply to all</span>
                                                         </button>
                                                     )}
-                                                    <button 
-                                                        type="button" 
-                                                        className="inline-flex items-center justify-center gap-2 bg-[#008AE6] hover:bg-[#0071bf] text-white shadow-sm px-4 py-2 text-xs font-bold transition-colors uppercase tracking-wider" 
-                                                        onClick={addFeeYear}
-                                                        style={{ borderRadius: '9999px' }}
-                                                    >
+                                                    <button type="button" className="inline-flex items-center gap-2 rounded-full bg-[#008AE6] hover:bg-[#0071bf] text-white shadow-sm px-4 py-2 text-xs font-bold transition-colors uppercase tracking-wider" onClick={addFeeYear}>
                                                         <Plus size={14} /> Add Fee Row
                                                     </button>
                                                 </div>
@@ -824,31 +839,26 @@ export default function CourseDetailsCreate() {
                                                     <div key={feeIndex} className={`flex flex-wrap md:flex-nowrap gap-3 items-end pb-4 ${feeIndex < activeYearFees.length - 1 ? 'border-b border-gray-100' : ''}`}>
                                                         <div className="w-full md:w-24">
                                                             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Year</label>
-                                                            <input type="number" min={1} className="w-full border border-gray-200 px-4 py-2 text-sm shadow-sm focus:outline-none focus:border-[#008AE6] focus:ring-1 focus:ring-[#008AE6]" style={{ borderRadius: '9999px' }} value={fee.year} onChange={(e) => updateFeeYear(feeIndex, { year: Number(e.target.value) || 1 })} />
+                                                            <input type="number" min={1} className="w-full rounded-full border border-gray-200 px-4 py-2 text-sm shadow-sm focus:outline-none focus:border-[#008AE6] focus:ring-1 focus:ring-[#008AE6]" value={fee.year} onChange={(e) => updateFeeYear(feeIndex, { year: Number(e.target.value) || 1 })} />
                                                         </div>
                                                         <div className="w-full md:w-32">
                                                             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Currency</label>
-                                                            <div className="flex items-center border border-gray-200 shadow-sm overflow-hidden focus-within:border-[#008AE6] focus-within:ring-1 focus-within:ring-[#008AE6]" style={{ borderRadius: '9999px' }}>
+                                                            <div className="flex items-center rounded-full border border-gray-200 shadow-sm overflow-hidden focus-within:border-[#008AE6] focus-within:ring-1 focus-within:ring-[#008AE6]">
                                                                 <span className="bg-gray-50 px-3 py-2 text-gray-400 border-r border-gray-200"><Coins size={14} /></span>
                                                                 <input type="text" className="flex-1 px-3 py-2 text-sm focus:outline-none w-full" placeholder="NPR/USD" value={fee.currency} onChange={(e) => updateFeeYear(feeIndex, { currency: e.target.value })} />
                                                             </div>
                                                         </div>
                                                         <div className="flex-1 min-w-[140px]">
                                                             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Amount</label>
-                                                            <input type="text" className="w-full border border-gray-200 px-4 py-2 text-sm shadow-sm focus:outline-none focus:border-[#008AE6] focus:ring-1 focus:ring-[#008AE6]" style={{ borderRadius: '9999px' }} placeholder="12,000" value={fee.amount} onChange={(e) => updateFeeYear(feeIndex, { amount: e.target.value })} />
+                                                            <input type="text" className="w-full rounded-full border border-gray-200 px-4 py-2 text-sm shadow-sm focus:outline-none focus:border-[#008AE6] focus:ring-1 focus:ring-[#008AE6]" placeholder="12,000" value={fee.amount} onChange={(e) => updateFeeYear(feeIndex, { amount: e.target.value })} />
                                                         </div>
                                                         <div className="flex-1 min-w-[160px]">
                                                             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Note</label>
-                                                            <input type="text" className="w-full border border-gray-200 px-4 py-2 text-sm shadow-sm focus:outline-none focus:border-[#008AE6] focus:ring-1 focus:ring-[#008AE6]" style={{ borderRadius: '9999px' }} placeholder="e.g. Tuition fee" value={fee.note} onChange={(e) => updateFeeYear(feeIndex, { note: e.target.value })} />
+                                                            <input type="text" className="w-full rounded-full border border-gray-200 px-4 py-2 text-sm shadow-sm focus:outline-none focus:border-[#008AE6] focus:ring-1 focus:ring-[#008AE6]" placeholder="e.g. Tuition fee" value={fee.note} onChange={(e) => updateFeeYear(feeIndex, { note: e.target.value })} />
                                                         </div>
                                                         <div className="flex justify-end ml-auto">
                                                             {activeYearFees.length > 1 ? (
-                                                                <button 
-                                                                    type="button" 
-                                                                    className="border border-gray-200 shadow-sm text-red-500 bg-white hover:bg-red-50 p-2.5 transition-colors" 
-                                                                    onClick={() => removeFeeYear(feeIndex)}
-                                                                    style={{ borderRadius: '9999px' }}
-                                                                >
+                                                                <button type="button" className="rounded-full border border-gray-200 shadow-sm text-red-500 bg-white hover:bg-red-50 p-2.5 transition-colors" onClick={() => removeFeeYear(feeIndex)}>
                                                                     <Trash2 size={16} />
                                                                 </button>
                                                             ) : (
@@ -867,12 +877,7 @@ export default function CourseDetailsCreate() {
                 </div>
 
                 <div className="flex justify-end pb-12 pt-4">
-                    <button 
-                        type="submit" 
-                        className="inline-flex items-center justify-center gap-3 bg-[#008AE6] hover:bg-[#0071bf] text-white shadow-lg px-8 py-4 transition-colors disabled:opacity-60" 
-                        disabled={saving}
-                        style={{ borderRadius: '9999px' }}
-                    >
+                    <button type="submit" className="inline-flex items-center justify-center gap-3 rounded-full bg-[#008AE6] hover:bg-[#0071bf] text-white shadow-lg px-8 py-4 transition-colors disabled:opacity-60" disabled={saving}>
                         {saving ? <Loader2 size={20} className="spin" /> : <CheckCircle size={20} />}
                         <span className="font-bold text-sm uppercase tracking-widest">{saving ? 'Processing...' : 'Save All Details'}</span>
                     </button>
