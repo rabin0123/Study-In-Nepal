@@ -711,10 +711,11 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 }
 
                 .gcu-row {
-                    display: grid;
-                    grid-template-columns: 280px 1fr;
-                    gap: 40px;
-                }
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 60px;
+    max-width: 1200px; /* keeps text line-length readable even though wrap is wider */
+}
                 .gcu-col-title {
                     font-size: 1.5rem;
                 }
