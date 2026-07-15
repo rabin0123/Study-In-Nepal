@@ -511,14 +511,13 @@ export default function StudentApplicationsIndex() {
                   style={{ tableLayout: 'fixed', width: '100%', minWidth: 900 }}
                 >
                   <colgroup>
-                    <col style={{ width: '3%' }} />
-                    <col style={{ width: '20%' }} />
-                    <col style={{ width: '9%' }} />
-                    <col style={{ width: '24%' }} />
-                    <col style={{ width: '10%' }} />
-                    <col style={{ width: '14%' }} />
+                    <col style={{ width: '4%' }} />
+                    <col style={{ width: '22%' }} />
                     <col style={{ width: '12%' }} />
-                    <col style={{ width: '8%' }} />
+                    <col style={{ width: '28%' }} />
+                    <col style={{ width: '11%' }} />
+                    <col style={{ width: '11%' }} />
+                    <col style={{ width: '12%' }} />
                   </colgroup>
                   <thead className="text-dark fs-4" style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bs-card-bg, #fff)' }}>
                     <tr>
@@ -536,7 +535,6 @@ export default function StudentApplicationsIndex() {
                       <th><h6 className="fs-4 fw-semibold mb-0">Status</h6></th>
                       <th><h6 className="fs-4 fw-semibold mb-0">Agency</h6></th>
                       <th><h6 className="fs-4 fw-semibold mb-0">Submitted</h6></th>
-                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -620,8 +618,6 @@ export default function StudentApplicationsIndex() {
                               <span className="text-truncate">{formatDate(a.created_at)}</span>
                             </p>
                           </td>
-
-                          
                         </tr>
                       );
                     })}
