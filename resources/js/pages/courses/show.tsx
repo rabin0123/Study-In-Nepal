@@ -37,7 +37,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
     const fees = sortByYear(courseDetail.fees);
     
     // Safely check for new string format or old array format from DB
-    const careersData = courseDetail.careers_summary || courseDetail.careers;
+    const careersData = courseDetail.careers;
 
     const sections = [
         { id: 'overview', label: 'Overview', show: Boolean(courseDetail.summary) },
