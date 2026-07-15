@@ -505,7 +505,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     margin-bottom: -50px;
                     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
                     border-radius: 24px;
-                    opacity: 0.85;
                 }
                 .gcu-banner-info__award {
                     display: inline-block;
