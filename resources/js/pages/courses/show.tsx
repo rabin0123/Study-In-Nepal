@@ -73,9 +73,20 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 
                 {/* Top-left container for Breadcrumbs and University Name */}
                 <div className="gcu-hero-top-left">
-                                         
-                         <span className="gcu-hero-univ-name">{courseDetail.university_name}</span>
-                </div>
+    <div className="gcu-hero-university">
+        {courseDetail.university?.university_logo_url && (
+            <img
+                src={courseDetail.university.university_logo_url}
+                alt={courseDetail.university_name}
+                className="gcu-hero-university-logo"
+            />
+        )}
+
+        <span className="gcu-hero-univ-name">
+            {courseDetail.university_name}
+        </span>
+    </div>
+</div>
 
                 <div className="gcu-wrap">
                     <div className="gcu-banner-info scheme--skyblue">
