@@ -437,8 +437,8 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 }
 
                 .gcu-hero-university-logo {
-                    width: 70px;
-                    height: 70px;
+                    width: 60px;
+                    height: 60px;
                     object-fit: contain;
                     background: #fff;
                     padding: 6px;
