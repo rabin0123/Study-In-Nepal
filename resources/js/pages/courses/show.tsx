@@ -416,7 +416,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     display: flex;
                     align-items: flex-end;
                     background: #111;
-                    overflow: visible;
+                    overflow: hidden;
                 }
                 .gcu-header__bg {
                     position: absolute;
