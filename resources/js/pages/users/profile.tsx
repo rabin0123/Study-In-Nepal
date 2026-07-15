@@ -444,22 +444,7 @@ export default function Profile({ user, status, canEdit, isSelf, canVerify = fal
                                         onRequestSave={requestSave}
                                     />
 
-                                    {/* Locked Agency Row */}
-                                    <div className="sad-field-row py-4 border-bottom d-flex gap-4 align-items-start">
-                                        <span
-                                            className="sad-icon-chip d-flex align-items-center justify-content-center rounded-3 shrink-0"
-                                            style={{ width: 40, height: 40, background: 'var(--bs-primary-bg-subtle, #e7f1ff)' }}
-                                        >
-                                            <iconify-icon icon="solar:buildings-line-duotone" className="text-primary"></iconify-icon>
-                                        </span>
-                                        <div className="grow min-w-0">
-                                            <span className="sad-label fs-2 fw-semibold text-uppercase text-body-secondary d-block mb-2">Agency</span>
-                                            <p className="sad-value fs-3 fw-semibold mb-0 text-truncate" title={localUser.agency_name}>
-                                                {localUser.agency_name}
-                                            </p>
-                                        </div>
-                                    </div>
-
+                                    
                                     {/* Locked Country Row */}
                                     <div className="sad-field-row py-4 border-bottom d-flex gap-4 align-items-start">
                                         <span
