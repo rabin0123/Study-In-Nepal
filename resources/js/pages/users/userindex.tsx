@@ -552,8 +552,7 @@ export default function UsersIndex({
                                 </colgroup>
                                 <thead className="text-dark fs-4" style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bs-card-bg, #fff)' }}>
                                     <tr>
-                                        {/* Added inline style padding to shift the column content to the right */}
-                                        <th className="ps-6" style={{ paddingLeft: '2.5rem' }}>User Details</th>
+                                        <th className="ps-6">User Details</th>
                                         <th>Email</th>
                                         <th>Country</th>
                                         <th>Role</th>
@@ -592,22 +591,21 @@ export default function UsersIndex({
                                                 onClick={() => router.get(`/users/${user.id}`)}
                                             >
                                                 {/* Column 1: Avatar, Name, Contact details, row actions at end */}
-                                                {/* Added inline style padding here to align with the header shift */}
-                                                <td className="ps-6" style={{ paddingLeft: '2.5rem' }}>
+                                                <td className="ps-6">
                                                     <div className="d-flex align-items-center">
                                                         <span className="shrink-0 ps-1">
                                                             <img
-                                                                src={user.avatar_url}
-                                                                alt={user.name}
-                                                                width={40}
-                                                                height={40}
-                                                                style={{
-                                                                    width: 40,
-                                                                    height: 40,
-                                                                    borderRadius: '50%',
-                                                                    objectFit: 'cover'
-                                                                }}
-                                                            />
+    src={user.avatar_url}
+    alt={user.name}
+    width={40}
+    height={40}
+    style={{
+        width: 40,
+        height: 40,
+        borderRadius: '50%',
+        objectFit: 'cover'
+    }}
+/>
                                                         </span>
                                                         <div className="ms-3 text-truncate grow">
                                                             <h6 className="fs-4 fw-semibold mb-0 text-truncate d-flex align-items-center gap-1.5">
@@ -748,9 +746,9 @@ export default function UsersIndex({
                             </table>
                         </div>
 
-                        {/* Record count footer - Left padding matched to 2.5rem to align with table headers */}
+                        {/* Record count footer (pagination removed - scroll handles navigation) */}
                         {users.data.length > 0 && (
-                            <div className="d-flex align-items-center justify-content-between border-top px-6 py-3" style={{ paddingLeft: '2.5rem' }}>
+                            <div className="d-flex align-items-center justify-content-between border-top px-6 py-3">
                                 <div className="text-body-secondary fs-3">
                                     Showing <strong className="text-dark">{users.total}</strong> record{users.total === 1 ? '' : 's'}
                                 </div>
