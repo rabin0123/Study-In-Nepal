@@ -55,7 +55,7 @@ class CourseDetailController extends Controller
         $validated = $request->validate([
             'course_name'                                  => 'required|string|max:255',
             'summary'                                      => 'nullable|string',
-            'careers_summary'                              => 'nullable|string', // Replaced careers array with HTML string
+            'careers'                              => 'nullable|string', // Replaced careers array with HTML string
             
             'fees'                                         => 'nullable|array',
             'fees.*.year'                                  => 'required_with:fees|integer|min:1',
