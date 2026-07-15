@@ -63,7 +63,15 @@ function useIsCurrentUrl() {
 }
 
 // ---------------------------------------------------------------------------
-// Notifications — unchanged data logic, MaterialM dropdown markup
+// Notifications — data logic + lazy-loaded pagination, MaterialM dropdown markup
+//
+// The dropdown fetches page 1 on mount. As the user scrolls the dropdown
+// body near its bottom, subsequent pages are fetched and appended, with a
+// small spinner shown while each page loads. This assumes the backend
+// endpoint accepts a `page` query param and returns `has_more` (or an empty
+// `data` array) to signal there's nothing left to load — adjust `fetchPage`
+// below if your API's pagination shape differs (e.g. Laravel's default
+// paginator fields like `current_page` / `last_page`).
 // ---------------------------------------------------------------------------
 type NotificationRecord = {
     id: string;
@@ -91,21 +99,35 @@ function timeAgo(iso: string): string {
 function useNotifications(userId?: number) {
     const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(true); // initial page load
+    const [loadingMore, setLoadingMore] = useState(false); // subsequent page loads
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
 
-    useEffect(() => {
-        if (!userId) return;
+    const fetchPage = (pageNum: number, isInitial = false) => {
+        if (isInitial) setLoading(true);
+        else setLoadingMore(true);
 
-        fetch('/api/notifications', { headers: { Accept: 'application/json' } })
+        fetch(`/api/notifications?page=${pageNum}`, { headers: { Accept: 'application/json' } })
             .then((res) => res.json())
             .then((res) => {
                 if (res.success) {
-                    setNotifications(res.data);
-                    setUnreadCount(res.unread_count);
+                    setNotifications((prev) => (isInitial ? res.data : [...prev, ...res.data]));
+                    if (isInitial) setUnreadCount(res.unread_count);
+                    setHasMore(Boolean(res.has_more ?? (res.data && res.data.length > 0)));
                 }
             })
             .catch((err) => console.error('Failed to load notifications', err))
-            .finally(() => setLoading(false));
+            .finally(() => {
+                setLoading(false);
+                setLoadingMore(false);
+            });
+    };
+
+    useEffect(() => {
+        if (!userId) return;
+        fetchPage(1, true);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userId]);
 
     useEchoNotification(
@@ -123,6 +145,13 @@ function useNotifications(userId?: number) {
             setUnreadCount((c) => c + 1);
         },
     );
+
+    const loadMore = () => {
+        if (loadingMore || loading || !hasMore) return;
+        const nextPage = page + 1;
+        setPage(nextPage);
+        fetchPage(nextPage);
+    };
 
     const markAllAsRead = () => {
         if (unreadCount === 0) return;
@@ -156,7 +185,16 @@ function useNotifications(userId?: number) {
         }
     };
 
-    return { notifications, unreadCount, loading, markAllAsRead, handleNotificationClick };
+    return {
+        notifications,
+        unreadCount,
+        loading,
+        loadingMore,
+        hasMore,
+        loadMore,
+        markAllAsRead,
+        handleNotificationClick,
+    };
 }
 
 // ---------------------------------------------------------------------------
@@ -218,7 +256,16 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
     const { auth } = page.props as any;
     const getInitials = useInitials();
     const isCurrentUrl = useIsCurrentUrl();
-    const { notifications, unreadCount, loading, markAllAsRead, handleNotificationClick } = useNotifications(auth?.user?.id);
+    const {
+        notifications,
+        unreadCount,
+        loading,
+        loadingMore,
+        hasMore,
+        loadMore,
+        markAllAsRead,
+        handleNotificationClick,
+    } = useNotifications(auth?.user?.id);
 
     const userInitials = useMemo(() => getInitials(auth?.user?.name ?? 'User'), [auth?.user?.name, getInitials]);
 
@@ -232,6 +279,15 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
         document.addEventListener('keydown', onKeyDown);
         return () => document.removeEventListener('keydown', onKeyDown);
     }, [searchOpen]);
+
+    // Scroll handler for the notifications dropdown body — fires loadMore()
+    // once the user scrolls within 40px of the bottom of the list.
+    const handleNotifScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const el = e.currentTarget;
+        if (el.scrollHeight - el.scrollTop - el.clientHeight < 40) {
+            loadMore();
+        }
+    };
 
     return (
         <div id="main-wrapper" className="materialm-scope">
@@ -250,23 +306,31 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
                     overflow-y: auto;
                     scrollbar-width: thin;
                 }
-                  .notif-message {
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    white-space: normal;
-    word-break: break-word;
-    min-width: 0;
-    font-size: 0.75rem;
-    line-height: 1.3;
-}
                 .sidebar-nav-scroll::-webkit-scrollbar {
                     width: 6px;
                 }
                 .sidebar-nav-scroll::-webkit-scrollbar-thumb {
                     background-color: rgba(0, 0, 0, 0.2);
                     border-radius: 999px;
+                }
+
+                /* Notification message: wrap onto its own lines instead of
+                   forcing the dropdown wider, clamp to 3 lines with an
+                   ellipsis if longer, render at normal weight (not bold),
+                   and use a smaller font size so it doesn't dominate the
+                   row. min-width: 0 is needed because this sits inside a
+                   flex row (d-flex) — flex items default to min-width: auto,
+                   which lets long unbroken text overflow instead of wrap. */
+                .notif-message {
+                    display: -webkit-box;
+                    -webkit-line-clamp: 3;
+                    -webkit-box-orient: vertical;
+                    overflow: hidden;
+                    white-space: normal;
+                    word-break: break-word;
+                    min-width: 0;
+                    font-size: 0.75rem;
+                    line-height: 1.3;
                 }
 
                 /* Topbar controls (search, theme toggle, notifications,
@@ -433,7 +497,7 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
                                                         </button>
                                                     )}
                                                 </div>
-                                                <div className="message-body sidebar-nav-scroll">
+                                                <div className="message-body sidebar-nav-scroll" onScroll={handleNotifScroll}>
                                                     {loading && (
                                                         <div className="py-6 px-7">
                                                             <span className="fs-3">Loading…</span>
@@ -458,16 +522,27 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
                                                                     (n.data.student_name ?? 'A').slice(0, 2).toUpperCase()
                                                                 )}
                                                             </span>
-                                                           <div className="w-75 d-inline-block v-middle" style={{ minWidth: 0 }}>
-    <div className="d-flex align-items-center justify-content-between" style={{ minWidth: 0 }}>
-       <h6 className="mb-1 notif-message fw-normal">
-    {n.data.message}
-</h6>
-    </div>
-    <span className="d-block fs-2">{timeAgo(n.created_at)}</span>
-</div>
+                                                            <div className="w-75 d-inline-block v-middle" style={{ minWidth: 0 }}>
+                                                                <div className="d-flex align-items-center justify-content-between" style={{ minWidth: 0 }}>
+                                                                    <h6 className="mb-1 notif-message fw-normal">{n.data.message}</h6>
+                                                                </div>
+                                                                <span className="d-block fs-2">{timeAgo(n.created_at)}</span>
+                                                            </div>
                                                         </a>
                                                     ))}
+
+                                                    {loadingMore && (
+                                                        <div className="py-4 px-7 d-flex justify-content-center">
+                                                            <div className="spinner-border spinner-border-sm text-primary" role="status">
+                                                                <span className="visually-hidden">Loading more…</span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {!loading && !hasMore && notifications.length > 0 && (
+                                                        <div className="py-3 px-7 text-center">
+                                                            <span className="fs-2 text-body-secondary">No more notifications</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className="py-6 px-7 mb-1">
                                                     <Link href="/notifications" className="btn btn-outline-primary w-100">
