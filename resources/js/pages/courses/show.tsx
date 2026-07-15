@@ -14,7 +14,7 @@ type Props = {
         year_wise_modules: YearModule[] | null;
         fees: YearFee[] | null;
         careers_summary: string | null; 
-        careers?: string[] | null; // Added fallback just in case old DB structure is still there
+        careers?: string[] | null; 
         university_id: number | null;
         hero_image_url?: string | null;
         university?: {
@@ -43,7 +43,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
         { id: 'overview', label: 'Overview', show: Boolean(courseDetail.summary) },
         { id: 'study', label: 'What you will study', show: modules.length > 0 },
         { id: 'fees', label: 'Fees and funding', show: fees.length > 0 },
-        { id: 'careers', label: 'Career Prospectus', show: true }, // Changed to always show so you can see it!
+        { id: 'careers', label: 'Career Prospectus', show: true }, 
     ].filter((s) => s.show);
 
     const [activeTab, setActiveTab] = useState<number>(() => {
@@ -61,6 +61,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
         <div className="gcu-page bg-circle">
             <Head title={`${courseDetail.course_name} | ${courseDetail.university_name}`} />
 
+            {/* Top Navigation */}
             <header className="gcu-top-nav">
                 <div className="gcu-top-nav__wrap">
                     <div className="gcu-top-nav__logo">
@@ -76,6 +77,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 </div>
             </header>
 
+            {/* Hero Section */}
             <div className="gcu-header-section">
                 <div 
                     className="gcu-header__bg"
@@ -83,6 +85,14 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                         backgroundImage: `url(${courseDetail.hero_image_url || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80'})`
                     }}
                 />
+                
+                {/* NEW: University Name sitting at the top-left of the Hero Image */}
+                <div className="gcu-hero-top-left">
+                    <div className="gcu-wrap">
+                        <span className="gcu-hero-univ-name">{courseDetail.university_name}</span>
+                    </div>
+                </div>
+
                 <div className="gcu-wrap">
                     <div className="gcu-banner-info scheme--skyblue">
                         <div className="gcu-banner-info__wrap">
@@ -159,7 +169,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                 <h2 className="gcu-heading">Overview</h2>
                             </div>
                             <div className="gcu-col-content">
-                                {/* FIXED: Now renders the HTML properly instead of raw text tags */}
                                 <div 
                                     className="gcu-prose gcu-html-content"
                                     dangerouslySetInnerHTML={{ __html: courseDetail.summary }}
@@ -258,7 +267,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     </section>
                 )}
 
-                {/* Career Prospectus (Mild Black Background with Background Image) ALWAYS SHOWS NOW */}
+                {/* Career Prospectus (Mild Black Background with Background Image) */}
                 <section 
                     id="careers" 
                     className="gcu-panel full-bleed scheme--mild-black-bg"
@@ -274,7 +283,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                             <div className="gcu-col-content">
                                 <p className="gcu-section-intro">Our course helps set the trajectory for career positions such as:</p>
                                 
-                                {/* Handling string (new DB), array (old DB), or Empty data formats safely */}
                                 {typeof careersData === 'string' ? (
                                     <div className="gcu-html-content" dangerouslySetInnerHTML={{ __html: careersData }} />
                                 ) : Array.isArray(careersData) && careersData.length > 0 ? (
@@ -386,6 +394,25 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     inset: 0;
                     background: linear-gradient(0deg, rgba(3, 105, 161, 0.9) 0%, rgba(3, 105, 161, 0.4) 100%);
                     pointer-events: none;
+                }
+
+                /* University Name in Top Left of Hero Image */
+                .gcu-hero-top-left {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    padding-top: 40px;
+                    z-index: 20;
+                }
+                .gcu-hero-univ-name {
+                    display: inline-block;
+                    color: var(--color-white);
+                    font-size: 1.4rem;
+                    font-weight: 800;
+                    text-shadow: 0 4px 15px rgba(0,0,0,0.4);
+                    border-bottom: 3px solid var(--color-skyblue);
+                    padding-bottom: 4px;
                 }
 
                 .gcu-banner-info {
@@ -566,7 +593,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
                 /* CAREERS SECTION - MILD BLACK BG WITH IMAGE */
                 .gcu-panel.scheme--mild-black-bg {
-                    background-color: #1e293b; /* Fallback mild black */
+                    background-color: #1e293b; 
                     background-size: cover;
                     background-position: center;
                     background-repeat: no-repeat;
@@ -574,15 +601,13 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: var(--color-white);
                     border-bottom: none;
                 }
-                /* Overlay to ensure readability over the image */
                 .gcu-panel.scheme--mild-black-bg::before {
                     content: '';
                     position: absolute;
                     inset: 0;
-                    background-color: rgba(15, 23, 42, 0.85); /* Dark slate overlay */
+                    background-color: rgba(15, 23, 42, 0.85); 
                     z-index: 1;
                 }
-                /* Elevate text above overlay */
                 .gcu-panel.scheme--mild-black-bg .gcu-wrap {
                     position: relative;
                     z-index: 2;
@@ -596,11 +621,19 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 .gcu-panel.scheme--mild-black-bg .gcu-html-content {
                     color: rgba(255, 255, 255, 0.9);
                 }
-                /* Ensure career bullet lists in HTML adapt for the dark background */
+                /* Career List Items explicitly restyled for height and dark bg */
                 .gcu-panel.scheme--mild-black-bg .gcu-html-content ul li {
-                    background: rgba(255, 255, 255, 0.1);
+                    background: rgba(255, 255, 255, 0.08);
                     border-left-color: var(--color-skyblue);
                     color: var(--color-white);
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                    backdrop-filter: blur(4px);
+                    
+                    /* BIGGER CARDS FIX */
+                    min-height: 110px;
+                    display: flex;
+                    align-items: center;
+                    padding: 24px 20px;
                 }
 
 
@@ -747,7 +780,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: var(--color-muted-text);
                 }
 
-                /* Default HTML styling */
+                /* Default HTML styling (used by other sections if needed) */
                 .gcu-html-content {
                     font-size: 1.05rem;
                     line-height: 1.75;
@@ -762,10 +795,15 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 .gcu-html-content ul li {
                     background: var(--color-grey);
                     border-left: 4px solid var(--color-skyblue);
-                    padding: 14px 20px;
+                    padding: 18px 20px;
                     border-radius: 0 4px 4px 0;
                     font-weight: 700;
                     color: var(--color-skyblue-dark);
+                    
+                    /* BIGGER CARDS FIX FOR OTHER SECTIONS */
+                    min-height: 110px;
+                    display: flex;
+                    align-items: center;
                 }
                 .gcu-html-content p {
                     margin-bottom: 16px;
