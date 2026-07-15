@@ -651,7 +651,7 @@ export default function Profile({ user, status, canEdit, isSelf, canVerify = fal
                                             </div>
                                             <h6 className="sad-value fs-4 fw-semibold mb-0 text-danger">Danger Zone</h6>
                                         </div>
-                                        <p className="fs-6 text-body-secondary fw-semibold mb-4">
+                                        <p className="fs-3 text-body-secondary fw-semibold mb-4">
                                             Once your account is deleted, all of its resources, datasets, and surveys will be permanently destroyed. This operation is non-reversible.
                                         </p>
 
