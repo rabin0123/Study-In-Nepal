@@ -13,9 +13,8 @@ type Props = {
         summary: string | null;
         year_wise_modules: YearModule[] | null;
         fees: YearFee[] | null;
-        careers_summary: string | null; // Changed to match controller's HTML string payload
+        careers_summary: string | null; 
         university_id: number | null;
-        /** Big hero banner image for the course — set this from the backend (course/college photo). */
         hero_image_url?: string | null;
         university?: {
             id: number;
@@ -44,7 +43,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
         { id: 'careers', label: 'Careers', show: Boolean(careers_summary) },
     ].filter((s) => s.show);
 
-    // Track active tab for module blocks (by year index/value)
     const [activeTab, setActiveTab] = useState<number>(() => {
         return modules.length > 0 ? modules[0].year : 1;
     });
@@ -60,9 +58,21 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
         <div className="gcu-page bg-circle">
             <Head title={`${courseDetail.course_name} | ${courseDetail.university_name}`} />
 
-            
+            <header className="gcu-top-nav">
+                <div className="gcu-top-nav__wrap">
+                    <div className="gcu-top-nav__logo">
+                        {courseDetail.university?.university_logo_url ? (
+                            <img src={courseDetail.university.university_logo_url} alt={courseDetail.university_name} />
+                        ) : (
+                            <span className="gcu-top-nav__logo-fallback">
+                                {courseDetail.university_name.slice(0, 1).toUpperCase()}
+                            </span>
+                        )}
+                        <span className="gcu-top-nav__name">{courseDetail.university_name}</span>
+                    </div>
+                </div>
+            </header>
 
-            {/* Full-Bleed Image Background with Overlapping Course Banner Card */}
             <div className="gcu-header-section">
                 <div 
                     className="gcu-header__bg"
@@ -103,7 +113,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 </div>
             </div>
 
-            {/* Sticky Anchor Navigation Bar */}
             {sections.length > 1 && (
                 <nav className="gcu-subnav" aria-label="Course Sections">
                     <div className="gcu-wrap">
@@ -124,10 +133,8 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 </nav>
             )}
 
-            {/* Main Content Layout */}
             <main className="gcu-wrap gcu-main-content">
                 
-                {/* Breadcrumbs */}
                 <nav aria-label="Breadcrumb" className="gcu-breadcrumb">
                     <ol className="gcu-breadcrumb__order">
                         <li className="gcu-breadcrumb__item">
@@ -142,7 +149,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     </ol>
                 </nav>
 
-                {/* Overview Section */}
                 {courseDetail.summary && (
                     <section id="overview" className="gcu-panel">
                         <div className="gcu-row">
@@ -158,17 +164,16 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     </section>
                 )}
 
-                {/* What you will study (Full bleed background panels + Tabbed/Accordion Modules) */}
+                {/* UPDATED: Yellow Card Scheme for "What you will study" */}
                 {modules.length > 0 && (
-                    <section id="study" className="gcu-panel full-bleed scheme--skyblue-deep">
+                    <section id="study" className="gcu-panel full-bleed scheme--yellow-card">
                         <div className="gcu-wrap">
                             <div className="gcu-row">
                                 <div className="gcu-col-title">
-                                    <h2 className="gcu-heading light-text">What you<br />will study</h2>
+                                    <h2 className="gcu-heading">What you<br />will study</h2>
                                 </div>
                                 <div className="gcu-col-content mt-2">
                                     
-                                    {/* Tab selection headers */}
                                     {modules.length > 1 && (
                                         <div className="gcu-tab-headers">
                                             {modules.map((yearBlock) => (
@@ -184,7 +189,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                         </div>
                                     )}
 
-                                    {/* Active Year Modules */}
                                     <div className="gcu-tab-body">
                                         {modules.map((yearBlock) => {
                                             if (activeTab !== yearBlock.year && modules.length > 1) return null;
@@ -211,7 +215,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     </section>
                 )}
 
-                {/* Fees and Funding Section */}
                 {fees.length > 0 && (
                     <section id="fees" className="gcu-panel">
                         <div className="gcu-row">
@@ -249,7 +252,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     </section>
                 )}
 
-                {/* Careers Section (Updated for careers_summary HTML string) */}
                 {careers_summary && (
                     <section id="careers" className="gcu-panel">
                         <div className="gcu-row">
@@ -258,14 +260,12 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                             </div>
                             <div className="gcu-col-content">
                                 <p className="gcu-section-intro">Our course helps set the trajectory for career positions such as:</p>
-                                {/* Maps exact visual layout of old career list, but applies it to raw HTML from DB */}
                                 <div className="gcu-html-content" dangerouslySetInnerHTML={{ __html: careers_summary }} />
                             </div>
                         </div>
                     </section>
                 )}
 
-                {/* Fallback Empty Block */}
                 {!courseDetail.summary && modules.length === 0 && !careers_summary && fees.length === 0 && (
                     <section className="gcu-panel">
                         <p className="gcu-muted text-center">Detailed course structure information hasn't been published yet.</p>
@@ -275,11 +275,11 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
             </main>
 
             <style>{`
-                /* Target Skyblue & White Theme CSS Variables */
                 :root {
                     --color-skyblue: #0284c7;
                     --color-skyblue-dark: #0369a1;
                     --color-skyblue-deep: #075985;
+                    --color-yellow: #FFCC00; /* Added Yellow Variable */
                     --color-white: #ffffff;
                     
                     --color-grey: #f4f6f8;
@@ -305,7 +305,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     width: 100%;
                 }
 
-                /* Logo bar utility header */
                 .gcu-top-nav {
                     background: var(--color-white);
                     border-bottom: 1px solid var(--color-border);
@@ -347,7 +346,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: var(--color-skyblue-dark);
                 }
 
-                /* Header Cover Background & Overlay Block */
                 .gcu-header-section {
                     position: relative;
                     min-height: 480px;
@@ -367,19 +365,17 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     content: '';
                     position: absolute;
                     inset: 0;
-                    /* Updated to skyblue gradient */
                     background: linear-gradient(0deg, rgba(3, 105, 161, 0.9) 0%, rgba(3, 105, 161, 0.4) 100%);
                     pointer-events: none;
                 }
 
-                /* Overlay Info Box (Skyblue Theme) */
                 .gcu-banner-info {
                     position: relative;
                     z-index: 20;
                     background: linear-gradient(135deg, var(--color-skyblue-dark) 0%, var(--color-skyblue) 100%);
                     color: var(--color-white);
                     padding: 40px;
-                    margin-bottom: -50px; /* Overlaps content layer underneath */
+                    margin-bottom: -50px;
                     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
                     border-radius: 4px;
                 }
@@ -430,7 +426,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     display: inline-block;
                 }
 
-                /* Sticky Navigation */
                 .gcu-subnav {
                     background: var(--color-white);
                     border-bottom: 1px solid var(--color-border);
@@ -444,7 +439,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     display: flex;
                     gap: 24px;
                     overflow-x: auto;
-                    scrollbar-width: none; /* Hide scrollbars */
+                    scrollbar-width: none;
                 }
                 .gcu-subnav__list::-webkit-scrollbar { display: none; }
                 .gcu-subnav__link {
@@ -469,9 +464,8 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     border-bottom-color: var(--color-skyblue);
                 }
 
-                /* Content Structure Panels */
                 .gcu-main-content {
-                    padding-top: 90px; /* Compensate for header card overlap */
+                    padding-top: 90px;
                     padding-bottom: 100px;
                 }
                 .gcu-breadcrumb {
@@ -501,7 +495,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 }
                 .gcu-panel:last-of-type { border-bottom: none; }
                 
-                /* Full Bleed Panels */
                 .gcu-panel.full-bleed {
                     width: 100vw;
                     position: relative;
@@ -511,13 +504,46 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     margin-right: -50vw;
                     padding: 60px 0;
                 }
-                .gcu-panel.scheme--skyblue-deep {
-                    background-color: var(--color-skyblue-deep);
-                    color: var(--color-white);
+
+                /* YELLOW CARD STYLING FOR "WHAT YOU WILL STUDY" */
+                .gcu-panel.scheme--yellow-card {
+                    background-color: var(--color-yellow);
+                    color: var(--color-black);
                     border-bottom: none;
                 }
+                .gcu-panel.scheme--yellow-card .gcu-heading {
+                    color: var(--color-black); /* Override heading to black */
+                }
+                .gcu-panel.scheme--yellow-card .gcu-tab-headers {
+                    border-bottom: 2px solid rgba(0, 0, 0, 0.15);
+                }
+                .gcu-panel.scheme--yellow-card .gcu-tab-header-btn {
+                    color: rgba(0, 0, 0, 0.6);
+                }
+                .gcu-panel.scheme--yellow-card .gcu-tab-header-btn.is-active,
+                .gcu-panel.scheme--yellow-card .gcu-tab-header-btn:hover {
+                    color: var(--color-black);
+                    border-bottom-color: var(--color-black);
+                }
+                .gcu-panel.scheme--yellow-card .gcu-single-year-title {
+                    color: var(--color-black);
+                }
+                .gcu-panel.scheme--yellow-card .gcu-muted {
+                    color: rgba(0,0,0,0.7);
+                }
+                
+                /* Adjust Accodion Elements to pop correctly on yellow background */
+                .gcu-panel.scheme--yellow-card .gcu-module-row {
+                    border: 1px solid rgba(0,0,0,0.1);
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+                }
+                .gcu-panel.scheme--yellow-card .gcu-module-row__head {
+                    color: var(--color-black);
+                }
+                .gcu-panel.scheme--yellow-card .gcu-module-row__arrow {
+                    color: var(--color-black);
+                }
 
-                /* Grid system within panel rows */
                 .gcu-row {
                     display: grid;
                     grid-template-columns: 280px 1fr;
@@ -533,9 +559,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     line-height: 1.2;
                     letter-spacing: -0.01em;
                 }
-                .gcu-heading.light-text {
-                    color: var(--color-white);
-                }
                 .gcu-section-intro {
                     font-size: 1.05rem;
                     color: var(--color-muted-text);
@@ -549,7 +572,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     white-space: pre-line;
                 }
 
-                /* Tabbed elements inside What Will You Study panel */
                 .gcu-tab-headers {
                     display: flex;
                     border-bottom: 2px solid rgba(255, 255, 255, 0.2);
@@ -577,7 +599,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     margin-bottom: 20px;
                 }
 
-                /* Module row accordion elements */
                 .gcu-accordion-navigation {
                     display: flex;
                     flex-direction: column;
@@ -626,7 +647,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     padding-top: 14px;
                 }
 
-                /* Table representation */
                 .gcu-table-wrap {
                     overflow-x: auto;
                     border: 1px solid var(--color-border);
@@ -667,7 +687,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: var(--color-muted-text);
                 }
 
-                /* HTML Content styling mimicking the old career lists */
                 .gcu-html-content {
                     font-size: 1.05rem;
                     line-height: 1.75;
@@ -697,7 +716,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 }
                 .text-center { text-align: center; }
 
-                /* Responsive Layout adjustment Rules */
                 @media (max-width: 860px) {
                     .gcu-row {
                         grid-template-columns: 1fr;
