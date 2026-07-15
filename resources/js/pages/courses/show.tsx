@@ -400,6 +400,10 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
         font-size: 0.85rem;
     }
 }
+    html, body, #app, .gcu-page {
+    max-width: 100vw;
+    overflow-x: hidden;
+}
 
                 .gcu-top-nav {
                     background: var(--color-white);
