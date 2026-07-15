@@ -417,7 +417,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     font-size: 1.4rem;
                     font-weight: 800;
                     text-shadow: 0 4px 15px rgba(0,0,0,0.4);
-                    border-bottom: 3px solid var(--color-skyblue);
                     padding-bottom: 4px;
                 }
 
