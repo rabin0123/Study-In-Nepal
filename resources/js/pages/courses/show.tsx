@@ -863,6 +863,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
 function ModuleAccordion({ label }: { label: string }) {
     const [open, setOpen] = useState(false);
+    const [universityData, setUniversityData] = useState<any>(null);
     return (
         <div className={`gcu-module-row ${open ? 'is-open' : ''}`}>
             <button 
