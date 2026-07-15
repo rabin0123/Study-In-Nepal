@@ -73,10 +73,8 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 
                 {/* Top-left container for Breadcrumbs and University Name */}
                 <div className="gcu-hero-top-left">
-                    <div className="gcu-wrap">
-                        
+                                         
                          <span className="gcu-hero-univ-name">{courseDetail.university_name}</span>
-                    </div>
                 </div>
 
                 <div className="gcu-wrap">
