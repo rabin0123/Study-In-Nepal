@@ -32,74 +32,10 @@ function sortByYear<T extends { year: number }>(items: T[] | null | undefined): 
     return [...items].sort((a, b) => a.year - b.year);
 }
 
-interface ExternalUniversityRecord {
-    id: number;
-    University: string;
-    College: string;
-    university_logo_url: string | null;
-    college_logo_url: string | null;
-}
-
-const normalizeMatchKey = (value: string | null | undefined): string => {
-    if (!value) return "";
-    return value
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, " ")
-        .replace(/[\u2013\u2014]/g, "-")
-        .replace(/[^a-z0-9\s-]/g, "")
-        .trim();
-};
-
 export default function CourseDetailsShow({ courseDetail }: Props) {
     const modules = sortByYear(courseDetail.year_wise_modules);
     const fees = sortByYear(courseDetail.fees);
-
-    const [externalUniversity, setExternalUniversity] = useState<ExternalUniversityRecord | null>(null);
-
-    useEffect(() => {
-        let active = true;
-        const fetchUniversityAssets = async () => {
-            try {
-                const res = await fetch("https://www.admin.studyinnepal.com/api/university", {
-                    headers: { "Accept": "application/json" },
-                });
-                if (!res.ok) return;
-
-                const body = await res.json();
-                const records: ExternalUniversityRecord[] = Array.isArray(body)
-                    ? body
-                    : Array.isArray(body?.data)
-                        ? body.data
-                        : [];
-
-                const uniKey = normalizeMatchKey(courseDetail.university_name);
-                const collegeKey = normalizeMatchKey(courseDetail.college_name);
-
-                const exactMatch = records.find((item) =>
-                    normalizeMatchKey(item.University) === uniKey &&
-                    normalizeMatchKey(item.College) === collegeKey
-                );
-
-                const universityMatch = records.find((item) =>
-                    normalizeMatchKey(item.University) === uniKey
-                );
-
-                if (active) {
-                    setExternalUniversity(exactMatch || universityMatch || null);
-                }
-            } catch (error) {
-                console.error("Failed to fetch university assets:", error);
-            }
-        };
-
-        fetchUniversityAssets();
-        return () => { active = false; };
-    }, [courseDetail.university_name, courseDetail.college_name]);
-
-    const matchedUniversityLogo = externalUniversity?.university_logo_url || courseDetail.university?.university_logo_url || null;
-    const matchedCollegeLogo = externalUniversity?.college_logo_url || null;
-
+    
     // Safely check for new string format or old array format from DB
     const careersData = courseDetail.careers_summary || courseDetail.careers;
 
@@ -121,11 +57,55 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
         window.scrollTo({ top, behavior: 'smooth' });
     };
 
+    // States for logos
+    const [univLogo, setUnivLogo] = useState<string | null | undefined>(courseDetail.university?.university_logo_url);
+    const [collegeLogo, setCollegeLogo] = useState<string | null | undefined>(null);
+
+    // Fetch logos from the API
+    useEffect(() => {
+        let isMounted = true;
+
+        const fetchLogos = async () => {
+            try {
+                const res = await fetch('https://www.admin.studyinnepal.com/api/university');
+                const data = await res.json();
+                
+                if (!isMounted) return;
+
+                // Attempt to match exact university AND college
+                const exactMatch = data.find(
+                    (item: any) => 
+                        item.University === courseDetail.university_name && 
+                        item.College === courseDetail.college_name
+                );
+
+                if (exactMatch) {
+                    if (exactMatch.university_logo_url) setUnivLogo(exactMatch.university_logo_url);
+                    if (exactMatch.college_logo_url) setCollegeLogo(exactMatch.college_logo_url);
+                } else {
+                    // Fallback to partial matching if exactly matching both fails
+                    const univMatch = data.find((item: any) => item.University === courseDetail.university_name);
+                    const colMatch = data.find((item: any) => item.College === courseDetail.college_name);
+
+                    if (univMatch?.university_logo_url) setUnivLogo(univMatch.university_logo_url);
+                    if (colMatch?.college_logo_url) setCollegeLogo(colMatch.college_logo_url);
+                }
+            } catch (err) {
+                console.error("Failed to fetch university API data for logos:", err);
+            }
+        };
+
+        fetchLogos();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [courseDetail.university_name, courseDetail.college_name]);
+
     return (
         <div className="gcu-page bg-circle">
             <Head title={`${courseDetail.course_name} | ${courseDetail.university_name}`} />
 
-            
             {/* Hero Section */}
             <div className="gcu-header-section">
                 <div 
@@ -137,20 +117,19 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 
                 {/* Top-left container for Breadcrumbs and University Name */}
                 <div className="gcu-hero-top-left">
-    <div className="gcu-hero-university">
-        {courseDetail.university?.university_logo_url && (
-            <img
-                src={courseDetail.university.university_logo_url}
-                alt={courseDetail.university_name}
-                className="gcu-hero-university-logo"
-            />
-        )}
-
-        <span className="gcu-hero-univ-name">
-            {courseDetail.university_name}
-        </span>
-    </div>
-</div>
+                    <div className="gcu-hero-university">
+                        {univLogo && (
+                            <img
+                                src={univLogo}
+                                alt={courseDetail.university_name}
+                                className="gcu-hero-university-logo"
+                            />
+                        )}
+                        <span className="gcu-hero-univ-name">
+                            {courseDetail.university_name}
+                        </span>
+                    </div>
+                </div>
 
                 <div className="gcu-wrap">
                     <div className="gcu-banner-info scheme--skyblue">
@@ -162,9 +141,16 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                 {courseDetail.course_name}
                             </h1>
                             <div className="gcu-banner-info__meta">
-                                <p className="gcu-banner-info__tagline">
-                                    {courseDetail.college_name}
-                                </p>
+                                <div className="gcu-banner-info__tagline">
+                                    {collegeLogo && (
+                                        <img 
+                                            src={collegeLogo} 
+                                            alt={courseDetail.college_name} 
+                                            className="gcu-banner-college-logo" 
+                                        />
+                                    )}
+                                    <span>{courseDetail.college_name}</span>
+                                </div>
                             </div>
                             <ul className="gcu-banner-info__list">
                                 {courseDetail.university?.Intake && (
@@ -431,18 +417,14 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     inset: 0;
                     background-size: cover;
                     background-position: center;
-                    opacity: 0.75;
+                    opacity: 0.35;
                 }
                 .gcu-header-section::after {
                     content: '';
                     position: absolute;
                     inset: 0;
-            background: linear-gradient(
-    135deg,
-    #000000 0%,
-    #0f172a 50%,
-    #0369a1 100%
-);                 pointer-events: none;
+                    background: linear-gradient(0deg, rgba(3, 105, 161, 0.65) 0%, rgba(3, 105, 161, 0.20) 100%);
+                    pointer-events: none;
                 }
 
                 /* Hero Top Left Container */
@@ -488,12 +470,27 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 }
 
                 /* University Name in Top Left */
+                .gcu-hero-university {
+                    display: flex;
+                    align-items: center;
+                    gap: 14px;
+                    margin-left: 24px;
+                }
+
+                .gcu-hero-university-logo {
+                    width: 70px;
+                    height: 70px;
+                    object-fit: contain;
+                    background: #fff;
+                    padding: 6px;
+                    border-radius: 8px;
+                }
+
                 .gcu-hero-univ-name {
                     display: inline-block;
-                    color: var(--color-white);
+                    color: #fff;
                     font-size: 1.1rem;
                     font-weight: 800;
-                    margin-left: 100px;
                     text-shadow: 0 4px 15px rgba(0,0,0,0.4);
                     padding-bottom: 4px;
                 }
@@ -533,7 +530,19 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     font-size: 1.1rem;
                     font-weight: 600;
                     opacity: 0.9;
+                    display: flex;
+                    align-items: center;
+                    gap: 14px;
                 }
+                .gcu-banner-college-logo {
+                    width: 50px;
+                    height: 50px;
+                    object-fit: contain;
+                    background: var(--color-white);
+                    padding: 4px;
+                    border-radius: 6px;
+                }
+
                 .gcu-banner-info__list {
                     list-style: none;
                     display: flex;
@@ -594,7 +603,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 }
 
                 .gcu-main-content {
-                    padding-top: 50px; /* Reduced since breadcrumbs moved */
+                    padding-top: 50px; 
                     padding-bottom: 100px;
                 }
 
@@ -727,27 +736,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: var(--color-black);
                     white-space: pre-line;
                 }
-                    .gcu-hero-university {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-left: 24px;
-}
-
-.gcu-hero-university-logo {
-    width: 70px;
-    height: 70px;
-    object-fit: contain;
-    background: #fff;
-    padding: 6px;
-    border-radius: 8px;
-}
-
-.gcu-hero-univ-name {
-    color: #fff;
-    font-size: 1.1rem;
-    font-weight: 700;
-}
 
                 .gcu-tab-headers {
                     display: flex;
