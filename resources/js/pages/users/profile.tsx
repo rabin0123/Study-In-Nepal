@@ -544,56 +544,34 @@ export default function Profile({ user, status, canEdit, isSelf, canVerify = fal
                                         When enabled, this user receives new-agent verification emails and can approve pending accounts.
                                     </p>
                                     <button
-    type="button"
-    onClick={handleToggleVerifierAccess}
-    disabled={verifierToggling}
-    role="switch"
-    aria-checked={!!localUser.can_verify_users}
-    className="d-flex align-items-center gap-3 border-0 bg-transparent p-0"
-    style={{
-        cursor: verifierToggling ? "not-allowed" : "pointer",
-        opacity: verifierToggling ? 0.6 : 1,
-    }}
->
-    <span
-        style={{
-            width: 52,
-            height: 30,
-            borderRadius: 999,
-            background: localUser.can_verify_users
-                ? PRIMARY
-                : "var(--border-color, #dee2e6)",
-            position: "relative",
-            transition: "background 0.2s ease",
-            display: "inline-flex",
-            alignItems: "center",
-        }}
-    >
-        <span
-            style={{
-                position: "absolute",
-                top: 3,
-                left: localUser.can_verify_users ? 25 : 3,
-                width: 24,
-                height: 24,
-                borderRadius: "50%",
-                background: "#fff",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
-                transition: "left 0.2s ease",
-            }}
-        />
-    </span>
-
-    <span
-        className="fw-bold"
-        style={{
-            fontSize: "16px",
-            lineHeight: "30px",
-        }}
-    >
-        {localUser.can_verify_users ? "Enabled" : "Disabled"}
-    </span>
-</button>
+                                        type="button"
+                                        onClick={handleToggleVerifierAccess}
+                                        disabled={verifierToggling}
+                                        role="switch"
+                                        aria-checked={!!localUser.can_verify_users}
+                                        className="d-flex align-items-center gap-3 border-0 bg-transparent p-0"
+                                        style={{ cursor: verifierToggling ? 'not-allowed' : 'pointer', opacity: verifierToggling ? 0.6 : 1 }}
+                                    >
+                                        <span
+                                            style={{
+                                                width: 44, height: 24, borderRadius: 999,
+                                                background: localUser.can_verify_users ? PRIMARY : 'var(--border-color, #dee2e6)',
+                                                position: 'relative', transition: 'background 0.2s ease', display: 'inline-block'
+                                            }}
+                                        >
+                                            <span
+                                                style={{
+                                                    position: 'absolute', top: 2,
+                                                    left: localUser.can_verify_users ? 22 : 2,
+                                                    width: 20, height: 20, borderRadius: '50%', background: 'white',
+                                                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transition: 'left 0.2s ease',
+                                                }}
+                                            />
+                                        </span>
+                                        <span className="fs-3 fw-bold sad-value">
+                                            {localUser.can_verify_users ? 'Enabled' : 'Disabled'}
+                                        </span>
+                                    </button>
                                 </Card>
                             )}
                         </div>
