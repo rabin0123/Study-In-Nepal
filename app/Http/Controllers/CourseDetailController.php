@@ -42,7 +42,7 @@ class CourseDetailController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('course-details/create');
+        return Inertia::render('courses/create');
     }
 
     public function store(Request $request): JsonResponse
