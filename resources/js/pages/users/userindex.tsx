@@ -542,11 +542,10 @@ export default function UsersIndex({
                     <div className="card-body p-0">
                         {/* Fixed-height scroll container with slim scrollbar styling */}
                         <div className="table-responsive slim-scroll users-table-scroll">
-                            <table className="table users-table mb-0 align-middle" style={{ tableLayout: 'fixed', width: '100%' }}>
-                               
+                            <table className="table users-table mb-0 align-middle" style={{ tableLayout: 'auto', width: '100%' }}>
                                 <thead className="text-dark fs-4" style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bs-card-bg, #fff)' }}>
                                     <tr>
-                                        <th className="ps-5">User Details</th>
+                                        <th style={{ paddingLeft: '2rem' }}>User Details</th>
                                         <th>Email</th>
                                         <th>Country</th>
                                         <th>Role</th>
@@ -585,9 +584,9 @@ export default function UsersIndex({
                                                 onClick={() => router.get(`/users/${user.id}`)}
                                             >
                                                 {/* Column 1: Avatar, Name, Contact details, row actions at end */}
-                                                <td className="ps-6">
+                                                <td style={{ paddingLeft: '2rem' }}>
                                                     <div className="d-flex align-items-center">
-                                                        <span className="shrink-0 ps-1">
+                                                        <span className="shrink-0">
                                                             <img
     src={user.avatar_url}
     alt={user.name}
