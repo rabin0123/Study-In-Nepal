@@ -345,10 +345,10 @@ export default function CourseSearch() {
       {/* External CSS Fonts */}
       <link href="https://fonts.googleapis.com/css2?family=Castoro+Titling&family=Rajdhani:wght@600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-      {/* ── VISUAL HERO BANNER ─────────────────────────────────────────────── */}
-      <div className="position-relative text-center overflow-hidden py-5 py-md-5 py-lg-6" style={{ minHeight: "380px" }}>
+      {/* ── VISUAL HERO BANNER (Fixed overflow & added relative layout z-index) ────────────────── */}
+      <div className="position-relative text-center" style={{ padding: "110px 24px 80px", zIndex: 10 }}>
         
-        {/* Background Video */}
+        {/* Background Video (Self-contained boundaries block video bleedout) */}
         <div className="position-absolute top-0 start-0 end-0 bottom-0 overflow-hidden" style={{ zIndex: 0 }}>
           <video
             autoPlay
@@ -366,7 +366,7 @@ export default function CourseSearch() {
         </div>
 
         {/* Hero Content Layer */}
-        <div className="container position-relative py-5" style={{ zIndex: 5, maxWidth: "1040px" }}>
+        <div className="container position-relative" style={{ zIndex: 5, maxWidth: "1040px" }}>
           <p className="text-uppercase fw-bold text-warning mb-2" style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: "11px", letterSpacing: "0.28em" }}>
             Explore Academic Fields
           </p>
@@ -427,7 +427,7 @@ export default function CourseSearch() {
       </div>
 
       {/* ── MAIN CONTENT AREA ──────────────────────────────────────────────── */}
-      <div className="container py-5" style={{ maxWidth: "1040px" }}>
+      <div className="container py-5" style={{ maxWidth: "1040px", position: "relative", zIndex: 1 }}>
 
         {/* Results Status Bar */}
         <div className="d-flex justify-content-between align-items-center mb-4">
