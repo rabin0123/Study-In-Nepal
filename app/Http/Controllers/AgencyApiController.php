@@ -13,7 +13,7 @@ use Inertia\Response;
 class AgencyApiController extends Controller
 {
     /**
-     * Display the Agency Directory page.
+     * Display the Agency
      * 
      *
      */
