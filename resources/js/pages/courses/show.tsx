@@ -133,7 +133,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
                 <div className="gcu-wrap">
                     <div className="gcu-banner-info">
-                        <div className="gcu-banner-info__wrap1">
+                        <div className="gcu-banner-info__wrap">
                             <span className="gcu-banner-info__award">
                                 {courseDetail.university?.level || 'Postgraduate'}
                             </span>
