@@ -409,7 +409,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     font-family: -apple-system, BlinkMacSystemFont, "Montserrat", "Segoe UI", Arial, sans-serif;
                     min-height: 100vh;
                     line-height: 1.5;
-                    overflow-x: hidden;
+                    overflow-x: clip;
                     width: 100%;
                     position: relative;
                 }
