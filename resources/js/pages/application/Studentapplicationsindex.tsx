@@ -57,7 +57,7 @@ function StatusBadge({ status }: { status: string }) {
 
   return (
     <span className={`badge ${cls} fw-semibold fs-2 gap-1 d-inline-flex align-items-center`}>
-      <i className={`ti ${icon} fs-3`}></i>
+      <iconify-icon icon={icon} className="fs-3"></iconify-icon>
       {status}
     </span>
   );
