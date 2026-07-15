@@ -320,7 +320,7 @@ function ApplyNowModal({ courseTarget, onClose }: ApplyModalProps) {
     setErrorMessage(null);
     try {
       const res = await fetch(
-        `https://admin.studyinnepal.com/api/agent/applications/${selectedStudent.id}/apply-to-course`,
+        `/api/agent/applications/${selectedStudent.id}/apply-to-course`,
         {
           method: "POST",
           headers: {
