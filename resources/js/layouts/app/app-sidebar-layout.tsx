@@ -458,9 +458,9 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
                                                             </span>
                                                            <div className="w-75 d-inline-block v-middle" style={{ minWidth: 0 }}>
     <div className="d-flex align-items-center justify-content-between" style={{ minWidth: 0 }}>
-        <h6 className={`mb-1 notif-message ${!n.read_at ? 'fw-bold' : 'fw-semibold'}`}>
-            {n.data.message}
-        </h6>
+       <h6 className="mb-1 notif-message fw-normal">
+    {n.data.message}
+</h6>
     </div>
     <span className="d-block fs-2">{timeAgo(n.created_at)}</span>
 </div>
