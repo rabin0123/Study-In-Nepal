@@ -121,6 +121,23 @@ class StudentApplicationApiController extends Controller
             $application->makeHidden(['assigned_to']);
         }
 
+        // Fetch and format the comments/remarks associated with this application
+        $remarks = $application->remarks()->with('user')->get();
+        $formattedComments = $remarks->map(function ($remark) {
+            return [
+                'id' => $remark->id,
+                'avatar_url' => $remark->user ? $remark->user->avatar_url : asset('assets/avatar/default.jpg'), 
+                'application_id' => $remark->student_application_id,
+                'author_name' => $remark->user ? $remark->user->name : 'Unknown',
+                'author_id' => $remark->user_id,
+                'comment' => $remark->comment,
+                'created_at' => $remark->created_at->toIso8601String(),
+            ];
+        });
+
+        // Append the formatted comments as a dynamic attribute to the model
+        $application->setAttribute('comments', $formattedComments);
+
         $payload = [
             'success' => true,
             'data' => $application,
