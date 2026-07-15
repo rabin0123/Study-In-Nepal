@@ -659,6 +659,27 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: var(--color-black);
                     white-space: pre-line;
                 }
+                    .gcu-hero-university {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-left: 24px;
+}
+
+.gcu-hero-university-logo {
+    width: 70px;
+    height: 70px;
+    object-fit: contain;
+    background: #fff;
+    padding: 6px;
+    border-radius: 8px;
+}
+
+.gcu-hero-univ-name {
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
 
                 .gcu-tab-headers {
                     display: flex;
