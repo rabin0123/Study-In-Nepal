@@ -1,5 +1,4 @@
 import { useEffect, useState, useMemo, useRef, type FormEvent } from 'react';
-import { router } from '@inertiajs/react';
 import {
     Search, Book, Building2, ChevronUp, ChevronDown, Inbox,
     Bold, Italic, Underline, Strikethrough, Type, Highlighter,
@@ -500,12 +499,19 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [savedMessage, setSavedMessage] = useState<string | null>(null);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     useEffect(() => {
         if (!savedMessage) return;
         const t = setTimeout(() => setSavedMessage(null), 4000);
         return () => clearTimeout(t);
     }, [savedMessage]);
+
+    useEffect(() => {
+        if (!errorMessage) return;
+        const t = setTimeout(() => setErrorMessage(null), 6000);
+        return () => clearTimeout(t);
+    }, [errorMessage]);
 
     // Fetch the master list (courses + institutions) from the external admin API.
     // This runs in both create and edit mode — edit mode still needs it so the
@@ -710,15 +716,17 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                         if (!res.ok) {
                             const data = await res.json().catch(() => ({}));
                             setErrors(data.errors ? Object.fromEntries(Object.entries(data.errors).map(([k, v]) => [k, (v as string[])[0]])) : {});
-                            throw new Error(data.message || 'Failed to save');
+                            throw new Error(data.message || 'Failed to save changes.');
                         }
                     }
                     setSavedMessage(newInstitutionsPayload
                         ? 'Updated, and added new institution rows for this course.'
                         : 'Updated successfully.');
-                    setTimeout(() => router.visit(`/course-details/${courseDetail.uuid}`), 800);
                 })
-                .catch((err) => console.error('Failed to save course details', err))
+                .catch((err) => {
+                    console.error('Failed to save course details', err);
+                    setErrorMessage(err instanceof Error ? err.message : 'Failed to save changes. Please try again.');
+                })
                 .finally(() => setSaving(false));
             return;
         }
@@ -746,12 +754,23 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                 const data = await res.json();
                 if (!res.ok) {
                     setErrors(data.errors ? Object.fromEntries(Object.entries(data.errors).map(([k, v]) => [k, (v as string[])[0]])) : {});
-                    throw new Error(data.message || 'Failed to save');
+                    throw new Error(data.message || 'Failed to save.');
                 }
                 setSavedMessage(data.message || 'Saved successfully.');
-                setTimeout(() => router.visit(`/course-details/${data.courseDetail?.uuid || ''}`), 800);
+                // Reset the form so the user can create another entry without
+                // accidentally re-submitting the same course/institutions again.
+                setCourseName('');
+                setSelectedInstKeys([]);
+                setSummaryHtml('');
+                setCareersHtml('');
+                setYearModulesByInst({});
+                setActiveModuleTab(null);
+                setCourseFees(defaultYearFee());
             })
-            .catch((err) => console.error('Failed to save course details', err))
+            .catch((err) => {
+                console.error('Failed to save course details', err);
+                setErrorMessage(err instanceof Error ? err.message : 'Failed to save. Please try again.');
+            })
             .finally(() => setSaving(false));
     };
 
@@ -780,10 +799,26 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                     </button>
                 </div>
 
-                {savedMessage && (
-                    <div className="flex items-center gap-2 bg-green-50 text-green-800 border-0 shadow-sm rounded-xl p-2 mb-4 text-sm">
-                        <CheckCircle2 size={18} />
-                        <span className="font-medium">{savedMessage}</span>
+                {(savedMessage || errorMessage) && (
+                    <div className="fixed top-4 right-4 z-[2000] flex flex-col gap-2" style={{ maxWidth: 360 }}>
+                        {savedMessage && (
+                            <div className="flex items-start gap-2 bg-green-50 text-green-800 border-0 shadow-lg rounded-xl p-3 text-sm animate-in">
+                                <CheckCircle2 size={18} className="flex-shrink-0 mt-0.5" />
+                                <span className="font-medium flex-1">{savedMessage}</span>
+                                <button type="button" onClick={() => setSavedMessage(null)} className="text-green-700 hover:text-green-900 flex-shrink-0">
+                                    <X size={14} />
+                                </button>
+                            </div>
+                        )}
+                        {errorMessage && (
+                            <div className="flex items-start gap-2 bg-red-50 text-red-800 border-0 shadow-lg rounded-xl p-3 text-sm">
+                                <AlertCircle size={18} className="flex-shrink-0 mt-0.5" />
+                                <span className="font-medium flex-1">{errorMessage}</span>
+                                <button type="button" onClick={() => setErrorMessage(null)} className="text-red-700 hover:text-red-900 flex-shrink-0">
+                                    <X size={14} />
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
 
