@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { dashboard } from '@/routes';
+
 
 interface Application {
     id: number;
@@ -180,7 +180,7 @@ Dashboard.layout = {
     breadcrumbs: [
         {
             title: 'Dashboard',
-            href: dashboard(),
+            href: '/dashboard',
         },
     ],
 };
