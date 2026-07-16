@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Head, useHttp } from '@inertiajs/react';
-import { dashboard } from '@/routes';
 
 interface Application {
     id: number;
@@ -196,14 +195,14 @@ export default function Dashboard() {
                                     <div className="table-responsive">
                                         <table className="table table-hover align-middle mb-0 table-group-divider">
                                             <thead className="border-bottom border-secondary-subtle">
-    <tr className="text-muted text-uppercase" style={{ fontSize: '0.75rem', letterSpacing: '0.05em' }}>
-        <th className="px-4 py-3">App ID</th>
-        <th className="px-4 py-3">Student Name</th>
-        <th className="px-4 py-3">Course / University</th>
-        <th className="px-4 py-3">Status</th>
-        <th className="px-4 py-3 text-end">Submitted</th>
-    </tr>
-</thead>
+                                                <tr className="text-muted text-uppercase" style={{ fontSize: '0.75rem', letterSpacing: '0.05em' }}>
+                                                    <th className="px-4 py-3">App ID</th>
+                                                    <th className="px-4 py-3">Student Name</th>
+                                                    <th className="px-4 py-3">Course / University</th>
+                                                    <th className="px-4 py-3">Status</th>
+                                                    <th className="px-4 py-3 text-end">Submitted</th>
+                                                </tr>
+                                            </thead>
                                             <tbody className="table-group-divider">
                                                 {latestApplications.map((app) => (
                                                     <tr key={app.id}>
@@ -249,7 +248,7 @@ Dashboard.layout = {
     breadcrumbs: [
         {
             title: 'Dashboard',
-            href: dashboard(),
+            href: '/dashboard', // Replaced the broken `dashboard()` function with the literal string path
         },
     ],
 };
