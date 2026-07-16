@@ -55,6 +55,53 @@ function normalizeModuleEntry(m: string | ModuleEntry): ModuleEntry {
     return { name: m.name, info: m.info ?? null };
 }
 
+// CMS-authored HTML (Overview, Career Prospectus) commonly comes out of a
+// rich-text editor with inline `style="color:#000000"` /
+// `style="background-color:#ffffff"` baked directly onto <p>/<span>/<div>
+// tags. An inline style attribute always wins over any external stylesheet
+// rule regardless of specificity or !important — that's a hard CSS rule,
+// not a bug in our CSS — so no amount of .gcu-html-content overriding could
+// ever fix text disappearing in dark mode as long as those inline colors
+// were still present in the markup. The only real fix is to remove those
+// specific inline declarations before the HTML is rendered, so our
+// external stylesheet (which *does* respond to the theme toggle) is free
+// to set the color instead. Everything else about the inline style
+// (font-weight, text-align, etc.) is left untouched.
+function stripInlineColorStyles(html: string): string {
+    if (!html) return html;
+    if (typeof window === 'undefined' && typeof document === 'undefined') {
+        // No DOM available (unlikely in this component, but be defensive):
+        // fall back to a regex strip of color/background-color declarations.
+        return html.replace(
+            /style="([^"]*)"/gi,
+            (_match, styleBody: string) => {
+                const cleaned = styleBody
+                    .split(';')
+                    .map((decl) => decl.trim())
+                    .filter((decl) => decl && !/^(color|background|background-color)\s*:/i.test(decl))
+                    .join('; ');
+                return cleaned ? `style="${cleaned}"` : '';
+            }
+        );
+    }
+
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = html;
+    wrapper.querySelectorAll<HTMLElement>('[style]').forEach((el) => {
+        el.style.removeProperty('color');
+        el.style.removeProperty('background');
+        el.style.removeProperty('background-color');
+        if (!el.getAttribute('style')?.trim()) {
+            el.removeAttribute('style');
+        }
+    });
+    // Some editors also use legacy `<font color="...">` tags instead of
+    // inline styles — strip that attribute too, and legacy `bgcolor`.
+    wrapper.querySelectorAll<HTMLElement>('[color]').forEach((el) => el.removeAttribute('color'));
+    wrapper.querySelectorAll<HTMLElement>('[bgcolor]').forEach((el) => el.removeAttribute('bgcolor'));
+    return wrapper.innerHTML;
+}
+
 // Defensive unwrap: if `careers` ever comes through as a raw JSON string like
 // `{"html": "<h2>...</h2>"}` instead of the plain HTML string, pull the HTML
 // back out so the page still renders correctly instead of showing raw JSON.
@@ -83,6 +130,20 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
     const modules = sortByYear(courseDetail.year_wise_modules);
     const fees = sortByYear(courseDetail.fees);
     const careersData = normalizeCareersData(courseDetail.careers);
+
+    // Strip inline color/background styles baked in by whatever rich-text
+    // editor authored these fields, so our theme-aware .gcu-html-content
+    // CSS can actually control the color instead of losing to an inline
+    // style every time — this is what was making text unreadable in dark
+    // mode even after the panel background switched correctly.
+    const sanitizedSummary = useMemo(
+        () => (courseDetail.summary ? stripInlineColorStyles(courseDetail.summary) : null),
+        [courseDetail.summary]
+    );
+    const sanitizedCareersHtml = useMemo(
+        () => (typeof careersData === 'string' ? stripInlineColorStyles(careersData) : null),
+        [careersData]
+    );
 
     // Memoize the sections array so we can safely use it in our useEffect observer
     const sections = useMemo(() => {
@@ -274,7 +335,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                             <div className="col-lg-9">
                                 <div
                                     className="gcu-html-content"
-                                    dangerouslySetInnerHTML={{ __html: courseDetail.summary }}
+                                    dangerouslySetInnerHTML={{ __html: sanitizedSummary ?? '' }}
                                 />
                             </div>
                         </div>
@@ -416,10 +477,10 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                     Our course helps set the trajectory for career positions such as:
                                 </p>
 
-                                {typeof careersData === 'string' ? (
+                                {sanitizedCareersHtml ? (
                                     <div
                                         className="gcu-html-content gcu-html-content--dark"
-                                        dangerouslySetInnerHTML={{ __html: careersData }}
+                                        dangerouslySetInnerHTML={{ __html: sanitizedCareersHtml }}
                                     />
                                 ) : Array.isArray(careersData) && careersData.length > 0 ? (
                                     <ul className="list-unstyled d-flex flex-wrap gap-2 mb-0">
