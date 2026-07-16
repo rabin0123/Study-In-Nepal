@@ -66,13 +66,14 @@ Route::get('/courses/{university}', [CourseDetailController::class, 'show'])
         Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
         Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])->name('roles.edit');
 
+         Route::get('/course/resolve', [CourseDetailController::class, 'resolve'])->name('course.resolve');
         Route::get('/course-details', [CourseDetailController::class, 'index'])->name('index');
     Route::get('/course/create', [CourseDetailController::class, 'create'])->name('create');
     Route::post('/course-details', [CourseDetailController::class, 'store'])->name('store');
     Route::get('/course-details/{courseDetail:uuid}/edit', [CourseDetailController::class, 'edit'])->name('edit');
     Route::put('/course-details/{courseDetail:uuid}', [CourseDetailController::class, 'update'])->name('update');
     Route::delete('/course-details/{courseDetail:uuid}', [CourseDetailController::class, 'destroy'])->name('destroy');
-    Route::get('/course/resolve', [CourseDetailController::class, 'resolve'])->name('course.resolve');
+   
 
 Route::prefix('api')->middleware(['auth', 'verified'])->group(function () {
 
