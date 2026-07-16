@@ -254,7 +254,7 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
 
     const [searchOpen, setSearchOpen] = useState(false);
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
-    
+
     useEffect(() => {
         if (!searchOpen) return;
         const onKeyDown = (e: KeyboardEvent) => {
@@ -334,8 +334,13 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
                     visibility: hidden !important;
                 }
 
-                /* ── Theme Switch Controls Display Rules ── */
-                /* Light Mode Default: Show moon, hide sun */
+                /* ── Theme Switch Controls Display Rules ──
+                   Actual dark/light attribute handling (data-bs-theme) and
+                   persistence live in app.init.js (handleTheme()), which is
+                   loaded globally in app.blade.php and binds click listeners
+                   to .dark-layout / .light-layout below. These rules just
+                   control which of the two icons is visible for a given
+                   theme state. */
                 .dark-layout {
                     display: flex !important;
                     align-items: center;
@@ -345,7 +350,6 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
                     display: none !important;
                 }
 
-                /* Dark Mode Activated on Root / HTML: Hide moon, show sun */
                 html[data-bs-theme="dark"] .dark-layout,
                 html[data-theme="dark"] .dark-layout,
                 body[data-bs-theme="dark"] .dark-layout {
@@ -460,29 +464,36 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
                                             </a>
                                         </li>
 
-                                        {/* Dark / light toggle */}
+                                        {/* Dark / light toggle.
+                                            No onClick handler here on purpose: app.init.js's
+                                            handleTheme() attaches delegated click listeners to
+                                            every .dark-layout / .light-layout element on
+                                            DOMContentLoaded, sets data-bs-theme, and now also
+                                            persists the choice to localStorage. Keeping the click
+                                            logic in one place (MaterialM's own script) avoids two
+                                            competing theme systems. */}
                                         <li className="nav-item nav-icon-hover">
-                                            <a 
-                                                className="nav-link moon dark-layout" 
-                                                href="#" 
+                                            <a
+                                                className="nav-link moon dark-layout"
+                                                href="#"
                                                 onClick={(e) => e.preventDefault()}
                                                 suppressHydrationWarning={true}
                                             >
-                                                <iconify-icon 
-                                                    icon="solar:moon-line-duotone" 
-                                                    className="moon fs-6" 
+                                                <iconify-icon
+                                                    icon="solar:moon-line-duotone"
+                                                    className="moon fs-6"
                                                     suppressHydrationWarning={true}
                                                 />
                                             </a>
-                                            <a 
-                                                className="nav-link sun light-layout" 
-                                                href="#" 
+                                            <a
+                                                className="nav-link sun light-layout"
+                                                href="#"
                                                 onClick={(e) => e.preventDefault()}
                                                 suppressHydrationWarning={true}
                                             >
-                                                <iconify-icon 
-                                                    icon="solar:sun-2-line-duotone" 
-                                                    className="sun fs-6" 
+                                                <iconify-icon
+                                                    icon="solar:sun-2-line-duotone"
+                                                    className="sun fs-6"
                                                     suppressHydrationWarning={true}
                                                 />
                                             </a>
