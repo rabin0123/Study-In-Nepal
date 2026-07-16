@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { Link } from "@inertiajs/react";
 
 // ── Helper to dynamically map stream to actual homepage assets ─────────────
 const getStreamImage = (stream: string, id: number): string => {
@@ -99,6 +100,7 @@ const standardizeCourse = (course: string | null | undefined): string => {
 
 interface UniversityEntry {
   id: number;
+  uuid?: string; // Optional property to match with course details show section
   University: string;
   university_logo_url: string | null;
   level: string;
@@ -228,29 +230,20 @@ function DropdownFilter({ label, options, selected, toggleOption }: DropdownProp
 }
 
 // ── Apply Now Modal ─────────────────────────────────────────────────────────
-// Two-step flow inside a single modal:
-//   1. Search step  – live (debounced) search of existing students by name or app_id
-//   2. Confirm step – "Apply <student> to <course> at <college>?" yes/no
 interface ApplyModalProps {
   courseTarget: {
     university: string;
     college: string;
     course: string;
   };
-  // Prefetched recent students (~50-100), shown instantly with no query.
   recentStudents: StudentResult[];
   recentStudentsLoading: boolean;
-  // Called when the modal opens so the parent can silently refresh the
-  // recent-students list in the background.
   onRequestRefreshRecent: () => void;
   onClose: () => void;
 }
 
 type ModalStep = "search" | "confirm" | "submitting" | "success" | "error";
 
-// Below this length, filter the prefetched "recent students" list locally
-// (instant, no network). At or above it, hit the indexed DB search so we
-// can reach the full 1000+ record set, not just the recent-students slice.
 const LOCAL_FILTER_MAX_LENGTH = 2;
 
 function ApplyNowModal({ courseTarget, recentStudents, recentStudentsLoading, onRequestRefreshRecent, onClose }: ApplyModalProps) {
@@ -266,13 +259,9 @@ function ApplyNowModal({ courseTarget, recentStudents, recentStudentsLoading, on
 
   useEffect(() => {
     inputRef.current?.focus();
-    // Refresh the recent-students cache in the background every time the
-    // modal opens, without blocking the (already cached) instant display.
     onRequestRefreshRecent();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [onRequestRefreshRecent]);
 
-  // Close on Escape
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -304,9 +293,6 @@ function ApplyNowModal({ courseTarget, recentStudents, recentStudentsLoading, on
     }
   }, []);
 
-  // Instant local filter of the prefetched recent-students list — used for
-  // empty query and very short queries where a DB round-trip would only
-  // add latency without adding much value.
   const localMatches = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return recentStudents;
@@ -317,8 +303,6 @@ function ApplyNowModal({ courseTarget, recentStudents, recentStudentsLoading, on
     );
   }, [query, recentStudents]);
 
-  // Debounced live search against the DB once the query is long enough to
-  // be worth a round trip (covers students outside the recent-50/100 slice).
   useEffect(() => {
     const q = query.trim();
     if (q.length <= LOCAL_FILTER_MAX_LENGTH) {
@@ -338,9 +322,6 @@ function ApplyNowModal({ courseTarget, recentStudents, recentStudentsLoading, on
 
   const isRemoteMode = query.trim().length > LOCAL_FILTER_MAX_LENGTH;
 
-  // Merge remote results in front (they're the authoritative full-DB match),
-  // then any local matches not already present, so results don't flicker
-  // away while the debounced remote call is still in flight.
   const displayedResults = isRemoteMode
     ? [
         ...remoteResults,
@@ -631,9 +612,7 @@ export default function CourseSearch() {
   // Apply Now modal state — tracks which course card triggered it
   const [applyTarget, setApplyTarget] = useState<{ university: string; college: string; course: string } | null>(null);
 
-  // Prefetched "recent students" cache — loaded on page mount so the Apply
-  // Now modal's search list appears instantly instead of waiting on a
-  // network call the first time it's opened.
+  // Prefetched "recent students" cache
   const [recentStudents, setRecentStudents] = useState<StudentResult[]>([]);
   const [recentStudentsLoading, setRecentStudentsLoading] = useState(true);
 
@@ -657,8 +636,6 @@ export default function CourseSearch() {
 
   useEffect(() => {
     fetchUniversities();
-    // Prefetch student list as soon as the course search page loads, so
-    // it's already warm by the time someone clicks "Apply Now".
     fetchRecentStudents();
   }, [fetchRecentStudents]);
 
@@ -744,7 +721,7 @@ export default function CourseSearch() {
       if (matchesSearch && matchesLevel && matchesStream && matchesCourse && matchesUni && matchesLoc) {
         if (stdCol) collegesSet.add(stdCol);
       }
-      if (matchesSearch && matchesLevel && matchesStream && matchesCourse && matchesUni && matchesCol) {
+      if (matchesSearch && matchesLevel && matchesStream && matchesCourse && matchesUni && collegesSet) {
         if (stdLoc) locationsSet.add(stdLoc);
       }
     });
@@ -777,10 +754,10 @@ export default function CourseSearch() {
       {/* External CSS Fonts */}
       <link href="https://fonts.googleapis.com/css2?family=Castoro+Titling&family=Rajdhani:wght@600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-      {/* ── VISUAL HERO BANNER (Fixed overflow & added relative layout z-index) ────────────────── */}
+      {/* ── VISUAL HERO BANNER ────────────────── */}
       <div className="position-relative text-center" style={{ padding: "110px 24px 80px", zIndex: 10 }}>
         
-        {/* Background Video (Self-contained boundaries block video bleedout) */}
+        {/* Background Video */}
         <div className="position-absolute top-0 start-0 end-0 bottom-0 overflow-hidden" style={{ zIndex: 0 }}>
           <video
             autoPlay
@@ -905,27 +882,53 @@ export default function CourseSearch() {
                 >
                   <div className="row g-0 h-100">
                     
-                    {/* Left Column: Cover / Logo Column */}
+                    {/* Left Column: Cover / Logo Column — Clickable using Inertia Link */}
                     <div className="col-12 col-md-4 col-lg-3 d-flex align-items-center justify-content-center position-relative border-end" 
                          style={{ 
                            minHeight: "200px", 
                            background: collegeLogo ? "var(--bs-card-bg)" : "rgba(100,100,100,0.08)"
                          }}>
-                      <img
-                        src={collegeLogo ?? fallbackImage}
-                        alt={stdCol}
-                        className="w-100 h-100"
-                        style={{
-                          objectFit: collegeLogo ? "contain" : "cover",
-                          padding: collegeLogo ? "24px" : "0",
-                          boxSizing: "border-box",
-                        }}
-                        onError={(e) => {
-                          e.currentTarget.src = fallbackImage;
-                          e.currentTarget.style.objectFit = "cover";
-                          e.currentTarget.style.padding = "0";
-                        }}
-                      />
+                      
+                      {item.uuid ? (
+                        <Link 
+                          href={`/course/${item.uuid}`} 
+                          className="w-100 h-100 d-block"
+                        >
+                          <img
+                            src={collegeLogo ?? fallbackImage}
+                            alt={stdCol}
+                            className="w-100 h-100"
+                            style={{
+                              objectFit: collegeLogo ? "contain" : "cover",
+                              padding: collegeLogo ? "24px" : "0",
+                              boxSizing: "border-box",
+                              cursor: "pointer"
+                            }}
+                            onError={(e) => {
+                              e.currentTarget.src = fallbackImage;
+                              e.currentTarget.style.objectFit = "cover";
+                              e.currentTarget.style.padding = "0";
+                            }}
+                          />
+                        </Link>
+                      ) : (
+                        <img
+                          src={collegeLogo ?? fallbackImage}
+                          alt={stdCol}
+                          className="w-100 h-100"
+                          style={{
+                            objectFit: collegeLogo ? "contain" : "cover",
+                            padding: collegeLogo ? "24px" : "0",
+                            boxSizing: "border-box",
+                          }}
+                          onError={(e) => {
+                            e.currentTarget.src = fallbackImage;
+                            e.currentTarget.style.objectFit = "cover";
+                            e.currentTarget.style.padding = "0";
+                          }}
+                        />
+                      )}
+
                       <div 
                         className="position-absolute bottom-0 start-0 m-3 px-2 py-1 rounded text-white text-uppercase fw-bold"
                         style={{ 
@@ -933,7 +936,8 @@ export default function CourseSearch() {
                           backdropFilter: "blur(4px)",
                           fontSize: "10px", 
                           fontFamily: "'Rajdhani', sans-serif",
-                          letterSpacing: "0.08em" 
+                          letterSpacing: "0.08em",
+                          pointerEvents: "none" // Ensures badge doesn't block the click events on the link below it
                         }}
                       >
                         {stdStream}
@@ -973,7 +977,13 @@ export default function CourseSearch() {
                         </div>
 
                         {/* Title & Organization Details */}
-                        <h3 className="h5 fw-bold mb-2 text-body">{stdCourse}</h3>
+                        {item.uuid ? (
+                          <Link href={`/course/${item.uuid}`} className="text-decoration-none">
+                            <h3 className="h5 fw-bold mb-2 text-body card-title-link">{stdCourse}</h3>
+                          </Link>
+                        ) : (
+                          <h3 className="h5 fw-bold mb-2 text-body">{stdCourse}</h3>
+                        )}
                         
                         <div className="d-flex flex-wrap align-items-center gap-3 text-secondary mb-3">
                           <span className="d-flex align-items-center gap-1 small text-muted">
@@ -1024,7 +1034,7 @@ export default function CourseSearch() {
                           </div>
                         </div>
 
-                        {/* CTA Button — opens the Apply Now modal instead of navigating away */}
+                        {/* CTA Button */}
                         <button
                           onClick={() => setApplyTarget({ university: stdUni, college: stdCol, course: stdCourse })}
                           className="btn btn-primary btn-sm d-flex align-items-center gap-2 px-3 py-2 text-uppercase fw-bold"
@@ -1050,7 +1060,7 @@ export default function CourseSearch() {
         )}
       </div>
 
-      {/* Apply Now Modal — shown when a course card's Apply Now button is clicked */}
+      {/* Apply Now Modal */}
       {applyTarget && (
         <ApplyNowModal
           courseTarget={applyTarget}
@@ -1067,6 +1077,11 @@ export default function CourseSearch() {
           border-color: #008ce3 !important;
           transform: translateY(-2px);
           box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important;
+        }
+
+        .card-title-link:hover {
+          color: #008ce3 !important;
+          transition: color 0.2s ease;
         }
 
         .custom-scroll::-webkit-scrollbar {
