@@ -25,17 +25,17 @@ interface DashboardResponse {
 }
 
 export default function Dashboard() {
-    const [stats, setStats] = useState<Stats | null>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
     const [latestApplications, setLatestApplications] = useState<Application[]>([]);
     
-    // Non-navigating HTTP client hook introduced in Inertia v3
+    // Instantiate the HTTP client
     const http = useHttp();
 
     useEffect(() => {
         async function loadDashboardData() {
             try {
-                // Fetching the data using await 
-                const response = await http.get<DashboardResponse>('/api/dashboard-stats');
+                // Resolved as 'DashboardResponse' using type assertion
+                const response = (await http.get('/api/dashboard-stats')) as DashboardResponse;
                 
                 setStats(response.stats);
                 setLatestApplications(response.latestApplications);
