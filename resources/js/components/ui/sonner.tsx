@@ -7,35 +7,44 @@ function Toaster({ ...props }: ToasterProps) {
 
     useFlashToast();
 
-    const isDark = resolvedAppearance === 'dark';
-
     return (
         <Sonner
+            theme={resolvedAppearance}
             className="toaster group"
             position="bottom-right"
             closeButton
             icons={{
-                success: <iconify-icon icon="solar:check-circle-bold-duotone" className="fs-5" />,
-                error: <iconify-icon icon="solar:danger-triangle-bold-duotone" className="fs-5" />,
-                warning: <iconify-icon icon="solar:danger-circle-bold-duotone" className="fs-5" />,
-                info: <iconify-icon icon="solar:info-circle-bold-duotone" className="fs-5" />,
-                loading: <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>,
+                success: <iconify-icon icon="solar:check-circle-bold-duotone" className="fs-5 text-success" />,
+                error: <iconify-icon icon="solar:danger-triangle-bold-duotone" className="fs-5 text-danger" />,
+                warning: <iconify-icon icon="solar:danger-circle-bold-duotone" className="fs-5 text-warning" />,
+                info: <iconify-icon icon="solar:info-circle-bold-duotone" className="fs-5 text-info" />,
+                loading: <span className="spinner-border spinner-border-sm text-secondary" role="status" aria-hidden="true"></span>,
             }}
             toastOptions={{
-                unstyled: true,
                 classNames: {
                     toast: 'bootstrap-toast',
-                    title: 'bootstrap-toast-title',
-                    description: 'bootstrap-toast-description',
                     closeButton: 'bootstrap-toast-close',
-                    icon: 'bootstrap-toast-icon',
-                    default: isDark ? 'bootstrap-toast-normal-dark' : 'bootstrap-toast-normal-light',
-                    success: isDark ? 'bootstrap-toast-success-dark' : 'bootstrap-toast-success-light',
-                    error: isDark ? 'bootstrap-toast-error-dark' : 'bootstrap-toast-error-light',
-                    warning: isDark ? 'bootstrap-toast-warning-dark' : 'bootstrap-toast-warning-light',
-                    info: isDark ? 'bootstrap-toast-info-dark' : 'bootstrap-toast-info-light',
                 },
             }}
+            style={
+                {
+                    '--normal-bg': 'var(--bs-body-bg)',
+                    '--normal-text': 'var(--bs-body-color)',
+                    '--normal-border': 'var(--bs-border-color)',
+                    '--success-bg': 'var(--bs-success-bg-subtle)',
+                    '--success-text': 'var(--bs-success-text-emphasis)',
+                    '--success-border': 'var(--bs-success-border-subtle)',
+                    '--error-bg': 'var(--bs-danger-bg-subtle)',
+                    '--error-text': 'var(--bs-danger-text-emphasis)',
+                    '--error-border': 'var(--bs-danger-border-subtle)',
+                    '--warning-bg': 'var(--bs-warning-bg-subtle)',
+                    '--warning-text': 'var(--bs-warning-text-emphasis)',
+                    '--warning-border': 'var(--bs-warning-border-subtle)',
+                    '--info-bg': 'var(--bs-info-bg-subtle)',
+                    '--info-text': 'var(--bs-info-text-emphasis)',
+                    '--info-border': 'var(--bs-info-border-subtle)',
+                } as React.CSSProperties
+            }
             {...props}
         />
     );
