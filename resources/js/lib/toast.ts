@@ -1,4 +1,4 @@
-// resources/js/lib/toast.ts
+
 import { toast } from 'sonner';
 
 export const notify = {
