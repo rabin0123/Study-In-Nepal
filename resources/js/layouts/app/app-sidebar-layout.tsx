@@ -764,11 +764,11 @@ export default function AppSidebarLayout({ children }: Props) {
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="py-6 px-7 mb-1">
+                                            {/* <div className="py-6 px-7 mb-1">
                                                 <Link href="/notifications" className="btn btn-outline-primary w-100">
                                                     Notification history
                                                 </Link>
-                                            </div>
+                                            </div> */}
                                         </div>
                                     </li>
 
