@@ -219,13 +219,28 @@ function NavGroupSection({ group }: { group: NavGroup }) {
                 href="javascript:void(0)"
                 aria-expanded={isActiveGroup}
             >
-                <iconify-icon icon={group.icon} />
+                <iconify-icon icon={group.icon}></iconify-icon>
                 <span className="hide-menu">{group.label}</span>
             </a>
-            <ul aria-expanded={isActiveGroup} className={`collapse first-level ${isActiveGroup ? 'in' : ''}`}>
+
+            <ul
+                aria-expanded={isActiveGroup}
+                className={`collapse first-level ${isActiveGroup ? 'show' : ''}`}
+            >
                 {group.items.map((item) => (
-                    <li key={item.title} className={`sidebar-item ${isCurrentUrl(item.href) ? 'selected' : ''}`}>
-                        <Link href={item.href} prefetch className={`sidebar-link ${isCurrentUrl(item.href) ? 'active' : ''}`}>
+                    <li
+                        key={item.title}
+                        className={`sidebar-item ${
+                            isCurrentUrl(item.href) ? 'selected' : ''
+                        }`}
+                    >
+                        <Link
+                            href={item.href}
+                            prefetch
+                            className={`sidebar-link ${
+                                isCurrentUrl(item.href) ? 'active' : ''
+                            }`}
+                        >
                             <span className="icon-small"></span>
                             <span className="hide-menu">{item.title}</span>
                         </Link>
@@ -235,7 +250,6 @@ function NavGroupSection({ group }: { group: NavGroup }) {
         </li>
     );
 }
-
 // ---------------------------------------------------------------------------
 // Layout
 //
