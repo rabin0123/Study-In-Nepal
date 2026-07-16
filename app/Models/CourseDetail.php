@@ -61,6 +61,13 @@ class CourseDetail extends Model
     {
         return ! is_null($this->university_id);
     }
+    protected function careers(): \Illuminate\Database\Eloquent\Casts\Attribute
+{
+    return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+        get: fn ($value) => is_string($value) ? (json_decode($value, true) ?? $value) : $value,
+        set: fn ($value) => is_string($value) ? json_encode($value) : $value,
+    );
+}
 
     /**
      * Look for a universities row whose University/College/Course text
