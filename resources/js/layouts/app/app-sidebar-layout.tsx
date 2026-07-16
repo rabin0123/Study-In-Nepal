@@ -517,6 +517,7 @@ export default function AppSidebarLayout({ children }: Props) {
                         </div>
 
                         <nav className="sidebar-nav scroll-sidebar sidebar-nav-scroll flex-grow-1">
+                            <span className="sidebar-divider lg"></span>
                             <ul className="sidebar-menu" id="sidebarnav">
                                 <li className="nav-small-cap">
                                     <iconify-icon icon="solar:menu-dots-linear" className="mini-icon" />
