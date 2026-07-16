@@ -266,6 +266,6 @@ class CourseDetailController extends Controller
         }
 
         // 5. Safe fallback redirect back to explore page
-        return redirect()->route('coursesearch')->with('error', 'Matching course details not found.');
+        return redirect()->with('error', 'Matching course details not found.');
     }
 }
