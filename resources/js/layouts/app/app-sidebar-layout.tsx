@@ -520,7 +520,7 @@ export default function AppSidebarLayout({ children }: Props) {
                             <ul className="sidebar-menu" id="sidebarnav">
                                 <li className="nav-small-cap">
                                     <iconify-icon icon="solar:menu-dots-linear" className="mini-icon" />
-                                    <span className="hide-menu">Partner Portal</span>
+                                    {/* <span className="hide-menu">Partner Portal</span> */}
                                 </li>
 
                                 {flatTopItems.map((item) => (
