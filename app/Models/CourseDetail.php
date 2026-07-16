@@ -24,7 +24,6 @@ class CourseDetail extends Model
     protected $casts = [
         'year_wise_modules' => 'array',
         'fees'              => 'array',
-        'careers' => 'json',
       
     ];
 
