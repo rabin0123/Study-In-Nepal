@@ -12,7 +12,6 @@ const flatTopItems: NavLeaf[] = [
     { title: 'Dashboard', href: '/dashboard', icon: 'solar:widget-add-line-duotone' },
     { title: 'Applications', href: '/applications', icon: 'solar:layers-line-duotone' },
     { title: 'Search Courses', href: '/courses', icon: 'solar:layers-line-duotone' },
-    
 ];
 
 const navGroups: NavGroup[] = [
@@ -411,49 +410,149 @@ export default function AppSidebarLayout({ children }: Props) {
                 body[data-bs-theme="dark"] .nav-search-bar:focus-within {
                     background-color: transparent;
                 }
+
+                /* Sidebar Profile Card Styles */
+                .sidebar-profile-card {
+                    background-color: #eef5fc;
+                    border-radius: 20px;
+                    padding: 12px 16px;
+                    margin: 16px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                }
+                .sidebar-profile-avatar {
+                    width: 44px;
+                    height: 44px;
+                    border-radius: 50%;
+                    object-fit: cover;
+                    background-color: #dbeafe;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: 700;
+                    color: #1e3a8a;
+                    flex-shrink: 0;
+                }
+                .sidebar-profile-info {
+                    flex-grow: 1;
+                    margin-left: 12px;
+                    min-width: 0;
+                }
+                .sidebar-profile-name {
+                    font-size: 0.95rem;
+                    font-weight: 700;
+                    color: #0f172a;
+                    margin-bottom: 0;
+                    line-height: 1.2;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+                .sidebar-profile-role {
+                    font-size: 0.8rem;
+                    color: #64748b;
+                    margin-bottom: 0;
+                    line-height: 1.2;
+                }
+                .sidebar-profile-logout {
+                    background: transparent;
+                    border: none;
+                    color: #0f172a;
+                    padding: 4px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: color 0.2s, transform 0.1s;
+                    cursor: pointer;
+                    flex-shrink: 0;
+                }
+                .sidebar-profile-logout:hover {
+                    color: #ef4444;
+                    transform: scale(1.05);
+                }
+
+                /* Sidebar Profile Card Dark Mode overrides */
+                html[data-bs-theme="dark"] .sidebar-profile-card,
+                html[data-theme="dark"] .sidebar-profile-card,
+                body[data-bs-theme="dark"] .sidebar-profile-card {
+                    background-color: rgba(255, 255, 255, 0.05);
+                }
+                html[data-bs-theme="dark"] .sidebar-profile-avatar,
+                html[data-theme="dark"] .sidebar-profile-avatar,
+                body[data-bs-theme="dark"] .sidebar-profile-avatar {
+                    background-color: rgba(255, 255, 255, 0.1);
+                    color: #f8fafc;
+                }
+                html[data-bs-theme="dark"] .sidebar-profile-name,
+                html[data-theme="dark"] .sidebar-profile-name,
+                body[data-bs-theme="dark"] .sidebar-profile-name {
+                    color: #f8fafc;
+                }
+                html[data-bs-theme="dark"] .sidebar-profile-role,
+                html[data-theme="dark"] .sidebar-profile-role,
+                body[data-bs-theme="dark"] .sidebar-profile-role {
+                    color: #94a3b8;
+                }
+                html[data-bs-theme="dark"] .sidebar-profile-logout,
+                html[data-theme="dark"] .sidebar-profile-logout,
+                body[data-bs-theme="dark"] .sidebar-profile-logout {
+                    color: #f8fafc;
+                }
             `}</style>
 
             {/* ── Vertical sidebar ── */}
             <aside className="left-sidebar with-vertical" data-sidebar-theme="light">
-                <div>
-                    <div className="brand-logo d-flex align-items-center justify-content-between">
-                        <Link href={dashboard()} className="text-nowrap logo-img d-flex align-items-center gap-2">
-                            <img src="/SIN-logo.png" alt="StudyIn Nepal logo" style={{ height: 32, width: 32, objectFit: 'contain' }} />
-                            <span className="fw-bold hide-menu">
-                                Study In <span className="text-primary">Nepal</span>
+                <div className="d-flex flex-column h-100 justify-content-between">
+                    
+                    {/* Top menu section */}
+                    <div className="d-flex flex-column flex-grow-1" style={{ minHeight: 0 }}>
+                        <div className="brand-logo d-flex align-items-center justify-content-between">
+                            <Link href={dashboard()} className="text-nowrap logo-img d-flex align-items-center gap-2">
+                                <img src="/SIN-logo.png" alt="StudyIn Nepal logo" style={{ height: 32, width: 32, objectFit: 'contain' }} />
+                                <span className="fw-bold hide-menu">
+                                    Study In <span className="text-primary">Nepal</span>
+                                </span>
+                            </Link>
+                        </div>
+
+                        <nav className="sidebar-nav scroll-sidebar sidebar-nav-scroll flex-grow-1">
+                            <ul className="sidebar-menu" id="sidebarnav">
+                                <li className="nav-small-cap">
+                                    <iconify-icon icon="solar:menu-dots-linear" className="mini-icon" />
+                                    <span className="hide-menu">Partner Portal</span>
+                                </li>
+
+                                {flatTopItems.map((item) => (
+                                    <li key={item.title} className={`sidebar-item ${isCurrentUrl(item.href) ? 'selected' : ''}`}>
+                                        <Link href={item.href} prefetch className={`sidebar-link ${isCurrentUrl(item.href) ? 'active' : ''}`}>
+                                            <iconify-icon icon={item.icon} />
+                                            <span className="hide-menu">{item.title}</span>
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        </nav>
+                    </div>
+
+                    {/* Bottom Profile Section matching image structure */}
+                    <div className="sidebar-profile-card">
+                        {auth?.user?.avatar_url ? (
+                            <img src={auth.user.avatar_url} className="sidebar-profile-avatar" alt={auth?.user?.name} />
+                        ) : (
+                            <span className="sidebar-profile-avatar" style={{ fontSize: '0.85rem' }}>
+                                {userInitials}
                             </span>
+                        )}
+                        <div className="sidebar-profile-info">
+                            <h6 className="sidebar-profile-name">{auth?.user?.name || 'User'}</h6>
+                            <p className="sidebar-profile-role">{auth?.user?.role || 'Admin'}</p>
+                        </div>
+                        <Link href="/logout" method="post" as="button" className="sidebar-profile-logout" title="Log Out">
+                            <iconify-icon icon="solar:logout-line-duotone" width="24" height="24" />
                         </Link>
                     </div>
 
-                    <nav className="sidebar-nav scroll-sidebar sidebar-nav-scroll">
-                        <ul className="sidebar-menu" id="sidebarnav">
-                            <li className="nav-small-cap">
-                                <iconify-icon icon="solar:menu-dots-linear" className="mini-icon" />
-                                <span className="hide-menu">Partner Portal</span>
-                            </li>
-
-                            {flatTopItems.map((item) => (
-                                <li key={item.title} className={`sidebar-item ${isCurrentUrl(item.href) ? 'selected' : ''}`}>
-                                    <Link href={item.href} prefetch className={`sidebar-link ${isCurrentUrl(item.href) ? 'active' : ''}`}>
-                                        <iconify-icon icon={item.icon} />
-                                        <span className="hide-menu">{item.title}</span>
-                                    </Link>
-                                </li>
-                            ))}
-
-                            {/* <li>
-                                <span className="sidebar-divider lg"></span>
-                            </li>
-                            <li className="nav-small-cap">
-                                <iconify-icon icon="solar:menu-dots-linear" className="mini-icon" />
-                                <span className="hide-menu">Application</span>
-                            </li>
-
-                            {navGroups.map((group) => (
-                                <NavGroupSection key={group.id} group={group} />
-                            ))} */}
-                        </ul>
-                    </nav>
                 </div>
             </aside>
 
@@ -498,7 +597,6 @@ export default function AppSidebarLayout({ children }: Props) {
                                 <div className="d-flex align-items-center justify-content-center mx-lg-auto my-3 my-lg-0 w-100" style={{ maxWidth: '400px' }}>
                                     <div className="position-relative w-100 px-3 px-lg-0">
                                         <div className="nav-search-bar d-flex align-items-center w-100 px-3 py-1" style={{ minHeight: '42px' }}>
-                                            {/* Flex shrink & explicit dimensions to prevent squishing on small screens */}
                                             <iconify-icon 
                                                 icon="solar:magnifer-line-duotone" 
                                                 width="22" 
