@@ -113,7 +113,6 @@ interface UniversityEntry {
   requireddocuments: string | null;
 }
 
-// Shape returned by GET /api/agent/applications/search-students
 interface StudentResult {
   id: string;
   app_id: string;
@@ -228,29 +227,20 @@ function DropdownFilter({ label, options, selected, toggleOption }: DropdownProp
 }
 
 // ── Apply Now Modal ─────────────────────────────────────────────────────────
-// Two-step flow inside a single modal:
-//   1. Search step  – live (debounced) search of existing students by name or app_id
-//   2. Confirm step – "Apply <student> to <course> at <college>?" yes/no
 interface ApplyModalProps {
   courseTarget: {
     university: string;
     college: string;
     course: string;
   };
-  // Prefetched recent students (~50-100), shown instantly with no query.
   recentStudents: StudentResult[];
   recentStudentsLoading: boolean;
-  // Called when the modal opens so the parent can silently refresh the
-  // recent-students list in the background.
   onRequestRefreshRecent: () => void;
   onClose: () => void;
 }
 
 type ModalStep = "search" | "confirm" | "submitting" | "success" | "error";
 
-// Below this length, filter the prefetched "recent students" list locally
-// (instant, no network). At or above it, hit the indexed DB search so we
-// can reach the full 1000+ record set, not just the recent-students slice.
 const LOCAL_FILTER_MAX_LENGTH = 2;
 
 function ApplyNowModal({ courseTarget, recentStudents, recentStudentsLoading, onRequestRefreshRecent, onClose }: ApplyModalProps) {
@@ -266,13 +256,10 @@ function ApplyNowModal({ courseTarget, recentStudents, recentStudentsLoading, on
 
   useEffect(() => {
     inputRef.current?.focus();
-    // Refresh the recent-students cache in the background every time the
-    // modal opens, without blocking the (already cached) instant display.
     onRequestRefreshRecent();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Close on Escape
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -304,9 +291,6 @@ function ApplyNowModal({ courseTarget, recentStudents, recentStudentsLoading, on
     }
   }, []);
 
-  // Instant local filter of the prefetched recent-students list — used for
-  // empty query and very short queries where a DB round-trip would only
-  // add latency without adding much value.
   const localMatches = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return recentStudents;
@@ -317,8 +301,6 @@ function ApplyNowModal({ courseTarget, recentStudents, recentStudentsLoading, on
     );
   }, [query, recentStudents]);
 
-  // Debounced live search against the DB once the query is long enough to
-  // be worth a round trip (covers students outside the recent-50/100 slice).
   useEffect(() => {
     const q = query.trim();
     if (q.length <= LOCAL_FILTER_MAX_LENGTH) {
@@ -338,9 +320,6 @@ function ApplyNowModal({ courseTarget, recentStudents, recentStudentsLoading, on
 
   const isRemoteMode = query.trim().length > LOCAL_FILTER_MAX_LENGTH;
 
-  // Merge remote results in front (they're the authoritative full-DB match),
-  // then any local matches not already present, so results don't flicker
-  // away while the debounced remote call is still in flight.
   const displayedResults = isRemoteMode
     ? [
         ...remoteResults,
@@ -394,13 +373,16 @@ function ApplyNowModal({ courseTarget, recentStudents, recentStudentsLoading, on
 
   return (
     <div
-      className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+      className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center apply-modal-wrapper"
       style={{ background: "rgba(15, 23, 42, 0.55)", backdropFilter: "blur(4px)", zIndex: 2000 }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="bg-white rounded-4 shadow-lg d-flex flex-column"
+        className="rounded-4 shadow-lg d-flex flex-column"
         style={{
+          background: "var(--bs-body-bg)",
+          color: "var(--bs-body-color)",
+          border: "1px solid var(--bs-border-color)",
           width: "min(520px, 92vw)",
           maxHeight: "82vh",
           fontFamily: "'Manrope', sans-serif",
@@ -408,7 +390,7 @@ function ApplyNowModal({ courseTarget, recentStudents, recentStudentsLoading, on
         }}
       >
         {/* Modal Header */}
-        <div className="d-flex align-items-center justify-content-between px-4 py-3 border-bottom">
+        <div className="d-flex align-items-center justify-content-between px-4 py-3 border-bottom" style={{ borderColor: "var(--bs-border-color)" }}>
           <div>
             <h2 className="h6 fw-bold mb-0 text-body">
               {step === "search" && "Find a Student"}
@@ -423,8 +405,14 @@ function ApplyNowModal({ courseTarget, recentStudents, recentStudentsLoading, on
           </div>
           <button
             onClick={onClose}
-            className="btn btn-sm btn-light rounded-circle d-flex align-items-center justify-content-center"
-            style={{ width: "32px", height: "32px" }}
+            className="btn btn-sm rounded-circle d-flex align-items-center justify-content-center"
+            style={{ 
+              width: "32px", 
+              height: "32px",
+              background: "var(--bs-secondary-bg)",
+              borderColor: "var(--bs-border-color)",
+              color: "var(--bs-body-color)"
+            }}
             aria-label="Close"
           >
             <iconify-icon icon="solar:close-circle-line-duotone" style={{ fontSize: "18px" }} />
@@ -445,8 +433,13 @@ function ApplyNowModal({ courseTarget, recentStudents, recentStudentsLoading, on
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search by student name or App ID..."
-                  className="form-control rounded-pill ps-5 py-2 border"
-                  style={{ fontSize: "14px" }}
+                  className="form-control rounded-pill ps-5 py-2"
+                  style={{ 
+                    fontSize: "14px",
+                    background: "var(--bs-body-bg)",
+                    color: "var(--bs-body-color)",
+                    borderColor: "var(--bs-border-color)"
+                  }}
                 />
               </div>
 
@@ -489,7 +482,11 @@ function ApplyNowModal({ courseTarget, recentStudents, recentStudentsLoading, on
                       key={student.id}
                       onClick={() => handlePickStudent(student)}
                       className="btn text-start d-flex align-items-center gap-3 p-2 rounded-3 border"
-                      style={{ background: "white" }}
+                      style={{ 
+                        background: "var(--bs-secondary-bg)", 
+                        borderColor: "var(--bs-border-color)",
+                        color: "var(--bs-body-color)" 
+                      }}
                     >
                       <img
                         src={student.avatar_url || "/images/default-avatar.png"}
@@ -532,7 +529,7 @@ function ApplyNowModal({ courseTarget, recentStudents, recentStudentsLoading, on
                 Do you want to apply <strong>{selectedStudent.student_name}</strong> to this program?
               </p>
 
-              <div className="rounded-3 border p-3 mb-3 small">
+              <div className="rounded-3 border p-3 mb-3 small" style={{ borderColor: "var(--bs-border-color)" }}>
                 <div className="d-flex justify-content-between py-1">
                   <span className="text-muted">Course</span>
                   <span className="fw-bold text-body text-end">{courseTarget.course}</span>
@@ -572,8 +569,17 @@ function ApplyNowModal({ courseTarget, recentStudents, recentStudentsLoading, on
 
         {/* Modal Footer */}
         {step === "confirm" && (
-          <div className="d-flex gap-2 px-4 py-3 border-top">
-            <button onClick={handleBackToSearch} className="btn btn-light flex-fill fw-bold rounded-pill" style={{ fontSize: "13px" }}>
+          <div className="d-flex gap-2 px-4 py-3 border-top" style={{ borderColor: "var(--bs-border-color)" }}>
+            <button 
+              onClick={handleBackToSearch} 
+              className="btn flex-fill fw-bold rounded-pill" 
+              style={{ 
+                fontSize: "13px",
+                background: "var(--bs-secondary-bg)",
+                borderColor: "var(--bs-border-color)",
+                color: "var(--bs-body-color)"
+              }}
+            >
               Back
             </button>
             <button
@@ -587,18 +593,36 @@ function ApplyNowModal({ courseTarget, recentStudents, recentStudentsLoading, on
         )}
 
         {step === "error" && (
-          <div className="d-flex gap-2 px-4 py-3 border-top">
-            <button onClick={handleBackToSearch} className="btn btn-light flex-fill fw-bold rounded-pill" style={{ fontSize: "13px" }}>
+          <div className="d-flex gap-2 px-4 py-3 border-top" style={{ borderColor: "var(--bs-border-color)" }}>
+            <button 
+              onClick={handleBackToSearch} 
+              className="btn flex-fill fw-bold rounded-pill" 
+              style={{ 
+                fontSize: "13px",
+                background: "var(--bs-secondary-bg)",
+                borderColor: "var(--bs-border-color)",
+                color: "var(--bs-body-color)"
+              }}
+            >
               Back to Search
             </button>
-            <button onClick={onClose} className="btn btn-outline-secondary flex-fill fw-bold rounded-pill" style={{ fontSize: "13px" }}>
+            <button 
+              onClick={onClose} 
+              className="btn flex-fill fw-bold rounded-pill" 
+              style={{ 
+                fontSize: "13px",
+                background: "var(--bs-secondary-bg)",
+                borderColor: "var(--bs-border-color)",
+                color: "var(--bs-body-color)"
+              }}
+            >
               Close
             </button>
           </div>
         )}
 
         {step === "success" && (
-          <div className="d-flex px-4 py-3 border-top">
+          <div className="d-flex px-4 py-3 border-top" style={{ borderColor: "var(--bs-border-color)" }}>
             <button
               onClick={onClose}
               className="btn flex-fill fw-bold rounded-pill text-white"
@@ -628,12 +652,10 @@ export default function CourseSearch() {
   const [selectedColleges, setSelectedColleges] = useState<string[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
 
-  // Apply Now modal state — tracks which course card triggered it
+  // Apply Now modal state
   const [applyTarget, setApplyTarget] = useState<{ university: string; college: string; course: string } | null>(null);
 
-  // Prefetched "recent students" cache — loaded on page mount so the Apply
-  // Now modal's search list appears instantly instead of waiting on a
-  // network call the first time it's opened.
+  // Prefetched "recent students" cache
   const [recentStudents, setRecentStudents] = useState<StudentResult[]>([]);
   const [recentStudentsLoading, setRecentStudentsLoading] = useState(true);
 
@@ -657,8 +679,6 @@ export default function CourseSearch() {
 
   useEffect(() => {
     fetchUniversities();
-    // Prefetch student list as soon as the course search page loads, so
-    // it's already warm by the time someone clicks "Apply Now".
     fetchRecentStudents();
   }, [fetchRecentStudents]);
 
@@ -777,10 +797,10 @@ export default function CourseSearch() {
       {/* External CSS Fonts */}
       <link href="https://fonts.googleapis.com/css2?family=Castoro+Titling&family=Rajdhani:wght@600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-      {/* ── VISUAL HERO BANNER (Fixed overflow & added relative layout z-index) ────────────────── */}
+      {/* ── VISUAL HERO BANNER ────────────────── */}
       <div className="position-relative text-center" style={{ padding: "110px 24px 80px", zIndex: 10 }}>
         
-        {/* Background Video (Self-contained boundaries block video bleedout) */}
+        {/* Background Video */}
         <div className="position-absolute top-0 start-0 end-0 bottom-0 overflow-hidden" style={{ zIndex: 0 }}>
           <video
             autoPlay
@@ -821,9 +841,10 @@ export default function CourseSearch() {
               onChange={(e) => setSearch(e.target.value)}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
-              className="form-control rounded-pill ps-5 py-3 border-0 bg-white shadow"
+              className="form-control rounded-pill ps-5 py-3 border-0 shadow"
               style={{
                 fontSize: "15px",
+                background: "rgba(255, 255, 255, 0.95)",
                 color: "#111827",
                 outline: "none",
                 boxShadow: searchFocused ? "0 12px 30px rgba(0, 140, 227, 0.25)" : "0 8px 30px rgba(0,0,0,0.15)",
@@ -997,7 +1018,7 @@ export default function CourseSearch() {
                               src={universityLogo}
                               alt={stdUni}
                               className="img-fluid rounded border p-1"
-                              style={{ width: "32px", height: "32px", objectFit: "contain", background: "white" }}
+                              style={{ width: "32px", height: "32px", objectFit: "contain", background: "var(--bs-body-bg)" }}
                               onError={(e) => { e.currentTarget.style.display = "none"; }}
                             />
                           ) : (
@@ -1024,7 +1045,7 @@ export default function CourseSearch() {
                           </div>
                         </div>
 
-                        {/* CTA Button — opens the Apply Now modal instead of navigating away */}
+                        {/* CTA Button */}
                         <button
                           onClick={() => setApplyTarget({ university: stdUni, college: stdCol, course: stdCourse })}
                           className="btn btn-primary btn-sm d-flex align-items-center gap-2 px-3 py-2 text-uppercase fw-bold"
@@ -1050,7 +1071,7 @@ export default function CourseSearch() {
         )}
       </div>
 
-      {/* Apply Now Modal — shown when a course card's Apply Now button is clicked */}
+      {/* Apply Now Modal */}
       {applyTarget && (
         <ApplyNowModal
           courseTarget={applyTarget}
@@ -1063,6 +1084,24 @@ export default function CourseSearch() {
 
       {/* CSS Rules */}
       <style>{`
+        /* Smooth Transition styling to eliminate flickering when dark theme is active */
+        .course-search-scope,
+        .course-search-scope *,
+        .apply-modal-wrapper,
+        .apply-modal-wrapper * {
+          transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                      border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                      color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                      box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+
+        .course-search-scope .card-hover {
+          transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                      border-color 0.2s ease,
+                      background-color 0.2s ease,
+                      box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+
         .card-hover:hover {
           border-color: #008ce3 !important;
           transform: translateY(-2px);
