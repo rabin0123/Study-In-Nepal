@@ -42,7 +42,7 @@ class CourseDetailController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('courses/create');
+        return Inertia::render('university/course/create');
     }
 
     /**
