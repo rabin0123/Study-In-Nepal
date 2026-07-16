@@ -213,9 +213,11 @@ function NavGroupSection({ group }: { group: NavGroup }) {
     const isActiveGroup = group.items.some((item) => isCurrentUrl(item.href));
 
     return (
-        <li className={`sidebar-item ${isActiveGroup ? 'selected' : ''}`}>
+        // Changed 'selected' to 'active' on the parent li
+        <li className={`sidebar-item ${isActiveGroup ? 'active' : ''}`}>
             <a
-                className="sidebar-link has-arrow"
+                // Added the 'active' class to the parent anchor when expanded
+                className={`sidebar-link has-arrow ${isActiveGroup ? 'active' : ''}`}
                 href="javascript:void(0)"
                 aria-expanded={isActiveGroup}
             >
@@ -225,7 +227,8 @@ function NavGroupSection({ group }: { group: NavGroup }) {
 
             <ul
                 aria-expanded={isActiveGroup}
-                className={`collapse first-level ${isActiveGroup ? 'show' : ''}`}
+                // Changed 'show' to 'in' on the nested ul container
+                className={`collapse first-level ${isActiveGroup ? 'in' : ''}`}
             >
                 {group.items.map((item) => (
                     <li
