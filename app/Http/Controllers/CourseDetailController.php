@@ -69,8 +69,9 @@ class CourseDetailController extends Controller
             'institutions.*.year_wise_modules'             => 'nullable|array',
             'institutions.*.year_wise_modules.*.year'      => 'required_with:institutions.*.year_wise_modules|integer|min:1',
             'institutions.*.year_wise_modules.*.title'     => 'nullable|string|max:255',
-            'institutions.*.year_wise_modules.*.modules'   => 'nullable|array',
-            'institutions.*.year_wise_modules.*.modules.*' => 'string|max:255',
+            'institutions.*.year_wise_modules.*.modules'            => 'nullable|array',
+'institutions.*.year_wise_modules.*.modules.*.name'     => 'required|string|max:255',
+'institutions.*.year_wise_modules.*.modules.*.info'     => 'nullable|string|max:500',
         ]);
 
         $firstCreated = null;
