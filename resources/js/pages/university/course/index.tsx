@@ -168,16 +168,16 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
     const rowPendingDelete = courseDetails.data.find((r) => r.uuid === pendingDeleteUuid) ?? null;
 
     return (
-        <main className="min-h-screen bg-gray-50/50 py-8 px-4 sm:px-6 lg:px-8 font-sans">
+        <main className="gcu-main-bg min-h-screen bg-gray-50/50 dark:bg-transparent py-8 px-4 sm:px-6 lg:px-8 font-sans">
             <div className="max-w-7xl mx-auto space-y-6">
                 
                 {/* Page Header */}
                 <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+                        <h1 className="gcu-title text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
                             Course Details
                         </h1>
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="gcu-subtitle mt-1 text-sm text-gray-500 dark:text-slate-400">
                             Manage and view all registered courses, colleges, and university affiliations.
                         </p>
                     </div>
@@ -193,10 +193,10 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                 </header>
 
                 {/* Main Data Card */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="gcu-card bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden dark:bg-slate-900 dark:border-slate-800">
                     
                     {/* Toolbar / Search Bar */}
-                    <div className="p-4 border-b border-gray-200 bg-white sm:flex sm:items-center sm:justify-between">
+                    <div className="gcu-search-bar p-4 border-b border-gray-200 bg-white sm:flex sm:items-center sm:justify-between dark:bg-slate-900 dark:border-slate-800">
                         <div className="relative max-w-md w-full">
                             <label className="sr-only" htmlFor="search">Search</label>
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -207,7 +207,7 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                             <input
                                 id="search"
                                 type="text"
-                                className="block w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#008AE6]/20 focus:border-[#008AE6] sm:text-sm transition-all outline-none placeholder-gray-400"
+                                className="gcu-search-input block w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#008AE6]/20 focus:border-[#008AE6] sm:text-sm transition-all outline-none placeholder-gray-400 dark:bg-slate-800 dark:border-slate-700 dark:text-white dark:placeholder-slate-500"
                                 placeholder="Search by university, college, or course..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
@@ -218,14 +218,14 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                     {/* Data Table */}
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50/70">
+                            <thead className="gcu-thead bg-gray-50/70 dark:bg-slate-800/50">
                                 <tr>
-                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">College</th>
-                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">University</th>
-                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Course</th>
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">College</th>
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">University</th>
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Course</th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-gray-100">
+                            <tbody className="gcu-tbody bg-white divide-y divide-gray-100 dark:bg-slate-900 dark:divide-slate-800">
                                 {courseDetails.data.length === 0 ? (
                                     <tr>
                                         <td colSpan={3} className="px-6 py-16 text-center">
@@ -233,8 +233,8 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                                                 <svg className="w-12 h-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                                                 </svg>
-                                                <p className="text-base font-medium text-gray-900">No course details found</p>
-                                                <p className="text-sm mt-1">Try adjusting your search or add a new course.</p>
+                                                <p className="text-base font-medium text-gray-900 dark:text-white">No course details found</p>
+                                                <p className="text-sm mt-1 dark:text-slate-400">Try adjusting your search or add a new course.</p>
                                             </div>
                                         </td>
                                     </tr>
@@ -249,13 +249,13 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                                             <tr 
                                                 key={row.uuid} 
                                                 onClick={() => handleRowClick(row.uuid)}
-                                                className="gcu-row hover:bg-gray-50/80 transition-colors cursor-pointer group"
+                                                className="gcu-row hover:bg-gray-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group"
                                             >
                                                 {/* College (First Column) */}
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex items-center justify-between gap-3.5">
                                                         <div className="flex items-center gap-3.5 min-w-0">
-                                                            <div className="h-10 w-10 flex-shrink-0 rounded-lg border border-gray-200 bg-white shadow-sm flex items-center justify-center overflow-hidden">
+                                                            <div className="gcu-logo-container h-10 w-10 flex-shrink-0 rounded-lg border border-gray-200 bg-white shadow-sm flex items-center justify-center overflow-hidden dark:bg-slate-800 dark:border-slate-700">
                                                                 {hasValidLogo ? (
                                                                     <img 
                                                                         src={logoUrl} 
@@ -264,23 +264,17 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                                                                         onError={() => handleImageError(cleanCollegeName)}
                                                                     />
                                                                 ) : (
-                                                                    <span className="text-gray-400 font-bold text-sm bg-gray-50 w-full h-full flex items-center justify-center">
+                                                                    <span className="gcu-logo-fallback text-gray-400 font-bold text-sm bg-gray-50 w-full h-full flex items-center justify-center dark:bg-slate-800 dark:text-slate-300">
                                                                         {row.college_name.charAt(0).toUpperCase()}
                                                                     </span>
                                                                 )}
                                                             </div>
-                                                            <div className="text-sm font-semibold text-gray-900 group-hover:text-[#008AE6] transition-colors truncate">
+                                                            <div className="gcu-college-name text-sm font-semibold text-gray-900 dark:text-slate-100 group-hover:text-[#008AE6] transition-colors truncate">
                                                                 {row.college_name}
                                                             </div>
                                                         </div>
 
-                                                        {/* Three-dot row menu — hidden until the row is hovered
-                                                            (or while its own menu is open, so it doesn't vanish
-                                                            out from under an active click). Uses the group/row
-                                                            class plus a plain CSS rule (see <style> block below)
-                                                            instead of relying solely on Tailwind's group-hover
-                                                            utility, since that utility can be unreliable across
-                                                            table row/cell boundaries in some setups. */}
+                                                        {/* Three-dot row menu */}
                                                         <div
                                                             className={`gcu-row-menu relative flex-shrink-0 transition-opacity ${
                                                                 isMenuOpen ? 'gcu-row-menu--open' : ''
@@ -290,7 +284,7 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                                                             <button
                                                                 type="button"
                                                                 onClick={(e) => handleMenuToggle(e, row.uuid)}
-                                                                className="h-8 w-8 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#008AE6]/30 transition-colors"
+                                                                className="h-8 w-8 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-[#008AE6]/30 transition-colors"
                                                                 aria-haspopup="true"
                                                                 aria-expanded={isMenuOpen}
                                                                 aria-label={`More actions for ${row.college_name}`}
@@ -299,11 +293,11 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                                                             </button>
 
                                                             {isMenuOpen && (
-                                                                <div className="absolute right-0 top-full mt-1 w-36 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                                                                <div className="gcu-dropdown absolute right-0 top-full mt-1 w-36 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10 dark:bg-slate-800 dark:border-slate-700">
                                                                     <button
                                                                         type="button"
                                                                         onClick={(e) => handleDeleteClick(e, row.uuid)}
-                                                                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                                                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                                                                     >
                                                                         <Trash2 className="w-4 h-4" aria-hidden="true" />
                                                                         Delete
@@ -315,7 +309,7 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                                                 </td>
                                                 
                                                 {/* University */}
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                <td className="gcu-university-name px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-slate-300">
                                                     {row.university_name}
                                                 </td>
 
@@ -335,9 +329,9 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
 
                     {/* Pagination Options */}
                     {courseDetails.last_page > 1 && (
-                        <div className="bg-gray-50/50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-                            <div className="hidden sm:block text-sm text-gray-500">
-                                Showing page <span className="font-medium text-gray-900">{courseDetails.current_page}</span> of <span className="font-medium text-gray-900">{courseDetails.last_page}</span>
+                        <div className="gcu-pagination-footer bg-gray-50/50 px-6 py-4 border-t border-gray-200 flex items-center justify-between dark:bg-slate-900/50 dark:border-slate-800">
+                            <div className="hidden sm:block text-sm text-gray-500 dark:text-slate-400">
+                                Showing page <span className="font-medium text-gray-900 dark:text-white">{courseDetails.current_page}</span> of <span className="font-medium text-gray-900 dark:text-white">{courseDetails.last_page}</span>
                             </div>
                             <div className="flex items-center gap-1.5 flex-wrap justify-center sm:justify-end w-full sm:w-auto">
                                 {courseDetails.links.map((link, i) => (
@@ -345,10 +339,10 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                                         key={i}
                                         href={link.url ?? ''}
                                         preserveState
-                                        className={`inline-flex items-center justify-center min-w-[32px] px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                                        className={`gcu-pagination-btn inline-flex items-center justify-center min-w-[32px] px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
                                             link.active 
                                                 ? 'bg-[#008AE6] text-white shadow-sm' 
-                                                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:text-gray-900'
+                                                : 'gcu-pagination-btn-inactive bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:text-gray-900 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-700 dark:hover:text-white'
                                         } ${
                                             !link.url ? 'opacity-50 cursor-not-allowed pointer-events-none bg-transparent border-transparent' : ''
                                         }`}
@@ -363,20 +357,19 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                 
             </div>
 
-            {/* Delete confirmation modal — rendered with a very high z-index
-                so it always sits above app chrome (top nav, sidebar, etc.) */}
+            {/* Delete confirmation modal */}
             {rowPendingDelete && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
                     <div
-                        className="absolute inset-0 bg-gray-900/40"
+                        className="absolute inset-0 bg-gray-900/40 dark:bg-black/60"
                         onClick={cancelDelete}
                     />
-                    <div className="relative bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-sm p-6">
-                        <h2 className="text-base font-semibold text-gray-900">Delete this course?</h2>
-                        <p className="mt-2 text-sm text-gray-500">
+                    <div className="gcu-modal relative bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-sm p-6 dark:bg-slate-900 dark:border-slate-800">
+                        <h2 className="text-base font-semibold text-gray-900 dark:text-white">Delete this course?</h2>
+                        <p className="mt-2 text-sm text-gray-500 dark:text-slate-400">
                             This will permanently remove{' '}
-                            <span className="font-medium text-gray-700">{rowPendingDelete.course_name}</span> at{' '}
-                            <span className="font-medium text-gray-700">{rowPendingDelete.college_name}</span>. This
+                            <span className="font-medium text-gray-700 dark:text-slate-200">{rowPendingDelete.course_name}</span> at{' '}
+                            <span className="font-medium text-gray-700 dark:text-slate-200">{rowPendingDelete.college_name}</span>. This
                             action cannot be undone.
                         </p>
                         <div className="mt-5 flex justify-end gap-2.5">
@@ -384,7 +377,7 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                                 type="button"
                                 onClick={cancelDelete}
                                 disabled={isDeleting}
-                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                                className="gcu-modal-cancel px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-700"
                             >
                                 Cancel
                             </button>
@@ -401,7 +394,7 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                 </div>
             )}
 
-            {/* Toast notifications — bottom-right, stacked, auto-dismissing */}
+            {/* Toast notifications */}
             <div className="fixed bottom-5 right-5 z-[110] flex flex-col gap-2.5 w-full max-w-sm pointer-events-none">
                 {toasts.map((toast) => (
                     <div
@@ -429,11 +422,7 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                 ))}
             </div>
 
-            {/* Plain CSS (not a Tailwind utility) for the row-hover reveal of
-                the three-dot menu. Using a real :hover rule here instead of
-                relying only on Tailwind's group-hover class guarantees the
-                button appears regardless of how Tailwind's class scanner
-                handles the dynamically-built className string above. */}
+            {/* Plain CSS for styling modifications */}
             <style>{`
                 .gcu-row-menu {
                     opacity: 0;
@@ -454,6 +443,130 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                         opacity: 1;
                         transform: translateY(0);
                     }
+                }
+
+                /* Explicit overrides targeting standard HTML themes using [data-bs-theme="dark"] attribute or .dark class */
+                [data-bs-theme="dark"] .gcu-main-bg,
+                .dark .gcu-main-bg {
+                    background-color: transparent !important;
+                }
+                [data-bs-theme="dark"] .gcu-title,
+                .dark .gcu-title {
+                    color: #f8fafc !important;
+                }
+                [data-bs-theme="dark"] .gcu-subtitle,
+                .dark .gcu-subtitle {
+                    color: #94a3b8 !important;
+                }
+                [data-bs-theme="dark"] .gcu-card,
+                .dark .gcu-card {
+                    background-color: #1a2234 !important;
+                    border-color: #2e3b52 !important;
+                }
+                [data-bs-theme="dark"] .gcu-search-bar,
+                .dark .gcu-search-bar {
+                    background-color: #1a2234 !important;
+                    border-color: #2e3b52 !important;
+                }
+                [data-bs-theme="dark"] .gcu-search-input,
+                .dark .gcu-search-input {
+                    background-color: #111827 !important;
+                    border-color: #2e3b52 !important;
+                    color: #f8fafc !important;
+                }
+                [data-bs-theme="dark"] .gcu-search-input::placeholder,
+                .dark .gcu-search-input::placeholder {
+                    color: #4b5563 !important;
+                }
+                [data-bs-theme="dark"] .gcu-thead,
+                .dark .gcu-thead {
+                    background-color: #1f293d !important;
+                }
+                [data-bs-theme="dark"] .gcu-thead th,
+                .dark .gcu-thead th {
+                    color: #94a3b8 !important;
+                }
+                [data-bs-theme="dark"] .gcu-tbody,
+                .dark .gcu-tbody {
+                    background-color: #1a2234 !important;
+                }
+                [data-bs-theme="dark"] .gcu-row,
+                .dark .gcu-row {
+                    border-color: #2e3b52 !important;
+                }
+                [data-bs-theme="dark"] .gcu-row:hover,
+                .dark .gcu-row:hover {
+                    background-color: rgba(46, 59, 82, 0.4) !important;
+                }
+                [data-bs-theme="dark"] .gcu-college-name,
+                .dark .gcu-college-name {
+                    color: #f1f5f9 !important;
+                }
+                [data-bs-theme="dark"] .gcu-university-name,
+                .dark .gcu-university-name {
+                    color: #cbd5e1 !important;
+                }
+                [data-bs-theme="dark"] .gcu-logo-container,
+                .dark .gcu-logo-container {
+                    background-color: #111827 !important;
+                    border-color: #2e3b52 !important;
+                }
+                [data-bs-theme="dark"] .gcu-logo-fallback,
+                .dark .gcu-logo-fallback {
+                    background-color: #1f293d !important;
+                    color: #94a3b8 !important;
+                }
+                [data-bs-theme="dark"] .gcu-dropdown,
+                .dark .gcu-dropdown {
+                    background-color: #1a2234 !important;
+                    border-color: #2e3b52 !important;
+                }
+                [data-bs-theme="dark"] .gcu-pagination-footer,
+                .dark .gcu-pagination-footer {
+                    background-color: #1a2234 !important;
+                    border-color: #2e3b52 !important;
+                }
+                [data-bs-theme="dark"] .gcu-pagination-footer span,
+                .dark .gcu-pagination-footer span {
+                    color: #94a3b8 !important;
+                }
+                [data-bs-theme="dark"] .gcu-pagination-btn-inactive,
+                .dark .gcu-pagination-btn-inactive {
+                    background-color: #111827 !important;
+                    color: #cbd5e1 !important;
+                    border-color: #2e3b52 !important;
+                }
+                [data-bs-theme="dark"] .gcu-pagination-btn-inactive:hover,
+                .dark .gcu-pagination-btn-inactive:hover {
+                    background-color: #1f293d !important;
+                    color: #f1f5f9 !important;
+                }
+                [data-bs-theme="dark"] .gcu-modal,
+                .dark .gcu-modal {
+                    background-color: #1a2234 !important;
+                    border-color: #2e3b52 !important;
+                }
+                [data-bs-theme="dark"] .gcu-modal h2,
+                .dark .gcu-modal h2 {
+                    color: #f1f5f9 !important;
+                }
+                [data-bs-theme="dark"] .gcu-modal p,
+                .dark .gcu-modal p {
+                    color: #94a3b8 !important;
+                }
+                [data-bs-theme="dark"] .gcu-modal span,
+                .dark .gcu-modal span {
+                    color: #e2e8f0 !important;
+                }
+                [data-bs-theme="dark"] .gcu-modal-cancel,
+                .dark .gcu-modal-cancel {
+                    background-color: #111827 !important;
+                    color: #cbd5e1 !important;
+                    border-color: #2e3b52 !important;
+                }
+                [data-bs-theme="dark"] .gcu-modal-cancel:hover,
+                .dark .gcu-modal-cancel:hover {
+                    background-color: #1f293d !important;
                 }
             `}</style>
         </main>
