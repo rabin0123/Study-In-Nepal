@@ -531,7 +531,7 @@ export default function AppSidebarLayout({ children }: Props) {
                                         </Link>
                                     </li>
                                 ))}
-                             <li>
+                             {/* <li>
                                 <span className="sidebar-divider lg"></span>
                             </li>
                             <li className="nav-small-cap">
@@ -541,7 +541,7 @@ export default function AppSidebarLayout({ children }: Props) {
 
                             {navGroups.map((group) => (
                                 <NavGroupSection key={group.id} group={group} />
-                            ))} 
+                            ))}  */}
                             </ul>
                         </nav>
                     </div>
