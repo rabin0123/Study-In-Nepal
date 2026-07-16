@@ -269,7 +269,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     <section id="overview" className="container-xl px-4 py-5 border-bottom">
                         <div className="row gy-4 gy-lg-0" style={{ maxWidth: 1200 }}>
                             <div className="col-lg-3">
-                                <h2 className="gcu-heading fw-bold fs-7">Overview</h2>
+                                <h2 className="gcu-heading fw-bold fs-3">Overview</h2>
                             </div>
                             <div className="col-lg-9">
                                 <div
@@ -361,16 +361,16 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                     breakdown by year is published below for guidance.
                                 </p>
                                 <div className="table-responsive border rounded-3">
-                                    <table className="table table-striped table-hover mb-0 align-middle">
+                                    <table className="table table-striped table-hover mb-0 align-middle gcu-fees-table">
                                         <thead>
                                             <tr className="gcu-table-head">
-                                                <th className="text-white text-uppercase small fw-bold py-3 px-3">
+                                                <th className="text-white text-uppercase fw-bold py-3 px-3">
                                                     Year of Study
                                                 </th>
-                                                <th className="text-white text-uppercase small fw-bold py-3 px-3">
+                                                <th className="text-white text-uppercase fw-bold py-3 px-3">
                                                     Tuition Fee
                                                 </th>
-                                                <th className="text-white text-uppercase small fw-bold py-3 px-3">
+                                                <th className="text-white text-uppercase fw-bold py-3 px-3">
                                                     Additional Notes
                                                 </th>
                                             </tr>
@@ -553,6 +553,14 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
                 /* ---- Fees table header ---- */
                 .gcu-table-head { background-color: var(--gcu-blue); }
+                .gcu-fees-table { font-size: 0.95rem; }
+                .gcu-fees-table thead th {
+                    font-size: 0.75rem;
+                    letter-spacing: 0.05em;
+                }
+                .gcu-fees-table tbody td {
+                    font-size: 0.95rem;
+                }
 
                 /* ---- Careers panel ---- */
                 .gcu-panel-careers {
