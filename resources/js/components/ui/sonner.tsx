@@ -3,15 +3,17 @@ import { useAppearance } from '@/hooks/use-appearance';
 import { Toaster as Sonner, type ToasterProps } from 'sonner';
 
 function Toaster({ ...props }: ToasterProps) {
-    const { appearance } = useAppearance();
+    const { resolvedAppearance } = useAppearance();
 
     useFlashToast();
 
     return (
         <Sonner
-            theme={appearance}
+            theme={resolvedAppearance}
             className="toaster group"
             position="bottom-right"
+            richColors
+            closeButton
             style={
                 {
                     '--normal-bg': 'var(--popover)',
