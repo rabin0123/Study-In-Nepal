@@ -181,14 +181,13 @@ function NavGroupSection({ group }: { group: NavGroup }) {
     const isActiveGroup = group.items.some((item) => isCurrentUrl(item.href));
     const [isOpen, setIsOpen] = useState(isActiveGroup);
 
-    // Sync expanded state with navigation changes
     useEffect(() => {
         setIsOpen(isActiveGroup);
     }, [isActiveGroup]);
 
     const toggleOpen = (e: React.MouseEvent) => {
         e.preventDefault();
-        e.stopPropagation(); // Stops jQuery sidebarmenu.js from modifying classes on click
+        e.stopPropagation();
         setIsOpen(!isOpen);
     };
 
@@ -333,6 +332,31 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
                     height: 0 !important;
                     opacity: 0 !important;
                     visibility: hidden !important;
+                }
+
+                /* ── Theme Switch Controls Display Rules ── */
+                /* Light Mode Default: Show moon, hide sun */
+                .dark-layout {
+                    display: flex !important;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .light-layout {
+                    display: none !important;
+                }
+
+                /* Dark Mode Activated on Root / HTML: Hide moon, show sun */
+                html[data-bs-theme="dark"] .dark-layout,
+                html[data-theme="dark"] .dark-layout,
+                body[data-bs-theme="dark"] .dark-layout {
+                    display: none !important;
+                }
+                html[data-bs-theme="dark"] .light-layout,
+                html[data-theme="dark"] .light-layout,
+                body[data-bs-theme="dark"] .light-layout {
+                    display: flex !important;
+                    align-items: center;
+                    justify-content: center;
                 }
             `}</style>
 
