@@ -100,7 +100,6 @@ const standardizeCourse = (course: string | null | undefined): string => {
 
 interface UniversityEntry {
   id: number;
-  uuid?: string; // Optional property to match with course details show section
   University: string;
   university_logo_url: string | null;
   level: string;
@@ -642,6 +641,7 @@ export default function CourseSearch() {
   const fetchUniversities = async () => {
     setLoading(true);
     try {
+      // Keep fetching directly from the external third-party API as requested
       const res = await fetch("https://admin.studyinnepal.com/api/university", {
         headers: { "Accept": "application/json" }
       });
@@ -872,6 +872,9 @@ export default function CourseSearch() {
               const universityLogo = validUrl(item.university_logo_url);
               const fallbackImage = getStreamImage(item.stream, item.id);
 
+              // Create resolve url that targets our new resolver backend endpoint with parameters
+              const resolveUrl = `/course/resolve?university=${encodeURIComponent(item.University)}&college=${encodeURIComponent(item.College)}&course=${encodeURIComponent(item.Course)}`;
+
               return (
                 <div
                   key={item.id}
@@ -889,29 +892,10 @@ export default function CourseSearch() {
                            background: collegeLogo ? "var(--bs-card-bg)" : "rgba(100,100,100,0.08)"
                          }}>
                       
-                      {item.uuid ? (
-                        <Link 
-                          href={`/course/${item.uuid}`} 
-                          className="w-100 h-100 d-block"
-                        >
-                          <img
-                            src={collegeLogo ?? fallbackImage}
-                            alt={stdCol}
-                            className="w-100 h-100"
-                            style={{
-                              objectFit: collegeLogo ? "contain" : "cover",
-                              padding: collegeLogo ? "24px" : "0",
-                              boxSizing: "border-box",
-                              cursor: "pointer"
-                            }}
-                            onError={(e) => {
-                              e.currentTarget.src = fallbackImage;
-                              e.currentTarget.style.objectFit = "cover";
-                              e.currentTarget.style.padding = "0";
-                            }}
-                          />
-                        </Link>
-                      ) : (
+                      <Link 
+                        href={resolveUrl} 
+                        className="w-100 h-100 d-block"
+                      >
                         <img
                           src={collegeLogo ?? fallbackImage}
                           alt={stdCol}
@@ -920,6 +904,7 @@ export default function CourseSearch() {
                             objectFit: collegeLogo ? "contain" : "cover",
                             padding: collegeLogo ? "24px" : "0",
                             boxSizing: "border-box",
+                            cursor: "pointer"
                           }}
                           onError={(e) => {
                             e.currentTarget.src = fallbackImage;
@@ -927,7 +912,7 @@ export default function CourseSearch() {
                             e.currentTarget.style.padding = "0";
                           }}
                         />
-                      )}
+                      </Link>
 
                       <div 
                         className="position-absolute bottom-0 start-0 m-3 px-2 py-1 rounded text-white text-uppercase fw-bold"
@@ -977,13 +962,9 @@ export default function CourseSearch() {
                         </div>
 
                         {/* Title & Organization Details */}
-                        {item.uuid ? (
-                          <Link href={`/course/${item.uuid}`} className="text-decoration-none">
-                            <h3 className="h5 fw-bold mb-2 text-body card-title-link">{stdCourse}</h3>
-                          </Link>
-                        ) : (
-                          <h3 className="h5 fw-bold mb-2 text-body">{stdCourse}</h3>
-                        )}
+                        <Link href={resolveUrl} className="text-decoration-none">
+                          <h3 className="h5 fw-bold mb-2 text-body card-title-link">{stdCourse}</h3>
+                        </Link>
                         
                         <div className="d-flex flex-wrap align-items-center gap-3 text-secondary mb-3">
                           <span className="d-flex align-items-center gap-1 small text-muted">
