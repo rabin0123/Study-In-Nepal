@@ -477,7 +477,7 @@ export default function StudentApplicationForm() {
         <div className="spinner-border text-primary mb-3" role="status" style={{ width: "3rem", height: "3rem" }}>
           <span className="visually-hidden">Loading...</span>
         </div>
-        <span className="text-body-secondary fs-4 fw-medium">Loading form options...</span>
+        <span className="text-body-secondary fs-4 fw-medium">Loading Application form...</span>
       </div>
     );
   }
