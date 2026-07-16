@@ -24,19 +24,21 @@ interface ApiDataRow {
 }
 
 // Shape returned by the Laravel controller for an existing record.
-// Adjust field names here if your controller's edit/show response differs.
-interface CourseDetailInstitution {
-    university_name: string;
-    college_name: string;
-    year_wise_modules: YearModule[];
-}
+// IMPORTANT: a CourseDetail row is ONE institution, not a course with a
+// nested institutions[] array — store() loops and creates one flat row per
+// selected institution, and edit()/update() operate on a single row. Field
+// names match app/Models/CourseDetail.php exactly (note: `careers`, not
+// `careers_summary`; `year_wise_modules` and `fees` are flat columns on the
+// row, not nested under institutions).
 interface CourseDetailRecord {
     uuid: string;
     course_name: string;
+    university_name: string;
+    college_name: string;
     summary: string | null;
-    careers_summary: string | null;
-    institutions: CourseDetailInstitution[];
-    fees: YearFee[];
+    careers: string | null;
+    year_wise_modules: YearModule[] | null;
+    fees: YearFee[] | null;
 }
 
 interface InstitutionOption {
@@ -458,30 +460,29 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
     const [masterLoading, setMasterLoading] = useState(true);
     const [masterError, setMasterError] = useState<string | null>(null);
 
+    // The single saved institution key for this row (edit mode only).
+    const savedInstKey = courseDetail ? instKey(courseDetail.university_name, courseDetail.college_name) : null;
+
     const [courseName, setCourseName] = useState(courseDetail?.course_name ?? '');
     const [selectedInstKeys, setSelectedInstKeys] = useState<string[]>(
-        () => (courseDetail?.institutions ?? []).map((i) => instKey(i.university_name, i.college_name))
+        () => (savedInstKey ? [savedInstKey] : [])
     );
     const [summaryHtml, setSummaryHtml] = useState(courseDetail?.summary ?? '');
-    const [careersHtml, setCareersHtml] = useState(courseDetail?.careers_summary ?? '');
+    const [careersHtml, setCareersHtml] = useState(courseDetail?.careers ?? '');
 
-    // Modules per institution — seeded from the saved record, keyed the same
-    // way as the master-data-derived keys so lookups line up.
+    // Modules per institution — seeded from the saved record's flat
+    // `year_wise_modules` column, keyed under this row's single institution.
     const [yearModulesByInst, setYearModulesByInst] = useState<Record<string, YearModule[]>>(() => {
-        const seed: Record<string, YearModule[]> = {};
-        (courseDetail?.institutions ?? []).forEach((i) => {
-            seed[instKey(i.university_name, i.college_name)] =
-                i.year_wise_modules && i.year_wise_modules.length > 0 ? i.year_wise_modules : defaultYearModules();
-        });
-        return seed;
+        if (!savedInstKey) return {};
+        return {
+            [savedInstKey]: courseDetail?.year_wise_modules && courseDetail.year_wise_modules.length > 0
+                ? courseDetail.year_wise_modules
+                : defaultYearModules(),
+        };
     });
-    const [activeModuleTab, setActiveModuleTab] = useState<string | null>(
-        () => (courseDetail?.institutions?.[0]
-            ? instKey(courseDetail.institutions[0].university_name, courseDetail.institutions[0].college_name)
-            : null)
-    );
+    const [activeModuleTab, setActiveModuleTab] = useState<string | null>(savedInstKey);
 
-    // Fees are course-level (shared across all selected institutions).
+    // Fees are stored as a flat column on the row.
     const [courseFees, setCourseFees] = useState<YearFee[]>(
         () => (courseDetail?.fees && courseDetail.fees.length > 0 ? courseDetail.fees : defaultYearFee())
     );
@@ -528,14 +529,15 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         return Array.from(unique.values());
     }, [masterData, courseName]);
 
-    // The saved institutions on this record (edit mode only), independent of
+    // The saved institution on this record (edit mode only), independent of
     // whatever the master list currently contains.
     const savedInstitutionOptions = useMemo<InstitutionOption[]>(() => {
-        return (courseDetail?.institutions ?? []).map((i) => ({
-            key: instKey(i.university_name, i.college_name),
-            label: i.college_name,
-            subLabel: i.university_name,
-        }));
+        if (!courseDetail) return [];
+        return [{
+            key: instKey(courseDetail.university_name, courseDetail.college_name),
+            label: courseDetail.college_name,
+            subLabel: courseDetail.university_name,
+        }];
     }, [courseDetail]);
 
     // Merge: master-list matches ∪ saved selections. Anything present only in
@@ -624,6 +626,21 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         setCourseFees((prev) => prev.map((f, i) => (i === index ? { ...f, ...patch } : f)));
     };
 
+    const cleanModulesFor = (key: string) =>
+        (yearModulesByInst[key] ?? []).filter((y) => y.year).map((y) => ({
+            year: y.year,
+            title: y.title.trim() || null,
+            modules: y.modules.map((m) => m.trim()).filter(Boolean),
+        }));
+
+    const cleanFees = () =>
+        courseFees.filter((f) => f.year).map((f) => ({
+            year: f.year,
+            amount: f.amount.trim() || null,
+            currency: f.currency.trim() || null,
+            note: f.note.trim() || null,
+        }));
+
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
 
@@ -633,51 +650,87 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         setSaving(true);
         setErrors({});
 
+        if (isEditMode && courseDetail) {
+            // update() (PUT /course-details/{uuid}) only ever patches THIS single
+            // flat row — it has no concept of a multi-institution course. So:
+            //  - the row's own institution (savedInstKey) is PUT to /course-details/{uuid}
+            //  - any additional institutions the user checked are NEW rows,
+            //    created via the same store() endpoint the create page uses
+            // If the user unchecked the original institution, its row is left
+            // as-is (not deleted) — deleting would need a separate DELETE call,
+            // which this form intentionally doesn't do implicitly.
+            const updatePayload = {
+                course_name: courseName.trim(),
+                summary: summaryHtml.trim() || null,
+                careers: careersHtml.trim() || null,
+                year_wise_modules: savedInstKey ? cleanModulesFor(savedInstKey) : [],
+                fees: cleanFees(),
+            };
+
+            const newInstKeys = selectedInstKeys.filter((k) => k !== savedInstKey);
+            const newInstitutionsPayload = newInstKeys.length > 0 ? {
+                course_name: courseName.trim(),
+                summary: summaryHtml.trim() || null,
+                careers: careersHtml.trim() || null,
+                fees: cleanFees(),
+                institutions: newInstKeys.map((key) => {
+                    const [uni, col] = key.split('|||');
+                    return { university_name: uni, college_name: col, year_wise_modules: cleanModulesFor(key) };
+                }),
+            } : null;
+
+            const requests: Promise<Response>[] = [
+                fetch(`/course-details/${courseDetail.uuid}`, {
+                    method: 'POST', // spoofed PUT — see note below
+                    headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() },
+                    body: JSON.stringify({ ...updatePayload, _method: 'PUT' }),
+                }),
+            ];
+            if (newInstitutionsPayload) {
+                requests.push(fetch('/course-details', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() },
+                    body: JSON.stringify(newInstitutionsPayload),
+                }));
+            }
+
+            Promise.all(requests)
+                .then(async (responses) => {
+                    for (const res of responses) {
+                        if (!res.ok) {
+                            const data = await res.json().catch(() => ({}));
+                            setErrors(data.errors ? Object.fromEntries(Object.entries(data.errors).map(([k, v]) => [k, (v as string[])[0]])) : {});
+                            throw new Error(data.message || 'Failed to save');
+                        }
+                    }
+                    setSavedMessage(newInstitutionsPayload
+                        ? 'Updated, and added new institution rows for this course.'
+                        : 'Updated successfully.');
+                    setTimeout(() => router.visit(`/course-details/${courseDetail.uuid}`), 800);
+                })
+                .catch((err) => console.error('Failed to save course details', err))
+                .finally(() => setSaving(false));
+            return;
+        }
+
+        // Create mode: one store() call creates a row per selected institution.
         const institutionsPayload = selectedInstKeys.map((key) => {
             const [uni, col] = key.split('|||');
-
-            const cleanModules = (yearModulesByInst[key] ?? []).filter((y) => y.year).map((y) => ({
-                year: y.year,
-                title: y.title.trim() || null,
-                modules: y.modules.map((m) => m.trim()).filter(Boolean),
-            }));
-
-            return {
-                university_name: uni,
-                college_name: col,
-                year_wise_modules: cleanModules,
-            };
+            return { university_name: uni, college_name: col, year_wise_modules: cleanModulesFor(key) };
         });
-
-        const cleanFees = courseFees
-            .filter((f) => f.year)
-            .map((f) => ({
-                year: f.year,
-                amount: f.amount.trim() || null,
-                currency: f.currency.trim() || null,
-                note: f.note.trim() || null,
-            }));
 
         const payload = {
             course_name: courseName.trim(),
             summary: summaryHtml.trim() || null,
-            careers_summary: careersHtml.trim() || null,
+            careers: careersHtml.trim() || null,
             institutions: institutionsPayload,
-            fees: cleanFees,
+            fees: cleanFees(),
         };
 
-        const url = isEditMode ? `/course-details/${courseDetail!.uuid}` : '/course-details';
-        // Laravel expects PUT/PATCH to be spoofed via _method when sent as a
-        // normal POST body — adjust to `method: 'PUT'` instead if your route
-        // accepts a real PUT (e.g. you're not going through Laravel's form
-        // method spoofing).
-        const method = 'POST';
-        const body = isEditMode ? { ...payload, _method: 'PUT' } : payload;
-
-        fetch(url, {
-            method,
+        fetch('/course-details', {
+            method: 'POST',
             headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() },
-            body: JSON.stringify(body),
+            body: JSON.stringify(payload),
         })
             .then(async (res) => {
                 const data = await res.json();
@@ -685,8 +738,8 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                     setErrors(data.errors ? Object.fromEntries(Object.entries(data.errors).map(([k, v]) => [k, (v as string[])[0]])) : {});
                     throw new Error(data.message || 'Failed to save');
                 }
-                setSavedMessage(data.message || (isEditMode ? 'Updated successfully.' : 'Saved successfully.'));
-                setTimeout(() => router.visit(`/course-details/${data.courseDetail?.uuid || courseDetail?.uuid || ''}`), 800);
+                setSavedMessage(data.message || 'Saved successfully.');
+                setTimeout(() => router.visit(`/course-details/${data.courseDetail?.uuid || ''}`), 800);
             })
             .catch((err) => console.error('Failed to save course details', err))
             .finally(() => setSaving(false));
@@ -804,7 +857,7 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                             <label className="flex items-center gap-1.5 font-semibold text-gray-900 text-sm mb-1.5">
                                 <Briefcase size={16} className="text-gray-400" /> Career Prospects
                             </label>
-                            <RichTextEditor value={careersHtml} onChange={setCareersHtml} placeholder="Highlight future job opportunities..." error={errors.careers_summary} />
+                            <RichTextEditor value={careersHtml} onChange={setCareersHtml} placeholder="Highlight future job opportunities..." error={errors.careers} />
                         </div>
                     </div>
                 </div>
