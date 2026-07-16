@@ -1092,9 +1092,9 @@ export default function StudentApplicationDetail({ application: initialApplicati
                       <iconify-icon icon="solar:hashtag-square-line-duotone" className="fs-4"></iconify-icon>
                       App ID - {student?.app_id }
                     </span>
-                    <p className="sad-value fs-3 fw-semibold mb-0 text-truncate">
+                    {/* <p className="sad-value fs-3 fw-semibold mb-0 text-truncate">
                       {student?.app_id || <span className="text-body-secondary fw-normal fst-italic">Not set</span>}
-                    </p>
+                    </p> */}
                   </div>
                 </div>
 
