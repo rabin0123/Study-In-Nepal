@@ -185,31 +185,29 @@ public function resolve(Request $request)
     $college = $request->query('college');
     $course = $request->query('course');
 
-    // 1. Attempt exact database match first (fastest)
+    // 1. Attempt exact database match first
     $courseDetail = CourseDetail::where('university_name', $university)
         ->where('college_name', $college)
         ->where('course_name', $course)
         ->first();
 
-    // 2. Fallback: Fuzzy substring match to bridge regional/naming variations
-    // (e.g. "Glasgow Caledonian University, Scotland" matching "Glasgow Caledonian University")
+    // Helper to normalize strings (ignoring spaces, casing, and symbols)
+    $normalize = function ($string) {
+        if (!$string) return '';
+        return preg_replace('/[^a-z0-9]/', '', strtolower(trim($string)));
+    };
+
+    $normUniReq = $normalize($university);
+    $normColReq = $normalize($college);
+    $normCourseReq = $normalize($course);
+
+    // 2. Fallback: Fuzzy substring match
     if (!$courseDetail) {
-        $normalize = function ($string) {
-            if (!$string) return '';
-            // Lowercase and remove all non-alphanumeric characters
-            return preg_replace('/[^a-z0-9]/', '', strtolower(trim($string)));
-        };
-
-        $normUniReq = $normalize($university);
-        $normColReq = $normalize($college);
-        $normCourseReq = $normalize($course);
-
         $courseDetail = CourseDetail::all()->first(function ($detail) use ($normalize, $normUniReq, $normColReq, $normCourseReq) {
             $normUniDb = $normalize($detail->university_name);
             $normColDb = $normalize($detail->college_name);
             $normCourseDb = $normalize($detail->course_name);
 
-            // True if identical, or if one is a clean substring of the other
             $uniMatches = ($normUniDb === $normUniReq || str_contains($normUniDb, $normUniReq) || str_contains($normUniReq, $normUniDb));
             $colMatches = ($normColDb === $normColReq || str_contains($normColDb, $normColReq) || str_contains($normColReq, $normColDb));
             $courseMatches = ($normCourseDb === $normCourseReq || str_contains($normCourseDb, $normCourseReq) || str_contains($normCourseReq, $normCourseDb));
@@ -218,12 +216,31 @@ public function resolve(Request $request)
         });
     }
 
-    // 3. If a match is found in course_details, redirect to the matching UUID route
+    // 3. If a match is found, redirect to the course show page
     if ($courseDetail) {
         return redirect('/course/' . $courseDetail->uuid);
     }
 
-    // Fallback if no matching entry is found
-    return redirect()->back()->with('error', 'Matching course details not found.');
+    // 4. Debug output when accessed directly in the browser address bar (non-Inertia requests)
+    if (!$request->header('X-Inertia')) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No matching course detail found in your database.',
+            'your_request' => [
+                'university' => $university,
+                'college' => $college,
+                'course' => $course,
+            ],
+            'normalized_request_values' => [
+                'university' => $normUniReq,
+                'college' => $normColReq,
+                'course' => $normCourseReq,
+            ],
+            'available_courses_currently_in_database' => CourseDetail::select('id', 'uuid', 'university_name', 'college_name', 'course_name')->get(),
+        ], 404);
+    }
+
+    // 5. Safe fallback redirect back to explore page, avoiding AJAX session redirection
+    return redirect()->route('coursesearch')->with('error', 'Matching course details not found.');
 }
 }
