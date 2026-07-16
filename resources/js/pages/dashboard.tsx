@@ -1,4 +1,5 @@
-import { Head } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
+import { Head, useHttp } from '@inertiajs/react';
 import { dashboard } from '@/routes';
 
 interface Application {
@@ -12,16 +13,40 @@ interface Application {
     created_at: string;
 }
 
-interface DashboardProps {
-    stats: {
-        totalApplications: number;
-        processedApplications: number;
-        closedApplications: number;
-    };
+interface Stats {
+    totalApplications: number;
+    processedApplications: number;
+    closedApplications: number;
+}
+
+interface DashboardResponse {
+    stats: Stats;
     latestApplications: Application[];
 }
 
-export default function Dashboard({ stats, latestApplications = [] }: DashboardProps) {
+export default function Dashboard() {
+    const [stats, setStats] = useState<Stats | null>(null);
+    const [latestApplications, setLatestApplications] = useState<Application[]>([]);
+    
+    // Non-navigating HTTP client hook introduced in Inertia v3
+    const http = useHttp();
+
+    useEffect(() => {
+        async function loadDashboardData() {
+            try {
+                // Fetching the data using await 
+                const response = await http.get<DashboardResponse>('/api/dashboard-stats');
+                
+                setStats(response.stats);
+                setLatestApplications(response.latestApplications);
+            } catch (error) {
+                console.error("Error loading dashboard data:", error);
+            }
+        }
+        
+        loadDashboardData();
+    }, []);
+
     // Utility to map statuses to modern Bootstrap 5 contextual colors
     const getStatusStyles = (status: string) => {
         switch (status?.toUpperCase()) {
@@ -50,12 +75,17 @@ export default function Dashboard({ stats, latestApplications = [] }: DashboardP
                                 <div className="d-flex align-items-center justify-content-between">
                                     <span className="text-muted fw-medium small">Total Applications</span>
                                     <div className="bg-light rounded p-2 d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }}>
-                                        {/* Iconify CDN span placeholder */}
                                         <span className="iconify fs-5 text-secondary" data-icon="lucide:file-text"></span>
                                     </div>
                                 </div>
                                 <div className="mt-3">
-                                    <h3 className="display-6 fw-bold mb-1">{stats?.totalApplications ?? 0}</h3>
+                                    {http.processing || !stats ? (
+                                        <div className="spinner-border spinner-border-sm text-secondary" role="status">
+                                            <span className="visually-hidden">Loading...</span>
+                                        </div>
+                                    ) : (
+                                        <h3 className="display-6 fw-bold mb-1">{stats.totalApplications}</h3>
+                                    )}
                                     <p className="text-muted small mb-0">Submitted applications across agencies</p>
                                 </div>
                             </div>
@@ -69,12 +99,17 @@ export default function Dashboard({ stats, latestApplications = [] }: DashboardP
                                 <div className="d-flex align-items-center justify-content-between">
                                     <span className="text-muted fw-medium small">Applications Processed</span>
                                     <div className="bg-primary-subtle rounded p-2 d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }}>
-                                        {/* Iconify CDN span placeholder */}
                                         <span className="iconify fs-5 text-primary" data-icon="lucide:check-circle"></span>
                                     </div>
                                 </div>
                                 <div className="mt-3">
-                                    <h3 className="display-6 fw-bold mb-1">{stats?.processedApplications ?? 0}</h3>
+                                    {http.processing || !stats ? (
+                                        <div className="spinner-border spinner-border-sm text-primary" role="status">
+                                            <span className="visually-hidden">Loading...</span>
+                                        </div>
+                                    ) : (
+                                        <h3 className="display-6 fw-bold mb-1">{stats.processedApplications}</h3>
+                                    )}
                                     <p className="text-muted small mb-0">Approved or rejected applications</p>
                                 </div>
                             </div>
@@ -88,12 +123,17 @@ export default function Dashboard({ stats, latestApplications = [] }: DashboardP
                                 <div className="d-flex align-items-center justify-content-between">
                                     <span className="text-muted fw-medium small">Case Closed</span>
                                     <div className="bg-success-subtle rounded p-2 d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }}>
-                                        {/* Iconify CDN span placeholder */}
                                         <span className="iconify fs-5 text-success" data-icon="lucide:archive"></span>
                                     </div>
                                 </div>
                                 <div className="mt-3">
-                                    <h3 className="display-6 fw-bold mb-1">{stats?.closedApplications ?? 0}</h3>
+                                    {http.processing || !stats ? (
+                                        <div className="spinner-border spinner-border-sm text-success" role="status">
+                                            <span className="visually-hidden">Loading...</span>
+                                        </div>
+                                    ) : (
+                                        <h3 className="display-6 fw-bold mb-1">{stats.closedApplications}</h3>
+                                    )}
                                     <p className="text-muted small mb-0">Completed / approved enrollments</p>
                                 </div>
                             </div>
@@ -118,7 +158,14 @@ export default function Dashboard({ stats, latestApplications = [] }: DashboardP
                             </div>
 
                             <div className="card-body px-0 pb-0">
-                                {latestApplications.length === 0 ? (
+                                {http.processing ? (
+                                    <div className="text-center py-5">
+                                        <div className="spinner-border text-secondary" role="status">
+                                            <span className="visually-hidden">Loading...</span>
+                                        </div>
+                                        <p className="text-muted mt-2 small">Loading applications...</p>
+                                    </div>
+                                ) : latestApplications.length === 0 ? (
                                     <div className="text-center py-5 text-muted">
                                         <span className="iconify display-6 mb-2 opacity-50" data-icon="lucide:user"></span>
                                         <p className="mb-0">No applications found.</p>
