@@ -361,16 +361,16 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                     breakdown by year is published below for guidance.
                                 </p>
                                 <div className="table-responsive border rounded-3">
-                                    <table className="table table-striped table-hover mb-0 align-middle gcu-fees-table">
+                                    <table className="table table-striped table-hover mb-0 align-middle">
                                         <thead>
                                             <tr className="gcu-table-head">
-                                                <th className="text-white text-uppercase fw-bold py-3 px-3">
+                                                <th className="text-white text-uppercase small fw-bold py-3 px-3">
                                                     Year of Study
                                                 </th>
-                                                <th className="text-white text-uppercase fw-bold py-3 px-3">
+                                                <th className="text-white text-uppercase small fw-bold py-3 px-3">
                                                     Tuition Fee
                                                 </th>
-                                                <th className="text-white text-uppercase fw-bold py-3 px-3">
+                                                <th className="text-white text-uppercase small fw-bold py-3 px-3">
                                                     Additional Notes
                                                 </th>
                                             </tr>
@@ -553,14 +553,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
                 /* ---- Fees table header ---- */
                 .gcu-table-head { background-color: var(--gcu-blue); }
-                .gcu-fees-table { font-size: 0.95rem; }
-                .gcu-fees-table thead th {
-                    font-size: 0.75rem;
-                    letter-spacing: 0.05em;
-                }
-                .gcu-fees-table tbody td {
-                    font-size: 0.95rem;
-                }
 
                 /* ---- Careers panel ---- */
                 .gcu-panel-careers {
