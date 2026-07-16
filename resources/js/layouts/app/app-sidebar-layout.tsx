@@ -9,7 +9,7 @@ type NavLeaf = { title: string; href: string; icon: string };
 type NavGroup = { id: string; label: string; icon: string; items: NavLeaf[] };
 
 const flatTopItems: NavLeaf[] = [
-    { title: 'Overview', href: '/dashboard', icon: 'solar:widget-add-line-duotone' },
+    { title: 'Dashboard', href: '/dashboard', icon: 'solar:widget-add-line-duotone' },
     { title: 'Applications', href: '/applications', icon: 'solar:layers-line-duotone' },
     { title: 'Search Courses', href: '/courses', icon: 'solar:layers-line-duotone' },
     { title: 'Courses', href: '/course-details', icon: 'solar:layers-line-duotone' },
