@@ -143,8 +143,9 @@ class CourseDetailController extends Controller
             'year_wise_modules'                 => 'nullable|array',
             'year_wise_modules.*.year'          => 'required_with:year_wise_modules|integer|min:1',
             'year_wise_modules.*.title'         => 'nullable|string|max:255',
-            'year_wise_modules.*.modules'       => 'nullable|array',
-            'year_wise_modules.*.modules.*'     => 'string|max:255',
+            'year_wise_modules.*.modules'          => 'nullable|array',
+'year_wise_modules.*.modules.*.name'   => 'required|string|max:255',
+'year_wise_modules.*.modules.*.info'   => 'nullable|string|max:500',
 
             'fees'                              => 'nullable|array',
             'fees.*.year'                       => 'required_with:fees|integer|min:1',
