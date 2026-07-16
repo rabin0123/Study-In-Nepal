@@ -337,7 +337,7 @@ export default function AppSidebarLayout({ children }: Props) {
                 }
                 @media (min-width: 992px) {
                     .topbar-controls {
-                        display: block !important;
+                        display: flex !important;
                     }
                 }
 
@@ -383,6 +383,32 @@ export default function AppSidebarLayout({ children }: Props) {
                     display: flex !important;
                     align-items: center;
                     justify-content: center;
+                }
+
+                /* Custom Search Bar Styles */
+                .nav-search-bar {
+                    background-color: #f2f4f7;
+                    border: 1px solid #dcdfe3;
+                    border-radius: 50px;
+                    transition: all 0.2s ease-in-out;
+                }
+                .nav-search-bar:focus-within {
+                    background-color: #ffffff;
+                    border-color: var(--bs-primary, #5d87ff);
+                    box-shadow: 0 0 0 3px rgba(93, 135, 255, 0.15);
+                }
+                
+                /* Support for Dark Mode */
+                html[data-bs-theme="dark"] .nav-search-bar,
+                html[data-theme="dark"] .nav-search-bar,
+                body[data-bs-theme="dark"] .nav-search-bar {
+                    background-color: rgba(255, 255, 255, 0.05);
+                    border-color: rgba(255, 255, 255, 0.1);
+                }
+                html[data-bs-theme="dark"] .nav-search-bar:focus-within,
+                html[data-theme="dark"] .nav-search-bar:focus-within,
+                body[data-bs-theme="dark"] .nav-search-bar:focus-within {
+                    background-color: transparent;
                 }
             `}</style>
 
@@ -464,283 +490,289 @@ export default function AppSidebarLayout({ children }: Props) {
                             </a>
 
                             <div
-                                className={`navbar-collapse justify-content-end topbar-controls ${mobileNavOpen ? 'topbar-controls-open' : ''}`}
+                                className={`navbar-collapse justify-content-between topbar-controls ${mobileNavOpen ? 'topbar-controls-open' : ''}`}
                                 id="navbarNav"
                             >
-                                <div className="d-flex align-items-center justify-content-between">
-                                    <ul className="navbar-nav flex-row mx-auto ms-lg-auto align-items-center justify-content-center">
-                                        
-                                        {/* Dynamic Inline Search Bar */}
-                                        <li className="nav-item position-relative me-3" style={{ minWidth: '240px', maxWidth: '320px' }}>
-                                            <div className="input-group input-group-sm">
-                                                <span className="input-group-text bg-transparent border-end-0">
-                                                    <iconify-icon icon="solar:magnifer-line-duotone" className="fs-5 text-muted" />
-                                                </span>
-                                                <input
-                                                    type="search"
-                                                    className="form-control border-start-0 ps-0"
-                                                    placeholder="Search Name or App ID..."
-                                                    value={searchQuery}
-                                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                                    onFocus={() => setShowResults(true)}
-                                                    onBlur={() => setTimeout(() => setShowResults(false), 200)}
-                                                />
-                                            </div>
+                                {/* Center Area: Centered Search Bar */}
+                                <div className="d-flex align-items-center justify-content-center mx-lg-auto my-3 my-lg-0 w-100" style={{ maxWidth: '400px' }}>
+                                    <div className="position-relative w-100 px-3 px-lg-0">
+                                        <div className="nav-search-bar d-flex align-items-center w-100 px-3 py-1" style={{ minHeight: '42px' }}>
+                                            {/* Flex shrink & explicit dimensions to prevent squishing on small screens */}
+                                            <iconify-icon 
+                                                icon="solar:magnifer-line-duotone" 
+                                                width="22" 
+                                                height="22" 
+                                                className="text-muted flex-shrink-0" 
+                                            />
+                                            <input
+                                                type="search"
+                                                className="form-control form-control-sm border-0 bg-transparent shadow-none ps-2 pe-0 flex-grow-1"
+                                                placeholder="Search Name or App ID..."
+                                                value={searchQuery}
+                                                onChange={(e) => setSearchQuery(e.target.value)}
+                                                onFocus={() => setShowResults(true)}
+                                                onBlur={() => setTimeout(() => setShowResults(false), 200)}
+                                                style={{ outline: 'none' }}
+                                            />
+                                        </div>
 
-                                            {/* Results Dropdown Overlay */}
-                                            {showResults && searchQuery.trim().length >= 2 && (
-                                                <div 
-                                                    className="dropdown-menu show position-absolute w-100 shadow mt-2 p-0 overflow-hidden" 
-                                                    style={{ zIndex: 1050, maxHeight: '280px', overflowY: 'auto' }}
-                                                >
-                                                    {isSearching ? (
-                                                        <div className="p-3 text-center text-muted small">
-                                                            <div className="spinner-border spinner-border-sm text-secondary me-2" role="status"></div>
-                                                            Searching...
-                                                        </div>
-                                                    ) : searchResults.length === 0 ? (
-                                                        <div className="p-3 text-center text-muted small">No applications found</div>
-                                                    ) : (
-                                                        <div className="list-group list-group-flush">
-                                                            {searchResults.map((app) => (
-                                                                <button
-                                                                    key={app.id}
-                                                                    type="button"
-                                                                    onClick={() => handleSearchClick(app.id)}
-                                                                    className="list-group-item list-group-item-action py-2 px-3 border-0 text-start"
-                                                                >
-                                                                    <div className="d-flex justify-content-between align-items-center">
-                                                                        <span className="fw-semibold text-body small d-inline-block text-truncate" style={{ maxWidth: '160px' }}>
-                                                                            {app.student_name}
-                                                                        </span>
-                                                                        <span className="badge bg-light text-secondary font-monospace small" style={{ fontSize: '0.7rem' }}>
-                                                                            {app.app_id}
-                                                                        </span>
-                                                                    </div>
-                                                                    {app.course_name && (
-                                                                        <div className="text-muted small text-truncate mt-1" style={{ fontSize: '0.72rem' }}>
-                                                                            {app.course_name}
-                                                                        </div>
-                                                                    )}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </li>
-
-                                        {/* Dark / light toggle */}
-                                        <li className="nav-item nav-icon-hover">
-                                            <a
-                                                className="nav-link moon dark-layout"
-                                                href="#"
-                                                onClick={(e) => e.preventDefault()}
-                                                suppressHydrationWarning={true}
+                                        {/* Results Dropdown Overlay */}
+                                        {showResults && searchQuery.trim().length >= 2 && (
+                                            <div 
+                                                className="dropdown-menu show position-absolute w-100 shadow mt-2 p-0 overflow-hidden" 
+                                                style={{ zIndex: 1050, maxHeight: '280px', overflowY: 'auto', top: '100%', left: 0 }}
                                             >
-                                                <iconify-icon
-                                                    icon="solar:moon-line-duotone"
-                                                    className="moon fs-6"
-                                                    suppressHydrationWarning={true}
-                                                />
-                                            </a>
-                                            <a
-                                                className="nav-link sun light-layout"
-                                                href="#"
-                                                onClick={(e) => e.preventDefault()}
-                                                suppressHydrationWarning={true}
-                                            >
-                                                <iconify-icon
-                                                    icon="solar:sun-2-line-duotone"
-                                                    className="sun fs-6"
-                                                    suppressHydrationWarning={true}
-                                                />
-                                            </a>
-                                        </li>
-
-                                        {/* Notifications */}
-                                        <li className="nav-item nav-icon-hover dropdown">
-                                            <a
-                                                className="nav-link position-relative"
-                                                href="#"
-                                                onClick={(e) => e.preventDefault()}
-                                                id="notifDropdown"
-                                                data-bs-toggle="dropdown"
-                                                aria-expanded="false"
-                                            >
-                                                <iconify-icon icon="solar:bell-bing-line-duotone" className="fs-6" />
-                                                {unreadCount > 0 && (
-                                                    <div className="notification text-bg-danger rounded-circle fs-1">{unreadCount}</div>
-                                                )}
-                                            </a>
-                                            <div className="dropdown-menu content-dd dropdown-menu-end dropdown-menu-animate-up" aria-labelledby="notifDropdown">
-                                                <div className="d-flex align-items-center justify-content-between py-3 px-7">
-                                                    <h5 className="mb-0 fs-5 fw-semibold">Notifications</h5>
-                                                    {unreadCount > 0 && (
-                                                        <button type="button" className="badge text-bg-primary rounded-4 px-3 py-1 lh-sm border-0" onClick={markAllAsRead}>
-                                                            Mark all read
-                                                        </button>
-                                                    )}
-                                                </div>
-                                                <div className="message-body sidebar-nav-scroll" onScroll={handleNotifScroll}>
-                                                    {loading && (
-                                                        <div className="py-6 px-7">
-                                                            <span className="fs-3">Loading…</span>
-                                                        </div>
-                                                    )}
-                                                    {!loading && notifications.length === 0 && (
-                                                        <div className="py-6 px-7">
-                                                            <span className="fs-3">No notifications yet.</span>
-                                                        </div>
-                                                    )}
-                                                    {notifications.map((n) => (
-                                                        <a
-                                                            key={n.id}
-                                                            href="#"
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
-                                                                handleNotificationClick(n);
-                                                            }}
-                                                            className="py-6 px-7 d-flex align-items-center dropdown-item gap-3"
-                                                        >
-                                                            <span className="flex-shrink-0 bg-primary-subtle rounded-circle round d-flex align-items-center justify-content-center fs-6 text-primary overflow-hidden">
-                                                                {n.data.avatar_url ? (
-                                                                    <img src={n.data.avatar_url} alt={n.data.student_name ?? 'Avatar'} className="w-100 h-100 object-fit-cover" />
-                                                                ) : (
-                                                                    (n.data.student_name ?? 'A').slice(0, 2).toUpperCase()
-                                                                )}
-                                                            </span>
-                                                            <div className="w-75 d-inline-block v-middle" style={{ minWidth: 0 }}>
-                                                                <div className="d-flex align-items-center justify-content-between" style={{ minWidth: 0 }}>
-                                                                    <h6 className="mb-1 notif-message fw-normal">{n.data.message}</h6>
+                                                {isSearching ? (
+                                                    <div className="p-3 text-center text-muted small">
+                                                        <div className="spinner-border spinner-border-sm text-secondary me-2" role="status"></div>
+                                                        Searching...
+                                                    </div>
+                                                ) : searchResults.length === 0 ? (
+                                                    <div className="p-3 text-center text-muted small">No applications found</div>
+                                                ) : (
+                                                    <div className="list-group list-group-flush">
+                                                        {searchResults.map((app) => (
+                                                            <button
+                                                                key={app.id}
+                                                                type="button"
+                                                                onClick={() => handleSearchClick(app.id)}
+                                                                className="list-group-item list-group-item-action py-2 px-3 border-0 text-start"
+                                                            >
+                                                                <div className="d-flex justify-content-between align-items-center">
+                                                                    <span className="fw-semibold text-body small d-inline-block text-truncate" style={{ maxWidth: '160px' }}>
+                                                                        {app.student_name}
+                                                                    </span>
+                                                                    <span className="badge bg-light text-secondary font-monospace small" style={{ fontSize: '0.7rem' }}>
+                                                                        {app.app_id}
+                                                                    </span>
                                                                 </div>
-                                                                <span className="d-block fs-2">{timeAgo(n.created_at)}</span>
-                                                            </div>
-                                                        </a>
-                                                    ))}
-
-                                                    {loadingMore && (
-                                                        <div className="py-4 px-7 d-flex justify-content-center">
-                                                            <div className="spinner-border spinner-border-sm text-primary" role="status">
-                                                                <span className="visually-hidden">Loading more…</span>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    {!loading && !hasMore && notifications.length > 0 && (
-                                                        <div className="py-3 px-7 text-center">
-                                                            <span className="fs-2 text-body-secondary">No more notifications</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className="py-6 px-7 mb-1">
-                                                    <Link href="/notifications" className="btn btn-outline-primary w-100">
-                                                        Notification history
-                                                    </Link>
-                                                </div>
+                                                                {app.course_name && (
+                                                                    <div className="text-muted small text-truncate mt-1" style={{ fontSize: '0.72rem' }}>
+                                                                        {app.course_name}
+                                                                    </div>
+                                                                )}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
-                                        </li>
+                                        )}
+                                    </div>
+                                </div>
 
-                                        {/* Profile dropdown */}
-                                        <li className="nav-item dropdown">
-                                            <a className="nav-link" href="#" onClick={(e) => e.preventDefault()} id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                                <div className="d-flex align-items-center gap-2 lh-base">
+                                {/* Right Area: Icons and User Profile */}
+                                <ul className="navbar-nav flex-row ms-lg-auto align-items-center justify-content-center pb-3 pb-lg-0">
+                                    
+                                    {/* Dark / light toggle */}
+                                    <li className="nav-item nav-icon-hover">
+                                        <a
+                                            className="nav-link moon dark-layout"
+                                            href="#"
+                                            onClick={(e) => e.preventDefault()}
+                                            suppressHydrationWarning={true}
+                                        >
+                                            <iconify-icon
+                                                icon="solar:moon-line-duotone"
+                                                className="moon fs-6"
+                                                suppressHydrationWarning={true}
+                                            />
+                                        </a>
+                                        <a
+                                            className="nav-link sun light-layout"
+                                            href="#"
+                                            onClick={(e) => e.preventDefault()}
+                                            suppressHydrationWarning={true}
+                                        >
+                                            <iconify-icon
+                                                icon="solar:sun-2-line-duotone"
+                                                className="sun fs-6"
+                                                suppressHydrationWarning={true}
+                                            />
+                                        </a>
+                                    </li>
+
+                                    {/* Notifications */}
+                                    <li className="nav-item nav-icon-hover dropdown">
+                                        <a
+                                            className="nav-link position-relative"
+                                            href="#"
+                                            onClick={(e) => e.preventDefault()}
+                                            id="notifDropdown"
+                                            data-bs-toggle="dropdown"
+                                            aria-expanded="false"
+                                        >
+                                            <iconify-icon icon="solar:bell-bing-line-duotone" className="fs-6" />
+                                            {unreadCount > 0 && (
+                                                <div className="notification text-bg-danger rounded-circle fs-1">{unreadCount}</div>
+                                            )}
+                                        </a>
+                                        <div className="dropdown-menu content-dd dropdown-menu-end dropdown-menu-animate-up" aria-labelledby="notifDropdown">
+                                            <div className="d-flex align-items-center justify-content-between py-3 px-7">
+                                                <h5 className="mb-0 fs-5 fw-semibold">Notifications</h5>
+                                                {unreadCount > 0 && (
+                                                    <button type="button" className="badge text-bg-primary rounded-4 px-3 py-1 lh-sm border-0" onClick={markAllAsRead}>
+                                                        Mark all read
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <div className="message-body sidebar-nav-scroll" onScroll={handleNotifScroll}>
+                                                {loading && (
+                                                    <div className="py-6 px-7">
+                                                        <span className="fs-3">Loading…</span>
+                                                    </div>
+                                                )}
+                                                {!loading && notifications.length === 0 && (
+                                                    <div className="py-6 px-7">
+                                                        <span className="fs-3">No notifications yet.</span>
+                                                    </div>
+                                                )}
+                                                {notifications.map((n) => (
+                                                    <a
+                                                        key={n.id}
+                                                        href="#"
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            handleNotificationClick(n);
+                                                        }}
+                                                        className="py-6 px-7 d-flex align-items-center dropdown-item gap-3"
+                                                    >
+                                                        <span className="flex-shrink-0 bg-primary-subtle rounded-circle round d-flex align-items-center justify-content-center fs-6 text-primary overflow-hidden">
+                                                            {n.data.avatar_url ? (
+                                                                <img src={n.data.avatar_url} alt={n.data.student_name ?? 'Avatar'} className="w-100 h-100 object-fit-cover" />
+                                                            ) : (
+                                                                (n.data.student_name ?? 'A').slice(0, 2).toUpperCase()
+                                                            )}
+                                                        </span>
+                                                        <div className="w-75 d-inline-block v-middle" style={{ minWidth: 0 }}>
+                                                            <div className="d-flex align-items-center justify-content-between" style={{ minWidth: 0 }}>
+                                                                <h6 className="mb-1 notif-message fw-normal">{n.data.message}</h6>
+                                                            </div>
+                                                            <span className="d-block fs-2">{timeAgo(n.created_at)}</span>
+                                                        </div>
+                                                    </a>
+                                                ))}
+
+                                                {loadingMore && (
+                                                    <div className="py-4 px-7 d-flex justify-content-center">
+                                                        <div className="spinner-border spinner-border-sm text-primary" role="status">
+                                                            <span className="visually-hidden">Loading more…</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {!loading && !hasMore && notifications.length > 0 && (
+                                                    <div className="py-3 px-7 text-center">
+                                                        <span className="fs-2 text-body-secondary">No more notifications</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="py-6 px-7 mb-1">
+                                                <Link href="/notifications" className="btn btn-outline-primary w-100">
+                                                    Notification history
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    </li>
+
+                                    {/* Profile dropdown */}
+                                    <li className="nav-item dropdown">
+                                        <a className="nav-link" href="#" onClick={(e) => e.preventDefault()} id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <div className="d-flex align-items-center gap-2 lh-base">
+                                                {auth?.user?.avatar_url ? (
+                                                    <img src={auth.user.avatar_url} className="rounded-circle" width={35} height={35} alt={auth?.user?.name} />
+                                                ) : (
+                                                    <span
+                                                        className="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center fw-bold"
+                                                        style={{ width: 35, height: 35, fontSize: '0.75rem' }}
+                                                    >
+                                                        {userInitials}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </a>
+                                        <div className="dropdown-menu content-dd dropdown-menu-end dropdown-menu-animate-up" aria-labelledby="profileDropdown">
+                                            <div className="profile-dropdown position-relative sidebar-nav-scroll">
+                                                <div className="py-3 px-7 pb-0">
+                                                    <h5 className="mb-0 fs-5 fw-semibold">User Profile</h5>
+                                                </div>
+                                                <div className="d-flex align-items-center py-9 mx-7 border-bottom">
                                                     {auth?.user?.avatar_url ? (
-                                                        <img src={auth.user.avatar_url} className="rounded-circle" width={35} height={35} alt={auth?.user?.name} />
+                                                        <img src={auth.user.avatar_url} className="rounded-circle" width={80} height={80} alt={auth?.user?.name} />
                                                     ) : (
                                                         <span
-                                                            className="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center fw-bold"
-                                                            style={{ width: 35, height: 35, fontSize: '0.75rem' }}
+                                                            className="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center fw-bold fs-4"
+                                                            style={{ width: 80, height: 80 }}
                                                         >
                                                             {userInitials}
                                                         </span>
                                                     )}
+                                                    <div className="ms-3 d-flex flex-column">
+                                                        <h5 className="mb-1 fs-4">
+                                                            {auth?.user?.name || 'User'}
+                                                        </h5>
+                                                        <span className="text-muted small">
+                                                            {auth?.user?.email || 'user@email.com'}
+                                                        </span>
+                                                        <span className="text-muted small">
+                                                            {auth?.user?.role || 'User Account'}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                            </a>
-                                            <div className="dropdown-menu content-dd dropdown-menu-end dropdown-menu-animate-up" aria-labelledby="profileDropdown">
-                                                <div className="profile-dropdown position-relative sidebar-nav-scroll">
-                                                    <div className="py-3 px-7 pb-0">
-                                                        <h5 className="mb-0 fs-5 fw-semibold">User Profile</h5>
-                                                    </div>
-                                                    <div className="d-flex align-items-center py-9 mx-7 border-bottom">
-                                                        {auth?.user?.avatar_url ? (
-                                                            <img src={auth.user.avatar_url} className="rounded-circle" width={80} height={80} alt={auth?.user?.name} />
-                                                        ) : (
-                                                            <span
-                                                                className="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center fw-bold fs-4"
-                                                                style={{ width: 80, height: 80 }}
-                                                            >
-                                                                {userInitials}
-                                                            </span>
-                                                        )}
-                                                        <div className="ms-3 d-flex flex-column">
-                                                            <h5 className="mb-1 fs-4">
-                                                                {auth?.user?.name || 'User'}
-                                                            </h5>
-                                                            <span className="text-muted small">
-                                                                {auth?.user?.email || 'user@email.com'}
-                                                            </span>
-                                                            <span className="text-muted small">
-                                                                {auth?.user?.role || 'User Account'}
-                                                            </span>
+                                                <div className="message-body">
+                                                    <Link href={`/users/${auth?.user?.id}`} className="py-8 px-7 mt-8 d-flex align-items-center">
+                                                        <span className="d-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded round">
+                                                            <iconify-icon icon="solar:settings-minimalistic-line-duotone" className="fs-7" />
+                                                        </span>
+                                                        <div className="w-75 v-middle ps-3">
+                                                            <h5 className="mb-1 fs-3 fw-medium">Manage Profile</h5>
+                                                            <span className="fs-2 d-block text-body-secondary">Account Settings</span>
                                                         </div>
-                                                    </div>
-                                                    <div className="message-body">
-                                                        <Link href={`/users/${auth?.user?.id}`} className="py-8 px-7 mt-8 d-flex align-items-center">
-                                                            <span className="d-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded round">
-                                                                <iconify-icon icon="solar:settings-minimalistic-line-duotone" className="fs-7" />
+                                                    </Link>
+
+                                                    {auth?.permissions?.includes('view.user') && (
+                                                        <Link href="/users" className="py-8 px-7 d-flex align-items-center">
+                                                            <span className="d-flex align-items-center justify-content-center bg-success-subtle text-success rounded round">
+                                                                <iconify-icon icon="solar:shield-user-line-duotone" className="fs-7" />
                                                             </span>
                                                             <div className="w-75 v-middle ps-3">
-                                                                <h5 className="mb-1 fs-3 fw-medium">Manage Profile</h5>
-                                                                <span className="fs-2 d-block text-body-secondary">Account Settings</span>
+                                                                <h5 className="mb-1 fs-3 fw-medium">Manage User</h5>
+                                                                <span className="fs-2 d-block text-body-secondary">Users & roles</span>
                                                             </div>
                                                         </Link>
+                                                    )}
 
-                                                        {auth?.permissions?.includes('view.user') && (
-                                                            <Link href="/users" className="py-8 px-7 d-flex align-items-center">
-                                                                <span className="d-flex align-items-center justify-content-center bg-success-subtle text-success rounded round">
-                                                                    <iconify-icon icon="solar:shield-user-line-duotone" className="fs-7" />
-                                                                </span>
-                                                                <div className="w-75 v-middle ps-3">
-                                                                    <h5 className="mb-1 fs-3 fw-medium">Manage User</h5>
-                                                                    <span className="fs-2 d-block text-body-secondary">Users & roles</span>
-                                                                </div>
-                                                            </Link>
-                                                        )}
-
-                                                        {auth?.permissions?.includes('view.agency') && (
-                                                            <Link href="/agencies" className="py-8 px-7 d-flex align-items-center">
-                                                                <span className="d-flex align-items-center justify-content-center bg-danger-subtle text-danger rounded round">
-                                                                    <iconify-icon icon="solar:course-up-line-duotone" className="fs-7" />
-                                                                </span>
-                                                                <div className="w-75 v-middle ps-3">
-                                                                    <h5 className="mb-1 fs-3 fw-medium">Manage Agency</h5>
-                                                                    <span className="fs-2 d-block text-body-secondary">Partner agencies</span>
-                                                                </div>
-                                                            </Link>
-                                                        )}
-
-                                                        {auth?.permissions?.includes('view.commissionindex') && (
-                                                            <Link href="/commission" className="py-8 px-7 d-flex align-items-center">
-                                                                <span className="d-flex align-items-center justify-content-center bg-warning-subtle text-warning rounded round">
-                                                                    <iconify-icon icon="solar:dollar-line-duotone" className="fs-7" />
-                                                                </span>
-                                                                <div className="w-75 v-middle ps-3">
-                                                                    <h5 className="mb-1 fs-3 fw-medium">Commission</h5>
-                                                                    <span className="fs-2 d-block text-body-secondary">Payouts & earnings</span>
-                                                                </div>
-                                                            </Link>
-                                                        )}
-                                                    </div>
-                                                    <div className="d-grid py-4 px-7 pt-8">
-                                                        <Link href="/logout" method="post" as="button" className="btn btn-primary">
-                                                            Log Out
+                                                    {auth?.permissions?.includes('view.agency') && (
+                                                        <Link href="/agencies" className="py-8 px-7 d-flex align-items-center">
+                                                            <span className="d-flex align-items-center justify-content-center bg-danger-subtle text-danger rounded round">
+                                                                <iconify-icon icon="solar:course-up-line-duotone" className="fs-7" />
+                                                            </span>
+                                                            <div className="w-75 v-middle ps-3">
+                                                                <h5 className="mb-1 fs-3 fw-medium">Manage Agency</h5>
+                                                                <span className="fs-2 d-block text-body-secondary">Partner agencies</span>
+                                                            </div>
                                                         </Link>
-                                                    </div>
+                                                    )}
+
+                                                    {auth?.permissions?.includes('view.commissionindex') && (
+                                                        <Link href="/commission" className="py-8 px-7 d-flex align-items-center">
+                                                            <span className="d-flex align-items-center justify-content-center bg-warning-subtle text-warning rounded round">
+                                                                <iconify-icon icon="solar:dollar-line-duotone" className="fs-7" />
+                                                            </span>
+                                                            <div className="w-75 v-middle ps-3">
+                                                                <h5 className="mb-1 fs-3 fw-medium">Commission</h5>
+                                                                <span className="fs-2 d-block text-body-secondary">Payouts & earnings</span>
+                                                            </div>
+                                                        </Link>
+                                                    )}
+                                                </div>
+                                                <div className="d-grid py-4 px-7 pt-8">
+                                                    <Link href="/logout" method="post" as="button" className="btn btn-primary">
+                                                        Log Out
+                                                    </Link>
                                                 </div>
                                             </div>
-                                        </li>
-                                    </ul>
-                                </div>
+                                        </div>
+                                    </li>
+                                </ul>
                             </div>
                         </nav>
                     </div>
