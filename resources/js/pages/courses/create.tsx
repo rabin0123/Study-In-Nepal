@@ -440,10 +440,20 @@ function RichTextEditor({ value, onChange, placeholder, error }: { value: string
                 contentEditable
                 onInput={(e) => onChange(e.currentTarget.innerHTML)}
                 onBlur={(e) => onChange(e.currentTarget.innerHTML)}
-                style={{ minHeight: 160, outline: 'none' }}
+                style={{ height: 200, overflowY: 'auto', outline: 'none' }}
                 data-placeholder={placeholder}
             />
-            <style>{`.editor-content:empty:before { content: attr(data-placeholder); color: #9ca3af; pointer-events: none; display: block; font-style: italic; }`}</style>
+            <style>{`
+                .editor-content:empty:before { content: attr(data-placeholder); color: #9ca3af; pointer-events: none; display: block; font-style: italic; }
+                .editor-content ul { list-style-type: disc; padding-left: 1.5rem; margin: 0.5rem 0; }
+                .editor-content ul ul { list-style-type: circle; }
+                .editor-content ul ul ul { list-style-type: square; }
+                .editor-content ol { list-style-type: decimal; padding-left: 1.5rem; margin: 0.5rem 0; }
+                .editor-content ol ol { list-style-type: lower-alpha; }
+                .editor-content ol ol ol { list-style-type: lower-roman; }
+                .editor-content li { display: list-item; margin: 0.15rem 0; }
+                .editor-content blockquote { border-left: 3px solid #e5e7eb; padding-left: 0.75rem; color: #6b7280; margin: 0.5rem 0; }
+            `}</style>
         </div>
     );
 }
@@ -939,7 +949,7 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                                                 </div>
                                             </div>
 
-                                            <div className="flex flex-col gap-2">
+                                            <div className="flex flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar" style={{ maxHeight: 220 }}>
                                                 {yearBlock.modules.map((moduleValue, moduleIndex) => (
                                                     <div key={moduleIndex} className="flex gap-2">
                                                         <div className="flex items-center flex-1 rounded-full border border-gray-200 bg-white shadow-sm overflow-hidden focus-within:border-[#008AE6] focus-within:ring-1 focus-within:ring-[#008AE6]">
