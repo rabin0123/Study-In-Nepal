@@ -587,8 +587,9 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
                                                             </span>
                                                         )}
                                                         <div className="ms-3">
-                                                            <h5 className="mb-0 fs-4">{auth?.user?.name || 'Partner'}</h5>
-                                                            <span className="mb-1 d-block">{auth?.user?.role || 'Partner Account'}</span>
+                                                            <h5 className="mb-0 fs-4">{auth?.user?.name || 'User'}</h5>
+                                                            <span className="mb-1 d-block">{auth?.user?.email || 'user@email.com'}</span>
+                                                            <span className="mb-1 d-block">{auth?.user?.role || 'User Account'}</span>
                                                         </div>
                                                     </div>
                                                     <div className="message-body">
