@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { Link } from "@inertiajs/react";
+import { Link, usePage } from "@inertiajs/react";
 
 // ── Helper to dynamically map stream to actual homepage assets ─────────────
 const getStreamImage = (stream: string, id: number): string => {
@@ -600,6 +600,22 @@ export default function CourseSearch() {
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   
+  // Flash and Toast states
+  const { props } = usePage();
+  const flash = props.flash as { error?: string; success?: string; toast?: string } | undefined;
+  const [localToast, setLocalToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    const message = flash?.toast || flash?.error;
+    if (message) {
+      setLocalToast(message);
+      const timer = setTimeout(() => {
+        setLocalToast(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [flash]);
+  
   // Filter states
   const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
   const [selectedStreams, setSelectedStreams] = useState<string[]>([]);
@@ -1052,6 +1068,30 @@ export default function CourseSearch() {
         />
       )}
 
+      {/* Local Toast Notification Pop-up */}
+      {localToast && (
+        <div 
+          className="position-fixed bottom-0 end-0 m-4 p-3 rounded-3 shadow-lg text-white d-flex align-items-center gap-2 border border-danger-subtle"
+          style={{ 
+            background: "#ef4444", 
+            zIndex: 3000,
+            fontSize: "14px",
+            animation: "fadeInUp 0.3s ease-out",
+            fontFamily: "'Manrope', sans-serif"
+          }}
+        >
+          <iconify-icon icon="solar:danger-triangle-bold" style={{ fontSize: "20px" }} />
+          <span>{localToast}</span>
+          <button 
+            onClick={() => setLocalToast(null)} 
+            className="btn btn-sm text-white p-0 ms-2"
+            style={{ background: "none", border: "none" }}
+          >
+            <iconify-icon icon="solar:close-circle-line-duotone" style={{ fontSize: "16px" }} />
+          </button>
+        </div>
+      )}
+
       {/* CSS Rules */}
       <style>{`
         .card-hover:hover {
@@ -1077,6 +1117,17 @@ export default function CourseSearch() {
         }
         .custom-scroll::-webkit-scrollbar-thumb:hover {
           background: #9ca3af;
+        }
+
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
       `}</style>
     </div>

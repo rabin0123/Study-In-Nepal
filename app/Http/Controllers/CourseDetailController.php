@@ -265,7 +265,7 @@ class CourseDetailController extends Controller
         ], 404);
     }
 
-    // 5. Redirect back to course search with standard "error" and "toast" flash parameters
+    // 5. Safe fallback redirect back to explore page carrying the error and toast parameters
     return redirect()->route('coursesearch')->with([
         'error' => 'No course details found',
         'toast' => 'No course details found'
