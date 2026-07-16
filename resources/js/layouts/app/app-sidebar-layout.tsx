@@ -586,11 +586,19 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
                                                                 {userInitials}
                                                             </span>
                                                         )}
-                                                        <div className="ms-3">
-                                                            <h5 className="mb-0 fs-4">{auth?.user?.name || 'User'}</h5>
-                                                            <span className="mb-1 d-block">{auth?.user?.email || 'user@email.com'}</span>
-                                                            <span className="mb-1 d-block">{auth?.user?.role || 'User Account'}</span>
-                                                        </div>
+                                                        <div className="ms-3 d-flex flex-column">
+    <h5 className="mb-1 fs-4">
+        {auth?.user?.name || 'User'}
+    </h5>
+
+    <span className="text-muted small">
+        {auth?.user?.email || 'user@email.com'}
+    </span>
+
+    <span className="text-muted small">
+        {auth?.user?.role || 'User Account'}
+    </span>
+</div>
                                                     </div>
                                                     <div className="message-body">
                                                         <Link href={`/users/${auth?.user?.id}`} className="py-8 px-7 mt-8 d-flex align-items-center">
