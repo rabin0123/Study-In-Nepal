@@ -45,36 +45,11 @@ const navGroups: NavGroup[] = [
 
 type Props = PropsWithChildren<{ breadcrumbs?: BreadcrumbItemType[] }>;
 
-// ---------------------------------------------------------------------------
-// Active-route helpers
-//
-// MaterialM's sidebarmenu-default.js sets `.active`/`.in` (expanded) classes
-// once, on the initial full page load, by comparing `window.location.href`
-// against each `<a>` at DOMContentLoaded time. Inertia navigates the SPA way
-// afterward, so that script never re-runs its active-state pass — the menu
-// would silently go stale after the first client-side navigation.
-//
-// So: click-to-expand / mobile-drawer toggling stays owned by the theme's
-// own JS (confirmed delegated on document/body — safe across DOM swaps),
-// but *which* item/group is marked active is computed here in React from
-// Inertia's current URL, on every navigation.
-// ---------------------------------------------------------------------------
 function useIsCurrentUrl() {
     const { url } = usePage();
     return (href: string) => url === href || url.startsWith(href + '/');
 }
 
-// ---------------------------------------------------------------------------
-// Notifications — data logic + lazy-loaded pagination, MaterialM dropdown markup
-//
-// The dropdown fetches page 1 on mount. As the user scrolls the dropdown
-// body near its bottom, subsequent pages are fetched and appended, with a
-// small spinner shown while each page loads. This assumes the backend
-// endpoint accepts a `page` query param and returns `has_more` (or an empty
-// `data` array) to signal there's nothing left to load — adjust `fetchPage`
-// below if your API's pagination shape differs (e.g. Laravel's default
-// paginator fields like `current_page` / `last_page`).
-// ---------------------------------------------------------------------------
 type NotificationRecord = {
     id: string;
     data: {
@@ -101,8 +76,8 @@ function timeAgo(iso: string): string {
 function useNotifications(userId?: number) {
     const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
-    const [loading, setLoading] = useState(true); // initial page load
-    const [loadingMore, setLoadingMore] = useState(false); // subsequent page loads
+    const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
 
@@ -129,7 +104,6 @@ function useNotifications(userId?: number) {
     useEffect(() => {
         if (!userId) return;
         fetchPage(1, true);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userId]);
 
     useEchoNotification(
@@ -200,12 +174,6 @@ function useNotifications(userId?: number) {
 }
 
 // ---------------------------------------------------------------------------
-// Dark / light — MaterialM's own theme.js toggles `data-bs-theme` on <html>
-// and reacts to clicks on `.moon`/`.sun` triggers itself (delegated), so we
-// don't need to reimplement toggle logic here.
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
 // Sidebar nav group (collapsible submenu) — MaterialM markup + classes
 // ---------------------------------------------------------------------------
 function NavGroupSection({ group }: { group: NavGroup }) {
@@ -213,12 +181,11 @@ function NavGroupSection({ group }: { group: NavGroup }) {
     const isActiveGroup = group.items.some((item) => isCurrentUrl(item.href));
 
     return (
-        // Changed 'selected' to 'active' on the parent li
         <li className={`sidebar-item ${isActiveGroup ? 'active' : ''}`}>
             <a
-                // Added the 'active' class to the parent anchor when expanded
                 className={`sidebar-link has-arrow ${isActiveGroup ? 'active' : ''}`}
-                href="javascript:void(0)"
+                href="#"
+                onClick={(e) => e.preventDefault()}
                 aria-expanded={isActiveGroup}
             >
                 <iconify-icon icon={group.icon}></iconify-icon>
@@ -227,7 +194,6 @@ function NavGroupSection({ group }: { group: NavGroup }) {
 
             <ul
                 aria-expanded={isActiveGroup}
-                // Changed 'show' to 'in' on the nested ul container
                 className={`collapse first-level ${isActiveGroup ? 'in' : ''}`}
             >
                 {group.items.map((item) => (
@@ -253,22 +219,9 @@ function NavGroupSection({ group }: { group: NavGroup }) {
         </li>
     );
 }
+
 // ---------------------------------------------------------------------------
 // Layout
-//
-// Vertical-only. MaterialM's CSS gates `.app-header.with-horizontal` /
-// `.left-sidebar.with-horizontal` behind `data-layout="horizontal"` on
-// <html>, and expects them to be used *as a pair* replacing the vertical
-// sidebar entirely (see MaterialM's own horizontal example: the "sidebar"
-// in that mode is a horizontal strip under the header, not a left rail).
-// Mixing that pair with a standalone vertical <aside> — which is what this
-// file previously did — leaves the header controls with no matching CSS
-// path to render against, so they silently collapse to nothing.
-//
-// Fix: single layout mode. Vertical sidebar + vertical topbar. Every
-// control (search, theme toggle, notifications, profile, breadcrumb) now
-// lives inside <header class="topbar"><div class="with-vertical"> exactly
-// as in MaterialM's own vertical-layout reference markup.
 // ---------------------------------------------------------------------------
 export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) {
     const page = usePage();
@@ -290,6 +243,7 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
 
     const [searchOpen, setSearchOpen] = useState(false);
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
+    
     useEffect(() => {
         if (!searchOpen) return;
         const onKeyDown = (e: KeyboardEvent) => {
@@ -299,8 +253,6 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
         return () => document.removeEventListener('keydown', onKeyDown);
     }, [searchOpen]);
 
-    // Scroll handler for the notifications dropdown body — fires loadMore()
-    // once the user scrolls within 40px of the bottom of the list.
     const handleNotifScroll = (e: React.UIEvent<HTMLDivElement>) => {
         const el = e.currentTarget;
         if (el.scrollHeight - el.scrollTop - el.clientHeight < 40) {
@@ -310,16 +262,6 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
 
     return (
         <div id="main-wrapper" className="materialm-scope">
-            {/* Plain-CSS scroll styling to replace SimpleBar.
-                SimpleBar rewraps whatever node it's attached to with extra
-                wrapper <div>s at runtime, outside of React's control. Since
-                React also renders into those same nodes on every update
-                (sidebar nav, dropdown bodies), the two were fighting over
-                the same subtree — SimpleBar's injected wrappers didn't
-                match what React expected to find there, and React's
-                reconciler threw removeChild errors trying to unmount/patch
-                nodes it no longer recognized. This class gives the same
-                slim-scrollbar look with zero DOM ownership conflicts. */}
             <style>{`
                 .sidebar-nav-scroll {
                     overflow-y: auto;
@@ -333,13 +275,6 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
                     border-radius: 999px;
                 }
 
-                /* Notification message: wrap onto its own lines instead of
-                   forcing the dropdown wider, clamp to 3 lines with an
-                   ellipsis if longer, render at normal weight (not bold),
-                   and use a smaller font size so it doesn't dominate the
-                   row. min-width: 0 is needed because this sits inside a
-                   flex row (d-flex) — flex items default to min-width: auto,
-                   which lets long unbroken text overflow instead of wrap. */
                 .notif-message {
                     display: -webkit-box;
                     -webkit-line-clamp: 3;
@@ -352,12 +287,6 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
                     line-height: 1.3;
                 }
 
-                /* Topbar controls (search, theme toggle, notifications,
-                   profile) — always visible on desktop, and driven by
-                   React state (mobileNavOpen) below the lg breakpoint
-                   instead of Bootstrap's collapse JS. This avoids the
-                   same DOM-ownership conflict SimpleBar had: nothing
-                   here depends on Bootstrap toggling display for us. */
                 .topbar-controls {
                     display: none;
                 }
@@ -370,13 +299,6 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
                     }
                 }
 
-                /* MaterialM's styles.css caps .container-fluid at a
-                   max-width when the theme's "boxed" container option is
-                   active (toggled via the customizer / a body class). We
-                   don't expose that customizer, so force true full-width
-                   here — otherwise pages render with a large empty gap
-                   on the right on wide viewports. !important is needed
-                   to beat the theme's own more specific boxed-mode rule. */
                 #main-wrapper .body-wrapper .container-fluid {
                     max-width: none !important;
                     width: 100% !important;
@@ -384,7 +306,7 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
             `}</style>
 
             {/* ── Vertical sidebar ── */}
-            <aside className="left-sidebar with-vertical">
+            <aside className="left-sidebar with-vertical" data-sidebar-theme="light">
                 <div>
                     <div className="brand-logo d-flex align-items-center justify-content-between">
                         <Link href={dashboard()} className="text-nowrap logo-img d-flex align-items-center gap-2">
@@ -428,16 +350,13 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
             </aside>
 
             <div className="page-wrapper">
-                {/* ── Vertical layout header ──
-                     Hamburger + logo (mobile) + all controls, merged into
-                     one nav. This replaces the old two-header setup
-                     (with-vertical topbar + with-horizontal app-header). */}
+                {/* ── Vertical layout header ── */}
                 <header className="topbar">
                     <div className="with-vertical">
                         <nav className="navbar navbar-expand-lg p-0">
                             <ul className="navbar-nav">
                                 <li className="nav-item nav-icon-hover ms-n3">
-                                    <a className="nav-link sidebartoggler" id="headerCollapse" href="javascript:void(0)">
+                                    <a className="nav-link sidebartoggler" id="headerCollapse" href="#" onClick={(e) => e.preventDefault()}>
                                         <iconify-icon icon="solar:hamburger-menu-line-duotone" className="fs-7" />
                                     </a>
                                 </li>
@@ -449,8 +368,11 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
 
                             <a
                                 className="navbar-toggler nav-icon-hover p-0 border-0"
-                                href="javascript:void(0)"
-                                onClick={() => setMobileNavOpen((v) => !v)}
+                                href="#"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    setMobileNavOpen((v) => !v);
+                                }}
                                 aria-controls="navbarNav"
                                 aria-expanded={mobileNavOpen}
                                 aria-label="Toggle navigation"
@@ -473,22 +395,22 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
 
                                         {/* Search */}
                                         <li className="nav-item nav-icon-hover d-none d-lg-block">
-                                            <a className="nav-link" href="javascript:void(0)" onClick={() => setSearchOpen(true)}>
+                                            <a className="nav-link" href="#" onClick={(e) => { e.preventDefault(); setSearchOpen(true); }}>
                                                 <iconify-icon icon="solar:magnifer-line-duotone" className="fs-6" />
                                             </a>
                                         </li>
                                         <li className="nav-item nav-icon-hover d-block d-lg-none">
-                                            <a className="nav-link" href="javascript:void(0)" onClick={() => setSearchOpen(true)}>
+                                            <a className="nav-link" href="#" onClick={(e) => { e.preventDefault(); setSearchOpen(true); }}>
                                                 <iconify-icon icon="solar:magnifer-line-duotone" className="fs-6" />
                                             </a>
                                         </li>
 
-                                        {/* Dark / light toggle — handled by theme.js (delegated on .moon/.sun) */}
+                                        {/* Dark / light toggle */}
                                         <li className="nav-item nav-icon-hover">
-                                            <a className="nav-link moon dark-layout" href="javascript:void(0)">
+                                            <a className="nav-link moon dark-layout" href="#" onClick={(e) => e.preventDefault()}>
                                                 <iconify-icon icon="solar:moon-line-duotone" className="moon fs-6" />
                                             </a>
-                                            <a className="nav-link sun light-layout" href="javascript:void(0)">
+                                            <a className="nav-link sun light-layout" href="#" onClick={(e) => e.preventDefault()}>
                                                 <iconify-icon icon="solar:sun-2-line-duotone" className="sun fs-6" />
                                             </a>
                                         </li>
@@ -497,7 +419,8 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
                                         <li className="nav-item nav-icon-hover dropdown">
                                             <a
                                                 className="nav-link position-relative"
-                                                href="javascript:void(0)"
+                                                href="#"
+                                                onClick={(e) => e.preventDefault()}
                                                 id="notifDropdown"
                                                 data-bs-toggle="dropdown"
                                                 aria-expanded="false"
@@ -530,8 +453,11 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
                                                     {notifications.map((n) => (
                                                         <a
                                                             key={n.id}
-                                                            href="javascript:void(0)"
-                                                            onClick={() => handleNotificationClick(n)}
+                                                            href="#"
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                handleNotificationClick(n);
+                                                            }}
                                                             className="py-6 px-7 d-flex align-items-center dropdown-item gap-3"
                                                         >
                                                             <span className="flex-shrink-0 bg-primary-subtle rounded-circle round d-flex align-items-center justify-content-center fs-6 text-primary overflow-hidden">
@@ -573,7 +499,7 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
 
                                         {/* Profile dropdown */}
                                         <li className="nav-item dropdown">
-                                            <a className="nav-link" href="javascript:void(0)" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <a className="nav-link" href="#" onClick={(e) => e.preventDefault()} id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                                 <div className="d-flex align-items-center gap-2 lh-base">
                                                     {auth?.user?.avatar_url ? (
                                                         <img src={auth.user.avatar_url} className="rounded-circle" width={35} height={35} alt={auth?.user?.name} />
@@ -604,18 +530,16 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
                                                             </span>
                                                         )}
                                                         <div className="ms-3 d-flex flex-column">
-    <h5 className="mb-1 fs-4">
-        {auth?.user?.name || 'User'}
-    </h5>
-
-    <span className="text-muted small">
-        {auth?.user?.email || 'user@email.com'}
-    </span>
-
-    <span className="text-muted small">
-        {auth?.user?.role || 'User Account'}
-    </span>
-</div>
+                                                            <h5 className="mb-1 fs-4">
+                                                                {auth?.user?.name || 'User'}
+                                                            </h5>
+                                                            <span className="text-muted small">
+                                                                {auth?.user?.email || 'user@email.com'}
+                                                            </span>
+                                                            <span className="text-muted small">
+                                                                {auth?.user?.role || 'User Account'}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                     <div className="message-body">
                                                         <Link href={`/users/${auth?.user?.id}`} className="py-8 px-7 mt-8 d-flex align-items-center">
@@ -678,18 +602,8 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
                         </nav>
                     </div>
                 </header>
-                {/* ── /Vertical header ── */}
 
-                {/* ── Search modal ──
-                     React-controlled (open/close via state), not Bootstrap's
-                     data-bs-toggle="modal" JS lifecycle. Bootstrap's modal.js
-                     moves/toggles nodes (backdrop, aria-hidden, focus trap)
-                     outside of React's tracked tree; since this same subtree
-                     is also rendered by React on every pass, the two fought
-                     over ownership and caused a removeChild crash on Inertia
-                     navigation. Visual classes are kept so it still looks
-                     identical to the MaterialM modal; only the show/hide
-                     mechanism changed. */}
+                {/* ── Search modal ── */}
                 {searchOpen && (
                     <div
                         className="modal fade show d-block"
@@ -704,7 +618,7 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
                             <div className="modal-content rounded">
                                 <div className="modal-header border-bottom">
                                     <input type="search" className="form-control fs-3" placeholder="Search here" id="search" autoFocus />
-                                    <a href="javascript:void(0)" onClick={() => setSearchOpen(false)} className="lh-1">
+                                    <a href="#" onClick={(e) => { e.preventDefault(); setSearchOpen(false); }} className="lh-1">
                                         <i className="ti ti-x fs-5 ms-3"></i>
                                     </a>
                                 </div>
