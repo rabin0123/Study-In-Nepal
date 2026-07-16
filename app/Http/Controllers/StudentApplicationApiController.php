@@ -1005,4 +1005,26 @@ class StudentApplicationApiController extends Controller
             'data' => $application->load('creator', 'assignedAgent'),
         ]);
     }
+     public function search(Request $request)
+    {
+        $query = $request->input('query');
+
+        if (empty($query) || strlen($query) < 2) {
+            return response()->json([
+                'success' => true,
+                'data' => []
+            ]);
+        }
+
+        $results = StudentApplication::query()
+            ->where('student_name', 'like', '%' . $query . '%')
+            ->orWhere('app_id', 'like', '%' . $query . '%')
+            ->limit(5)
+            ->get(['id', 'student_name', 'app_id', 'course_name']);
+
+        return response()->json([
+            'success' => true,
+            'data' => $results
+        ]);
+    }
 }
