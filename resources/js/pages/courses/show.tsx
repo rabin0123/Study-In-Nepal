@@ -382,7 +382,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                                     <td className="fw-bold text-primary px-3">
                                                         {fee.amount ? `${fee.currency ?? ''} ${fee.amount}`.trim() : '—'}
                                                     </td>
-                                                    <td className="text-secondary px-3">{fee.note || '—'}</td>
+                                                    <td className="px-3">{fee.note || '—'}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
