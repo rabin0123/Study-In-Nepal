@@ -194,7 +194,7 @@ export default function Dashboard() {
                                     </div>
                                 ) : (
                                     <div className="table-responsive">
-                                        <table className="table table-hover align-middle mb-0">
+                                        <table className="table table-hover align-middle mb-0 table-group-divider">
                                             <thead className="border-bottom border-secondary-subtle">
     <tr className="text-muted text-uppercase" style={{ fontSize: '0.75rem', letterSpacing: '0.05em' }}>
         <th className="px-4 py-3">App ID</th>
