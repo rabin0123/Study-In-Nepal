@@ -181,40 +181,49 @@ class CourseDetailController extends Controller
 }
 public function resolve(Request $request)
 {
-    $university = trim($request->query('university'));
-    $college = trim($request->query('college'));
-    $course = trim($request->query('course'));
+    $university = $request->query('university');
+    $college = $request->query('college');
+    $course = $request->query('course');
 
-    // १. सुरुमा डेटाबेसमा हुबहु मिल्ने रेकर्ड छ कि खोज्ने (Fastest Lookup)
+    // 1. Attempt exact database match first (fastest)
     $courseDetail = CourseDetail::where('university_name', $university)
         ->where('college_name', $college)
         ->where('course_name', $course)
         ->first();
 
-    // २. यदि हुबहु भेटिएन भने सानातिना स्पेस वा सिम्बल फरक हुन सक्ने हुँदा सफा गरेर म्याच गर्ने
+    // 2. Fallback: Fuzzy substring match to bridge regional/naming variations
+    // (e.g. "Glasgow Caledonian University, Scotland" matching "Glasgow Caledonian University")
     if (!$courseDetail) {
         $normalize = function ($string) {
             if (!$string) return '';
+            // Lowercase and remove all non-alphanumeric characters
             return preg_replace('/[^a-z0-9]/', '', strtolower(trim($string)));
         };
-        
-        $normUni = $normalize($university);
-        $normCol = $normalize($college);
-        $normCourse = $normalize($course);
 
-        $courseDetail = CourseDetail::all()->first(function ($detail) use ($normalize, $normUni, $normCol, $normCourse) {
-            return $normalize($detail->university_name) === $normUni &&
-                   $normalize($detail->college_name) === $normCol &&
-                   $normalize($detail->course_name) === $normCourse;
+        $normUniReq = $normalize($university);
+        $normColReq = $normalize($college);
+        $normCourseReq = $normalize($course);
+
+        $courseDetail = CourseDetail::all()->first(function ($detail) use ($normalize, $normUniReq, $normColReq, $normCourseReq) {
+            $normUniDb = $normalize($detail->university_name);
+            $normColDb = $normalize($detail->college_name);
+            $normCourseDb = $normalize($detail->course_name);
+
+            // True if identical, or if one is a clean substring of the other
+            $uniMatches = ($normUniDb === $normUniReq || str_contains($normUniDb, $normUniReq) || str_contains($normUniReq, $normUniDb));
+            $colMatches = ($normColDb === $normColReq || str_contains($normColDb, $normColReq) || str_contains($normColReq, $normColDb));
+            $courseMatches = ($normCourseDb === $normCourseReq || str_contains($normCourseDb, $normCourseReq) || str_contains($normCourseReq, $normCourseDb));
+
+            return $uniMatches && $colMatches && $courseMatches;
         });
     }
 
-    // ३. रेकर्ड फेला परेमा यसको वास्तविक विवरण पेजमा Redirect गरिदिने
+    // 3. If a match is found in course_details, redirect to the matching UUID route
     if ($courseDetail) {
-        return redirect()->action([CourseDetailController::class, 'show'], ['courseDetail' => $courseDetail->uuid]);
+        return redirect('/course/' . $courseDetail->uuid);
     }
 
-    // रेकर्ड नभेटिएमा पुरानै पेजमा फिर्ता पठाइदिने
-    return redirect()->back()->with('error', 'यो कोर्सको स्थानीय विवरण फेला परेन।');
+    // Fallback if no matching entry is found
+    return redirect()->back()->with('error', 'Matching course details not found.');
 }
 }
