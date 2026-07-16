@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import { getNames } from "country-list";
+import { notify } from "@/lib/toast";
 
 // ── interfaces ──
 interface ComboboxInputProps { placeholder?: string; value: string; onChange: (val: string) => void; options: string[] }
@@ -215,10 +216,8 @@ function ComboboxInput({ placeholder, value, onChange, options }: ComboboxInputP
 }
 
 export default function StudentApplicationForm() {
-  const [step, setStep] = useState<"form" | "success">("form");
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
 
   const [apiData, setApiData] = useState<UniversityItem[]>([]);
   const [commissions, setCommissions] = useState<CommissionData[]>([]);
@@ -238,12 +237,7 @@ export default function StudentApplicationForm() {
   const set = <K extends keyof ApplicationFormState>(key: K, val: ApplicationFormState[K]) =>
     setForm((f) => ({ ...f, [key]: val }));
 
-  const resetForm = () => { setForm(initialFormState); setStep("form"); };
-
-  const fail = (message: string) => {
-    setError(message);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  const resetForm = () => setForm(initialFormState);
 
   useEffect(() => {
     const fetchUniversity = fetch("https://www.admin.studyinnepal.com/api/university")
@@ -307,21 +301,20 @@ export default function StudentApplicationForm() {
   }, [form.country]);
 
   const handleSubmit = async () => {
-    if (!form.student_name.trim()) return fail("Please enter the student's full name.");
-    if (!form.country) return fail("Please select the student's country.");
+    if (!form.student_name.trim()) return notify.error("Missing required field", "Please enter the student's full name.");
+    if (!form.country) return notify.error("Missing required field", "Please select the student's country.");
 
-    if (!form.address_line_1.trim()) return fail("Please enter Address Line 1.");
-    if (!form.city.trim()) return fail("Please enter the city.");
-    if (!form.state_province_region.trim()) return fail(`Please enter the ${addressConfig.stateLabel}.`);
+    if (!form.address_line_1.trim()) return notify.error("Missing required field", "Please enter Address Line 1.");
+    if (!form.city.trim()) return notify.error("Missing required field", "Please enter the city.");
+    if (!form.state_province_region.trim()) return notify.error("Missing required field", `Please enter the ${addressConfig.stateLabel}.`);
     if (addressConfig.isPostalRequired && !form.postal_code.trim()) {
-      return fail(`Please enter the ${addressConfig.postalLabel}.`);
+      return notify.error("Missing required field", `Please enter the ${addressConfig.postalLabel}.`);
     }
 
-    if (!form.university_name.trim()) return fail("Please select a university name from the dropdown.");
-    if (!form.college_name.trim()) return fail("Please select a college name from the dropdown.");
-    if (!form.course_name.trim()) return fail("Please select a course name from the dropdown.");
+    if (!form.university_name.trim()) return notify.error("Missing required field", "Please select a university name from the dropdown.");
+    if (!form.college_name.trim()) return notify.error("Missing required field", "Please select a college name from the dropdown.");
+    if (!form.course_name.trim()) return notify.error("Missing required field", "Please select a course name from the dropdown.");
 
-    setError("");
     setSubmitting(true);
     try {
       const payload = {
@@ -348,10 +341,11 @@ export default function StudentApplicationForm() {
         const firstError = body?.errors ? Object.values(body.errors)[0] : null;
         throw new Error(Array.isArray(firstError) ? firstError[0] : body?.message || "Server error");
       }
-      setStep("success");
+
+      notify.success("Application submitted", "Our team will review it shortly.");
+      resetForm();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Submission failed. Please try again.");
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      notify.error("Submission failed", e instanceof Error ? e.message : "Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -543,13 +537,6 @@ export default function StudentApplicationForm() {
           </div>
         </div>
 
-        {error && (
-          <div className="alert alert-danger d-flex align-items-center gap-2 mb-6" role="alert">
-            <iconify-icon icon="solar:danger-triangle-line-duotone" className="fs-5"></iconify-icon>
-            <span>{error}</span>
-          </div>
-        )}
-
         {/* ── Section A: Student Details ── */}
         <div className="card mb-6">
           <div className="card-body">
@@ -711,50 +698,6 @@ export default function StudentApplicationForm() {
         </div>
 
       </div>
-
-      {/* ── Success Modal ── */}
-      {step === "success" && (
-        <div
-          className="modal fade show d-block"
-          tabIndex={-1}
-          role="dialog"
-          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) resetForm();
-          }}
-        >
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content rounded-4 text-center">
-              <div className="modal-body p-8">
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="btn-close position-absolute"
-                  style={{ top: "1.25rem", right: "1.25rem" }}
-                  aria-label="Close"
-                ></button>
-
-                <span className="d-inline-flex align-items-center justify-content-center bg-success-subtle text-success rounded-circle mb-4 round-64">
-                  <iconify-icon icon="solar:check-circle-bold-duotone" className="fs-8"></iconify-icon>
-                </span>
-
-                <h4 className="fw-semibold mb-2">Application Submitted</h4>
-                <p className="text-body-secondary mb-0">
-                  The student application has been submitted successfully. Our team will review it shortly.
-                </p>
-
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="btn btn-primary mt-6"
-                >
-                  Submit Another
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }
