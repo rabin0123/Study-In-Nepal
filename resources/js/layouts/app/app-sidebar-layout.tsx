@@ -5,9 +5,6 @@ import { useInitials } from '@/hooks/use-initials';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem as BreadcrumbItemType } from '@/types';
 
-// ---------------------------------------------------------------------------
-// Nav data — same items as before, rendered with MaterialM markup
-// ---------------------------------------------------------------------------
 type NavLeaf = { title: string; href: string; icon: string };
 type NavGroup = { id: string; label: string; icon: string; items: NavLeaf[] };
 
@@ -61,6 +58,13 @@ type NotificationRecord = {
     read_at: string | null;
     created_at: string;
 };
+
+interface SearchResult {
+    id: number;
+    student_name: string;
+    app_id: string;
+    course_name?: string;
+}
 
 function timeAgo(iso: string): string {
     const diffMs = Date.now() - new Date(iso).getTime();
@@ -172,9 +176,6 @@ function useNotifications(userId?: number) {
     };
 }
 
-// ---------------------------------------------------------------------------
-// Sidebar nav group (collapsible submenu) — Managed entirely by React State
-// ---------------------------------------------------------------------------
 function NavGroupSection({ group }: { group: NavGroup }) {
     const isCurrentUrl = useIsCurrentUrl();
     const isActiveGroup = group.items.some((item) => isCurrentUrl(item.href));
@@ -230,9 +231,6 @@ function NavGroupSection({ group }: { group: NavGroup }) {
     );
 }
 
-// ---------------------------------------------------------------------------
-// Layout
-// ---------------------------------------------------------------------------
 export default function AppSidebarLayout({ children }: Props) {
     const page = usePage();
     const { auth } = page.props as any;
@@ -251,17 +249,51 @@ export default function AppSidebarLayout({ children }: Props) {
 
     const userInitials = useMemo(() => getInitials(auth?.user?.name ?? 'User'), [auth?.user?.name, getInitials]);
 
-    const [searchOpen, setSearchOpen] = useState(false);
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
+    // Dynamic Search States
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [showResults, setShowResults] = useState(false);
+
+    // Debounced search logic for querying applications
     useEffect(() => {
-        if (!searchOpen) return;
-        const onKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') setSearchOpen(false);
-        };
-        document.addEventListener('keydown', onKeyDown);
-        return () => document.removeEventListener('keydown', onKeyDown);
-    }, [searchOpen]);
+        if (searchQuery.trim().length < 2) {
+            setSearchResults([]);
+            return;
+        }
+
+        setIsSearching(true);
+        const debounceTimer = setTimeout(() => {
+            fetch(`/api/applications/search?query=${encodeURIComponent(searchQuery)}`, {
+                headers: { Accept: 'application/json' },
+            })
+                .then((res) => res.json())
+                .then((res) => {
+                    if (res.success && Array.isArray(res.data)) {
+                        setSearchResults(res.data);
+                    } else {
+                        setSearchResults([]);
+                    }
+                })
+                .catch((err) => {
+                    console.error('Failed to search applications', err);
+                    setSearchResults([]);
+                })
+                .finally(() => {
+                    setIsSearching(false);
+                });
+        }, 300);
+
+        return () => clearTimeout(debounceTimer);
+    }, [searchQuery]);
+
+    const handleSearchClick = (id: number) => {
+        router.visit(`/applications/${id}`);
+        setSearchQuery('');
+        setShowResults(false);
+    };
 
     const handleNotifScroll = (e: React.UIEvent<HTMLDivElement>) => {
         const el = e.currentTarget;
@@ -314,7 +346,6 @@ export default function AppSidebarLayout({ children }: Props) {
                     width: 100% !important;
                 }
 
-                /* Force visible expanded submenu states and bypass legacy lock transitions */
                 #sidebarnav .sidebar-item.active > .first-level,
                 #sidebarnav .first-level.show,
                 #sidebarnav .first-level.in {
@@ -325,7 +356,6 @@ export default function AppSidebarLayout({ children }: Props) {
                     overflow: visible !important;
                 }
 
-                /* Ensure closed states are strictly hidden */
                 #sidebarnav .first-level:not(.show):not(.in) {
                     display: none !important;
                     height: 0 !important;
@@ -333,7 +363,6 @@ export default function AppSidebarLayout({ children }: Props) {
                     visibility: hidden !important;
                 }
 
-                /* ── Theme Switch Controls Display Rules ── */
                 .dark-layout {
                     display: flex !important;
                     align-items: center;
@@ -441,16 +470,64 @@ export default function AppSidebarLayout({ children }: Props) {
                                 <div className="d-flex align-items-center justify-content-between">
                                     <ul className="navbar-nav flex-row mx-auto ms-lg-auto align-items-center justify-content-center">
                                         
-                                        {/* Search */}
-                                        <li className="nav-item nav-icon-hover d-none d-lg-block">
-                                            <a className="nav-link" href="#" onClick={(e) => { e.preventDefault(); setSearchOpen(true); }}>
-                                                <iconify-icon icon="solar:magnifer-line-duotone" className="fs-6" />
-                                            </a>
-                                        </li>
-                                        <li className="nav-item nav-icon-hover d-block d-lg-none">
-                                            <a className="nav-link" href="#" onClick={(e) => { e.preventDefault(); setSearchOpen(true); }}>
-                                                <iconify-icon icon="solar:magnifer-line-duotone" className="fs-6" />
-                                            </a>
+                                        {/* Dynamic Inline Search Bar */}
+                                        <li className="nav-item position-relative me-3" style={{ minWidth: '240px', maxWidth: '320px' }}>
+                                            <div className="input-group input-group-sm">
+                                                <span className="input-group-text bg-transparent border-end-0">
+                                                    <iconify-icon icon="solar:magnifer-line-duotone" className="fs-5 text-muted" />
+                                                </span>
+                                                <input
+                                                    type="search"
+                                                    className="form-control border-start-0 ps-0"
+                                                    placeholder="Search Name or App ID..."
+                                                    value={searchQuery}
+                                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                                    onFocus={() => setShowResults(true)}
+                                                    onBlur={() => setTimeout(() => setShowResults(false), 200)}
+                                                />
+                                            </div>
+
+                                            {/* Results Dropdown Overlay */}
+                                            {showResults && searchQuery.trim().length >= 2 && (
+                                                <div 
+                                                    className="dropdown-menu show position-absolute w-100 shadow mt-2 p-0 overflow-hidden" 
+                                                    style={{ zIndex: 1050, maxHeight: '280px', overflowY: 'auto' }}
+                                                >
+                                                    {isSearching ? (
+                                                        <div className="p-3 text-center text-muted small">
+                                                            <div className="spinner-border spinner-border-sm text-secondary me-2" role="status"></div>
+                                                            Searching...
+                                                        </div>
+                                                    ) : searchResults.length === 0 ? (
+                                                        <div className="p-3 text-center text-muted small">No applications found</div>
+                                                    ) : (
+                                                        <div className="list-group list-group-flush">
+                                                            {searchResults.map((app) => (
+                                                                <button
+                                                                    key={app.id}
+                                                                    type="button"
+                                                                    onClick={() => handleSearchClick(app.id)}
+                                                                    className="list-group-item list-group-item-action py-2 px-3 border-0 text-start"
+                                                                >
+                                                                    <div className="d-flex justify-content-between align-items-center">
+                                                                        <span className="fw-semibold text-body small d-inline-block text-truncate" style={{ maxWidth: '160px' }}>
+                                                                            {app.student_name}
+                                                                        </span>
+                                                                        <span className="badge bg-light text-secondary font-monospace small" style={{ fontSize: '0.7rem' }}>
+                                                                            {app.app_id}
+                                                                        </span>
+                                                                    </div>
+                                                                    {app.course_name && (
+                                                                        <div className="text-muted small text-truncate mt-1" style={{ fontSize: '0.72rem' }}>
+                                                                            {app.course_name}
+                                                                        </div>
+                                                                    )}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
                                         </li>
 
                                         {/* Dark / light toggle */}
@@ -668,31 +745,6 @@ export default function AppSidebarLayout({ children }: Props) {
                         </nav>
                     </div>
                 </header>
-
-                {/* ── Search modal ── */}
-                {searchOpen && (
-                    <div
-                        className="modal fade show d-block"
-                        tabIndex={-1}
-                        role="dialog"
-                        style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-                        onClick={(e) => {
-                            if (e.target === e.currentTarget) setSearchOpen(false);
-                        }}
-                    >
-                        <div className="modal-dialog modal-dialog-scrollable modal-lg modal-dialog-centered">
-                            <div className="modal-content rounded">
-                                <div className="modal-header border-bottom">
-                                    <input type="search" className="form-control fs-3" placeholder="Search here" id="search" autoFocus />
-                                    <a href="#" onClick={(e) => { e.preventDefault(); setSearchOpen(false); }} className="lh-1">
-                                        <i className="ti ti-x fs-5 ms-3"></i>
-                                    </a>
-                                </div>
-                                <div className="modal-body message-body sidebar-nav-scroll"></div>
-                            </div>
-                        </div>
-                    </div>
-                )}
 
                 {/* ── Page content ── */}
                 <div className="body-wrapper">
