@@ -31,7 +31,7 @@ class CourseDetailController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return Inertia::render('<university>courses/index', [
+        return Inertia::render('university/courses/index', [
             'courseDetails' => $courseDetails,
             'filters'       => ['search' => $search],
         ]);
