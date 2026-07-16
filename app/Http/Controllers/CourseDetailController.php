@@ -118,7 +118,7 @@ class CourseDetailController extends Controller
     {
         $courseDetail->load('university');
 
-        return Inertia::render('university/course/show', [
+        return Inertia::render('courses/show', [
             'courseDetail' => $courseDetail,
         ]);
     }
