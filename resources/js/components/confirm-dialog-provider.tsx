@@ -7,7 +7,7 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from '@/components/ui/alert-dialogue';
 import { createContext, useCallback, useContext, useState } from 'react';
 
 type ConfirmOptions = {
