@@ -148,7 +148,7 @@ Route::put('/agent/applications/{application}/assign', [StudentApplicationApiCon
     // Permissions (read-only — the master list from PermissionSeeder)
     Route::get('/permissions', [PermissionController::class, 'index']);
     
-Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index']);
 
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
