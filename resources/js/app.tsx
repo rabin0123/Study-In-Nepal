@@ -1,14 +1,12 @@
 import { createInertiaApp } from '@inertiajs/react';
-import { Toaster } from '@/components/ui/sonner';
+import { AppToaster } from '@/components/app-toaster';
+import { ConfirmDialogProvider } from '@/components/confirm-dialog-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { configureEcho } from '@laravel/echo-react';
-import { ConfirmDialogProvider } from '@/components/confirm-dialog-provider';
-
-
 
 configureEcho({
     broadcaster: 'pusher',
@@ -27,9 +25,9 @@ createInertiaApp({
             case name.startsWith('settings/'):
                 return [AppLayout, SettingsLayout];
             case name.startsWith('university/coursesearch'):
-            return null;
+                return null;
             case name.startsWith('university/courses/show'):
-            return null;
+                return null;
             default:
                 return AppLayout;
         }
@@ -37,13 +35,13 @@ createInertiaApp({
     strictMode: true,
     withApp(app) {
         return (
-        <TooltipProvider delayDuration={0}>
-            <ConfirmDialogProvider>
-                {app}
-                <Toaster />
-            </ConfirmDialogProvider>
-        </TooltipProvider>
-    );
+            <TooltipProvider delayDuration={0}>
+                <ConfirmDialogProvider>
+                    {app}
+                    <AppToaster />
+                </ConfirmDialogProvider>
+            </TooltipProvider>
+        );
     },
     progress: {
         color: '#4B5563',

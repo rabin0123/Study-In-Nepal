@@ -1,4 +1,3 @@
-// resources/js/components/confirm-dialog-provider.tsx
 import {
     AlertDialog,
     AlertDialogAction,
@@ -8,7 +7,7 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-} from '@/components/ui/alert-dialogue';
+} from '@/components/ui/alert-dialog';
 import { createContext, useCallback, useContext, useState } from 'react';
 
 type ConfirmOptions = {
@@ -44,7 +43,7 @@ export function ConfirmDialogProvider({ children }: { children: React.ReactNode 
         <ConfirmContext.Provider value={confirm}>
             {children}
 
-           <AlertDialog open={!!options} onOpenChange={(open: boolean) => !open && handleClose(false)}>
+            <AlertDialog open={!!options} onOpenChange={(open: boolean) => !open && handleClose(false)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>{options?.title}</AlertDialogTitle>
