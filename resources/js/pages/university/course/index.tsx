@@ -28,14 +28,11 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
     const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
     const isFirstRender = useRef(true);
 
-    // Tracks which row's action menu is currently open (by uuid)
     const [openMenuUuid, setOpenMenuUuid] = useState<string | null>(null);
-    // Tracks the row pending delete confirmation (by uuid)
     const [pendingDeleteUuid, setPendingDeleteUuid] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
 
-    // Self-contained toast notifications using MaterialM-style structures
     type Toast = { id: number; type: 'success' | 'error'; message: string };
     const [toasts, setToasts] = useState<Toast[]>([]);
     const toastIdRef = useRef(0);
@@ -50,7 +47,6 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
         window.setTimeout(() => dismissToast(id), 4000);
     };
 
-    // Fetch logos from the external API on mount
     useEffect(() => {
         const fetchLogos = async () => {
             try {
@@ -64,7 +60,6 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                     dataList = result.data;
                 }
 
-                // Map 'College' name to 'college_logo_url'
                 const logosMap: Record<string, string> = {};
                 dataList.forEach((item: any) => {
                     if (item.College && item.college_logo_url) {
@@ -81,7 +76,6 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
         fetchLogos();
     }, []);
 
-    // Debounced search effect
     useEffect(() => {
         if (isFirstRender.current) {
             isFirstRender.current = false;
@@ -103,7 +97,6 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
         return () => clearTimeout(debounceTimer);
     }, [search]);
 
-    // Close the open row menu when clicking anywhere outside of it
     useEffect(() => {
         if (!openMenuUuid) return;
 
@@ -216,7 +209,6 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                         </div>
                     ) : (
                         <>
-                            {/* Adjusted table-responsive wrapper with min-height to prevent clipping dropdown menus */}
                             <div className="table-responsive sidebar-nav-scroll" style={{ maxHeight: 520, minHeight: 200, overflowY: 'auto', width: '100%' }}>
                                 <table className="table mb-0 align-middle" style={{ minWidth: 800 }}>
                                     <thead className="text-dark fs-4" style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bs-card-bg, #fff)' }}>
@@ -263,7 +255,6 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                                                                 </div>
                                                             </div>
 
-                                                            {/* Dropdown triggers in clean action menu */}
                                                             <div className="position-relative" onClick={(e) => e.stopPropagation()} ref={isMenuOpen ? menuRef : undefined}>
                                                                 <button
                                                                     type="button"
@@ -309,7 +300,6 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                                 </table>
                             </div>
 
-                            {/* ── Table Pagination Section ── */}
                             {courseDetails.last_page > 1 && (
                                 <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between gap-3 border-top px-6 py-4">
                                     <div className="text-body-secondary fs-3">
@@ -336,7 +326,6 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                 </div>
             </div>
 
-            {/* ── Modal (Standard Bootstrap Confirmation overlay) ── */}
             {rowPendingDelete && (
                 <div className="modal fade show d-block" tabIndex={-1} role="dialog" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
                     <div className="modal-dialog modal-dialog-centered modal-sm" role="document">
@@ -361,7 +350,6 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                 </div>
             )}
 
-            {/* ── Toast notifications container ── */}
             <div className="toast-container position-fixed bottom-0 end-0 p-3" style={{ zIndex: 1060 }}>
                 {toasts.map((toast) => (
                     <div key={toast.id} className="toast show align-items-center text-white border-0 bg-dark mb-2" role="alert" aria-live="assertive" aria-atomic="true">
