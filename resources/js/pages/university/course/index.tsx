@@ -216,7 +216,8 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                         </div>
                     ) : (
                         <>
-                            <div className="table-responsive sidebar-nav-scroll" style={{ maxHeight: 520, overflowY: 'auto', width: '100%' }}>
+                            {/* Adjusted table-responsive wrapper with min-height to prevent clipping dropdown menus */}
+                            <div className="table-responsive sidebar-nav-scroll" style={{ maxHeight: 520, minHeight: 200, overflowY: 'auto', width: '100%' }}>
                                 <table className="table mb-0 align-middle" style={{ minWidth: 800 }}>
                                     <thead className="text-dark fs-4" style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bs-card-bg, #fff)' }}>
                                         <tr>
@@ -274,7 +275,7 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                                                                 </button>
 
                                                                 {isMenuOpen && (
-                                                                    <div className="dropdown-menu show dropdown-menu-end position-absolute shadow-lg border m-0" style={{ right: 0, top: '100%', zIndex: 10, minWidth: 120 }}>
+                                                                    <div className="dropdown-menu show dropdown-menu-end position-absolute shadow-lg border m-0" style={{ right: 0, top: '100%', zIndex: 100, minWidth: 120 }}>
                                                                         <button
                                                                             type="button"
                                                                             onClick={(e) => handleDeleteClick(e, row.uuid)}
