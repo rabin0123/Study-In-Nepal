@@ -27,6 +27,7 @@ interface DashboardResponse {
 export default function Dashboard() {
     const [stats, setStats] = useState<Stats | null>(null);
     const [latestApplications, setLatestApplications] = useState<Application[]>([]);
+    const [isLoading, setIsLoading] = useState(true); // New state to track initial data load
     
     // Non-navigating HTTP client hook
     const http = useHttp();
@@ -39,6 +40,8 @@ export default function Dashboard() {
                 setLatestApplications(response.latestApplications);
             } catch (error) {
                 console.error("Error loading dashboard data:", error);
+            } finally {
+                setIsLoading(false); // Done loading (stops spinner even on error)
             }
         }
         
@@ -64,10 +67,21 @@ export default function Dashboard() {
         router.visit(`/applications/${appId}`);
     };
 
+    // Full-screen / container-centered loading spinner before page is loaded
+    if (isLoading) {
+        return (
+            <div className="d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '75vh' }}>
+                <div className="spinner-border text-primary" role="status" style={{ width: '3.5rem', height: '3.5rem' }}>
+                    <span className="visually-hidden">Loading Dashboard...</span>
+                </div>
+                <h6 className="mt-3 text-muted fw-semibold">Loading dashboard data...</h6>
+            </div>
+        );
+    }
+
     return (
         <>
             <Head title="Dashboard" />
-            {/* Removed the hardcoded #f4f7fb background so Dark Mode body takes over */}
             <div className="container-fluid p-4">
                 
                 {/* Statistics Cards Section */}
@@ -90,13 +104,9 @@ export default function Dashboard() {
                                     </div>
                                 </div>
                                 <div className="mt-3">
-                                    {http.processing || !stats ? (
-                                        <div className="spinner-border spinner-border-sm text-primary" role="status">
-                                            <span className="visually-hidden">Loading...</span>
-                                        </div>
-                                    ) : (
-                                        <h3 className="display-6 fw-bold mb-1 text-primary">{stats.totalApplications}</h3>
-                                    )}
+                                    <h3 className="display-6 fw-bold mb-1 text-primary">
+                                        {stats?.totalApplications ?? 0}
+                                    </h3>
                                     <p className="text-muted small mb-0">Submitted applications across agencies</p>
                                 </div>
                             </div>
@@ -117,13 +127,9 @@ export default function Dashboard() {
                                     </div>
                                 </div>
                                 <div className="mt-3">
-                                    {http.processing || !stats ? (
-                                        <div className="spinner-border spinner-border-sm text-primary" role="status">
-                                            <span className="visually-hidden">Loading...</span>
-                                        </div>
-                                    ) : (
-                                        <h3 className="display-6 fw-bold mb-1 text-primary">{stats.processedApplications}</h3>
-                                    )}
+                                    <h3 className="display-6 fw-bold mb-1 text-primary">
+                                        {stats?.processedApplications ?? 0}
+                                    </h3>
                                     <p className="text-muted small mb-0">Approved or rejected applications</p>
                                 </div>
                             </div>
@@ -145,13 +151,9 @@ export default function Dashboard() {
                                     </div>
                                 </div>
                                 <div className="mt-3">
-                                    {http.processing || !stats ? (
-                                        <div className="spinner-border spinner-border-sm text-primary" role="status">
-                                            <span className="visually-hidden">Loading...</span>
-                                        </div>
-                                    ) : (
-                                        <h3 className="display-6 fw-bold mb-1 text-primary">{stats.closedApplications}</h3>
-                                    )}
+                                    <h3 className="display-6 fw-bold mb-1 text-primary">
+                                        {stats?.closedApplications ?? 0}
+                                    </h3>
                                     <p className="text-muted small mb-0">Completed / approved enrollments</p>
                                 </div>
                             </div>
@@ -164,7 +166,6 @@ export default function Dashboard() {
                 <div className="row">
                     <div className="col-12">
                         <div className="card border-0 shadow-sm">
-                            {/* Replaced bg-white with bg-transparent to respect dark mode card backgrounds */}
                             <div className="card-header bg-transparent border-bottom border-primary-subtle pt-4 px-4 pb-3 d-flex justify-content-between align-items-center">
                                 <div>
                                     <h5 className="card-title fw-bold mb-1 text-primary">Latest Applications</h5>
@@ -180,16 +181,12 @@ export default function Dashboard() {
                             </div>
 
                             <div className="card-body px-0 pb-0">
-                                {http.processing ? (
-                                    <div className="text-center py-5">
-                                        <div className="spinner-border text-primary" role="status">
-                                            <span className="visually-hidden">Loading...</span>
-                                        </div>
-                                        <p className="text-muted mt-2 small">Loading applications...</p>
-                                    </div>
-                                ) : latestApplications.length === 0 ? (
+                                {latestApplications.length === 0 ? (
                                     <div className="text-center py-5 text-muted">
-                                        
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2 opacity-50 text-primary">
+                                            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                                            <circle cx="12" cy="7" r="4"/>
+                                        </svg>
                                         <p className="mb-0">No applications found.</p>
                                     </div>
                                 ) : (
@@ -215,13 +212,11 @@ export default function Dashboard() {
                                                         <td className="px-4 py-3 font-monospace text-primary small fw-bold">
                                                             {app.app_id}
                                                         </td>
-                                                        {/* Removed text-dark so it inherits the correct color for dark/light mode automatically */}
                                                         <td className="px-4 py-3 fw-bold">
                                                             {app.student_name}
                                                         </td>
                                                         <td className="px-4 py-3">
                                                             <div className="d-flex flex-column">
-                                                                {/* Removed text-dark here as well */}
                                                                 <span className="fw-semibold">{app.course_name}</span>
                                                                 <span className="text-muted small">
                                                                     {app.college_name || app.university_name}
