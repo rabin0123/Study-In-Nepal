@@ -24,27 +24,11 @@ function Toaster({ ...props }: ToasterProps) {
                 classNames: {
                     toast: 'bootstrap-toast',
                     closeButton: 'bootstrap-toast-close',
+                    title: 'bootstrap-toast-title',
+                    description: 'bootstrap-toast-description',
+                    icon: 'bootstrap-toast-icon',
                 },
             }}
-            style={
-                {
-                    '--normal-bg': 'var(--bs-body-bg)',
-                    '--normal-text': 'var(--bs-body-color)',
-                    '--normal-border': 'var(--bs-border-color)',
-                    '--success-bg': 'var(--bs-success-bg-subtle)',
-                    '--success-text': 'var(--bs-success-text-emphasis)',
-                    '--success-border': 'var(--bs-success-border-subtle)',
-                    '--error-bg': 'var(--bs-danger-bg-subtle)',
-                    '--error-text': '#7a1620',
-                    '--error-border': 'var(--bs-danger-border-subtle)',
-                    '--warning-bg': 'var(--bs-warning-bg-subtle)',
-                    '--warning-text': 'var(--bs-warning-text-emphasis)',
-                    '--warning-border': 'var(--bs-warning-border-subtle)',
-                    '--info-bg': 'var(--bs-info-bg-subtle)',
-                    '--info-text': 'var(--bs-info-text-emphasis)',
-                    '--info-border': 'var(--bs-info-border-subtle)',
-                } as React.CSSProperties
-            }
             {...props}
         />
     );
