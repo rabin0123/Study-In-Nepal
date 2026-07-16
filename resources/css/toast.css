@@ -1,13 +1,13 @@
-/* Sonner toast — clean white/bright card style, no colored backgrounds.
-   Only the icon color signals success/error/warning/info. */
+/* Sonner toast — fully custom layout + styling (unstyled:true removes ALL Sonner defaults,
+   so we rebuild the box model here, not just colors) */
 
 .bootstrap-toast {
     display: flex !important;
     align-items: flex-start !important;
     gap: 0.75rem;
     border-radius: var(--bs-border-radius-lg, 0.5rem);
-    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1), 0 0.125rem 0.25rem rgba(0, 0, 0, 0.06);
-    padding: 0.875rem 2.25rem 0.875rem 1rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.12);
+    padding: 0.875rem 2.25rem 0.875rem 1rem; /* extra right padding so text never sits under close button */
     font-family: inherit;
     border-width: 1px;
     border-style: solid;
@@ -16,6 +16,8 @@
     box-sizing: border-box;
 }
 
+/* Sonner wraps title+description in a data-content div — target it directly
+   so text stacks vertically while the row (icon + content) stays horizontal */
 .bootstrap-toast > [data-content],
 .bootstrap-toast div:has(> [data-title]) {
     display: flex;
@@ -36,7 +38,7 @@
 .bootstrap-toast [data-description] {
     font-size: 0.825rem;
     line-height: 1.4;
-    opacity: 0.7;
+    opacity: 0.85;
     margin: 0;
 }
 
@@ -57,7 +59,7 @@
     line-height: 1;
 }
 
-/* Close button — top-right corner */
+/* Close button — top-right corner, small circular hit target */
 .bootstrap-toast button[data-close-button] {
     position: absolute !important;
     left: auto !important;
@@ -73,7 +75,7 @@
     justify-content: center;
     padding: 0;
     border-radius: 50%;
-    opacity: 0.5;
+    opacity: 0.55;
     cursor: pointer;
 }
 
@@ -87,66 +89,78 @@
     height: 14px;
 }
 
-/* ── Base card — same bright white/dark card for every type ── */
-.bootstrap-toast-normal-light,
-.bootstrap-toast-success-light,
-.bootstrap-toast-error-light,
-.bootstrap-toast-warning-light,
-.bootstrap-toast-info-light {
+/* ── Default / neutral ── */
+.bootstrap-toast-normal-light {
     background: #ffffff;
     color: #212529;
-    border-color: #e9ecef;
+    border-color: #dee2e6;
 }
-
-.bootstrap-toast-normal-dark,
-.bootstrap-toast-success-dark,
-.bootstrap-toast-error-dark,
-.bootstrap-toast-warning-dark,
-.bootstrap-toast-info-dark {
-    background: #22262e;
+.bootstrap-toast-normal-dark {
+    background: #1e2129;
     color: #e9ecef;
-    border-color: #363b45;
+    border-color: #343a40;
 }
 
-/* ── Icon accent colors only — this is what signals the toast type ── */
+/* ── Success ── (Bootstrap alert-success palette) */
+.bootstrap-toast-success-light {
+    background: #d1e7dd;
+    color: #0a3622;
+    border-color: #a3cfbb;
+}
 .bootstrap-toast-success-light .bootstrap-toast-icon,
-.bootstrap-toast-success-light [data-icon] { color: #198754; }
-.bootstrap-toast-success-dark .bootstrap-toast-icon,
-.bootstrap-toast-success-dark [data-icon] { color: #4ade80; }
-
-.bootstrap-toast-error-light .bootstrap-toast-icon,
-.bootstrap-toast-error-light [data-icon] { color: #dc3545; }
-.bootstrap-toast-error-dark .bootstrap-toast-icon,
-.bootstrap-toast-error-dark [data-icon] { color: #f87171; }
-
-.bootstrap-toast-warning-light .bootstrap-toast-icon,
-.bootstrap-toast-warning-light [data-icon] { color: #ffab00; }
-.bootstrap-toast-warning-dark .bootstrap-toast-icon,
-.bootstrap-toast-warning-dark [data-icon] { color: #fbbf24; }
-
-.bootstrap-toast-info-light .bootstrap-toast-icon,
-.bootstrap-toast-info-light [data-icon] { color: #0dcaf0; }
-.bootstrap-toast-info-dark .bootstrap-toast-icon,
-.bootstrap-toast-info-dark [data-icon] { color: #38bdf8; }
-
-/* Optional: thin left accent bar for a subtle type indicator without full-color backgrounds */
-.bootstrap-toast-success-light,
+.bootstrap-toast-success-light [data-icon] { color: #0f5132; }
 .bootstrap-toast-success-dark {
-    border-left-width: 3px;
-    border-left-color: #198754;
+    background: #0f2e1c;
+    color: #75b798;
+    border-color: #1d4a30;
 }
-.bootstrap-toast-error-light,
+.bootstrap-toast-success-dark .bootstrap-toast-icon,
+.bootstrap-toast-success-dark [data-icon] { color: #75b798; }
+
+/* ── Error ── (Bootstrap alert-danger palette) */
+.bootstrap-toast-error-light {
+    background: #f8d7da;
+    color: #58151c;
+    border-color: #f1aeb5;
+}
+.bootstrap-toast-error-light .bootstrap-toast-icon,
+.bootstrap-toast-error-light [data-icon] { color: #842029; }
 .bootstrap-toast-error-dark {
-    border-left-width: 3px;
-    border-left-color: #dc3545;
+    background: #2c0b0e;
+    color: #ea868f;
+    border-color: #842029;
 }
-.bootstrap-toast-warning-light,
+.bootstrap-toast-error-dark .bootstrap-toast-icon,
+.bootstrap-toast-error-dark [data-icon] { color: #ea868f; }
+
+/* ── Warning ── (Bootstrap alert-warning palette) */
+.bootstrap-toast-warning-light {
+    background: #fff3cd;
+    color: #664d03;
+    border-color: #ffe69c;
+}
+.bootstrap-toast-warning-light .bootstrap-toast-icon,
+.bootstrap-toast-warning-light [data-icon] { color: #997404; }
 .bootstrap-toast-warning-dark {
-    border-left-width: 3px;
-    border-left-color: #ffab00;
+    background: #332701;
+    color: #ffda6a;
+    border-color: #997404;
 }
-.bootstrap-toast-info-light,
+.bootstrap-toast-warning-dark .bootstrap-toast-icon,
+.bootstrap-toast-warning-dark [data-icon] { color: #ffda6a; }
+
+/* ── Info ── (Bootstrap alert-info palette) */
+.bootstrap-toast-info-light {
+    background: #cff4fc;
+    color: #055160;
+    border-color: #9eeaf9;
+}
+.bootstrap-toast-info-light .bootstrap-toast-icon,
+.bootstrap-toast-info-light [data-icon] { color: #087990; }
 .bootstrap-toast-info-dark {
-    border-left-width: 3px;
-    border-left-color: #0dcaf0;
+    background: #032830;
+    color: #6edff6;
+    border-color: #087990;
 }
+.bootstrap-toast-info-dark .bootstrap-toast-icon,
+.bootstrap-toast-info-dark [data-icon] { color: #6edff6; }
