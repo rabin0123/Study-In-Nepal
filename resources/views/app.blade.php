@@ -22,6 +22,7 @@
             })();
         </script>
         <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+          <script src="https://code.iconify.design/3/3.1.1/iconify.min.js"></script>
         <script src="https://code.iconify.design/iconify-icon/2.3.0/iconify-icon.min.js"></script>
 
         {{-- Inline style to set the HTML background color based on our theme in app.css --}}
