@@ -356,7 +356,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                 </h2>
                             </div>
                             <div className="col-lg-9">
-                                <p className="fs-3 mb-4">
+                                <p className="text-primary fs-5 mb-4">
                                     The tuition fees you pay are determined by your fee status. Estimated tuition
                                     breakdown by year is published below for guidance.
                                 </p>
