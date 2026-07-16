@@ -1,37 +1,118 @@
-/* Sonner toast — restyled to match Bootstrap tokens instead of shadcn defaults */
+/* Sonner toast — fully custom styling, Sonner's built-in theme/color logic disabled via unstyled:true */
 
 .bootstrap-toast {
-    border-radius: var(--bs-border-radius-lg, 0.5rem) !important;
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
-    padding: 0.875rem 1rem !important;
-    font-family: inherit !important;
-    border-width: 1px !important;
-    border-style: solid !important;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    border-radius: var(--bs-border-radius-lg, 0.5rem);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    padding: 0.875rem 1rem;
+    font-family: inherit;
+    border-width: 1px;
+    border-style: solid;
+    position: relative;
+    width: 100%;
 }
 
-.bootstrap-toast [data-title] {
+.bootstrap-toast-title {
     font-weight: 600;
+    font-size: 0.9rem;
+    line-height: 1.3;
 }
 
-.bootstrap-toast [data-description] {
+.bootstrap-toast-description {
+    font-size: 0.825rem;
     opacity: 0.85;
+    margin-top: 0.15rem;
 }
 
-/* Close button — force to right side, vertically centered.
-   Sonner renders this as a <button data-close-button> inside the toast li,
-   so we target the attribute directly (works across Sonner versions,
-   more reliable than relying on toastOptions.classNames.closeButton alone). */
-.bootstrap-toast button[data-close-button] {
-    left: auto !important;
-    right: 0.5rem !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    background: var(--bs-body-bg) !important;
-    border: 1px solid var(--bs-border-color) !important;
-    color: var(--bs-body-color) !important;
-    opacity: 0.7;
+.bootstrap-toast-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
 }
 
-.bootstrap-toast button[data-close-button]:hover {
+/* Close button — right side, vertically centered */
+.bootstrap-toast button[data-close-button].bootstrap-toast-close {
+    left: auto;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    opacity: 0.6;
+}
+
+.bootstrap-toast button[data-close-button].bootstrap-toast-close:hover {
     opacity: 1;
 }
+
+/* ── Default / neutral ── */
+.bootstrap-toast-normal-light {
+    background: #ffffff;
+    color: #212529;
+    border-color: #dee2e6;
+}
+.bootstrap-toast-normal-dark {
+    background: #1e2129;
+    color: #e9ecef;
+    border-color: #343a40;
+}
+
+/* ── Success ── */
+.bootstrap-toast-success-light {
+    background: #e9f8ee;
+    color: #146c2e;
+    border-color: #a6e9bd;
+}
+.bootstrap-toast-success-light .bootstrap-toast-icon { color: #198754; }
+.bootstrap-toast-success-dark {
+    background: #0f2e1c;
+    color: #4ade80;
+    border-color: #1d5334;
+}
+.bootstrap-toast-success-dark .bootstrap-toast-icon { color: #4ade80; }
+
+/* ── Error ── */
+.bootstrap-toast-error-light {
+    background: #fdeeee;
+    color: #842029;
+    border-color: #f3c2c5;
+}
+.bootstrap-toast-error-light .bootstrap-toast-icon { color: #dc3545; }
+.bootstrap-toast-error-dark {
+    background: #3a1418;
+    color: #f87171;
+    border-color: #5c2126;
+}
+.bootstrap-toast-error-dark .bootstrap-toast-icon { color: #f87171; }
+
+/* ── Warning ── */
+.bootstrap-toast-warning-light {
+    background: #fff8e6;
+    color: #664d03;
+    border-color: #f5deac;
+}
+.bootstrap-toast-warning-light .bootstrap-toast-icon { color: #ffc107; }
+.bootstrap-toast-warning-dark {
+    background: #3a2e0f;
+    color: #fbbf24;
+    border-color: #5c4a1d;
+}
+.bootstrap-toast-warning-dark .bootstrap-toast-icon { color: #fbbf24; }
+
+/* ── Info ── */
+.bootstrap-toast-info-light {
+    background: #e8f6fc;
+    color: #055160;
+    border-color: #b6effb;
+}
+.bootstrap-toast-info-light .bootstrap-toast-icon { color: #0dcaf0; }
+.bootstrap-toast-info-dark {
+    background: #0f2733;
+    color: #38bdf8;
+    border-color: #1d4759;
+}
+.bootstrap-toast-info-dark .bootstrap-toast-icon { color: #38bdf8; }
