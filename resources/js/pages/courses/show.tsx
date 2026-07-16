@@ -287,7 +287,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                         <div className="container-xl px-4">
                             <div className="row gy-4 gy-lg-0" style={{ maxWidth: 1200 }}>
                                 <div className="col-lg-3">
-                                    <h2 className="fw-bold fs-3 text-white">
+                                    <h2 className="fw-bold fs-7 text-white">
                                         What you
                                         <br />
                                         will study
