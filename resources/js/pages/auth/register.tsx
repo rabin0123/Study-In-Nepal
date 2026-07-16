@@ -231,7 +231,7 @@ export default function Register({ passwordRules }: Props) {
                         </Form>
                     </div>
 
-                    <div className="text-center mt-4 pb-4 text-secondary" style={{ fontSize: "0.95rem", fontWeight: 600 }}>
+                    <div className="text-center mt-4 pb-4 text-black" style={{ fontSize: "0.95rem", fontWeight: 600 }}>
                         Already registered an agency?{' '}
                         <TextLink href={login()} tabIndex={8} className="survey-link">
                             Log in here
