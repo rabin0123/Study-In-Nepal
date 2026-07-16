@@ -58,31 +58,66 @@ function normalizeModuleEntry(m: string | ModuleEntry): ModuleEntry {
 // Defensive unwrap: if `careers` ever comes through as a raw JSON string like
 // `{"html": "<h2>...</h2>"}` instead of the plain HTML string, pull the HTML
 // back out so the page still renders correctly instead of showing raw JSON.
+// Also handles the case where the whole payload was accidentally saved as a
+// JSON-stringified string (e.g. `"<div>...</div>"` with escaped quotes),
+// which is how content pasted from a browser DOM inspector sometimes ends up
+// in the database.
 function normalizeCareersData(careers: string | string[] | null | undefined): string | string[] | null {
     if (!careers) return null;
 
     if (typeof careers === 'string') {
-        const trimmed = careers.trim();
-        if (trimmed.startsWith('{') && trimmed.includes('"html"')) {
-            try {
-                const parsed = JSON.parse(trimmed);
-                if (typeof parsed?.html === 'string') {
-                    return parsed.html;
+        let value = careers.trim();
+
+        // Unwrap a JSON-stringified string, e.g. "\"<div>...</div>\"" or
+        // "{\"html\": \"<div>...</div>\"}" — try up to twice in case it's
+        // double-encoded.
+        for (let i = 0; i < 2; i++) {
+            const trimmed = value.trim();
+            if (
+                (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+                (trimmed.startsWith('{') && trimmed.includes('"html"'))
+            ) {
+                try {
+                    const parsed = JSON.parse(trimmed);
+                    if (typeof parsed === 'string') {
+                        value = parsed;
+                        continue;
+                    }
+                    if (typeof parsed?.html === 'string') {
+                        value = parsed.html;
+                        continue;
+                    }
+                } catch {
+                    // not valid JSON, stop trying and use as-is
                 }
-            } catch {
-                // not valid JSON, fall through and use the raw string as-is
             }
+            break;
         }
-        return careers;
+
+        return value;
     }
 
     return careers;
+}
+
+// Heuristic: does this careers HTML contain real structured content (lists,
+// headings) as opposed to being a short flat set of tag-like phrases? Used to
+// decide between "document" rendering (real bullets/numbers) and "pill"
+// rendering (compact tag badges) for the Career Prospectus section.
+function isStructuredCareersDocument(html: string): boolean {
+    if (!html) return false;
+    const hasHeading = /<h[1-4][\s>]/i.test(html);
+    const hasNestedList = /<ul[^>]*>[\s\S]*<ul[^>]*>/i.test(html) || /<ol[^>]*>[\s\S]*<ul[^>]*>/i.test(html);
+    const hasOrderedList = /<ol[\s>]/i.test(html);
+    const listItemCount = (html.match(/<li[\s>]/gi) || []).length;
+    return hasHeading || hasNestedList || hasOrderedList || listItemCount > 12;
 }
 
 export default function CourseDetailsShow({ courseDetail }: Props) {
     const modules = sortByYear(courseDetail.year_wise_modules);
     const fees = sortByYear(courseDetail.fees);
     const careersData = normalizeCareersData(courseDetail.careers);
+    const careersIsStructuredDoc = typeof careersData === 'string' && isStructuredCareersDocument(careersData);
 
     // Memoize the sections array so we can safely use it in our useEffect observer
     const sections = useMemo(() => {
@@ -196,7 +231,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                 <img
                                     src={univLogo}
                                     alt={courseDetail.university_name}
-                                    className="gcu-logo-sm bg-white rounded-3 p-1 flex-shrink-0"
+                                    className="gcu-logo-sm gcu-logo-native bg-white rounded-3 p-1 flex-shrink-0"
                                 />
                             )}
                             <span className="text-white fw-bold fs-6">{courseDetail.university_name}</span>
@@ -216,7 +251,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                 <img
                                     src={collegeLogo}
                                     alt={courseDetail.college_name}
-                                    className="gcu-logo-xs bg-white rounded-2 p-1 flex-shrink-0"
+                                    className="gcu-logo-xs gcu-logo-native bg-white rounded-2 p-1 flex-shrink-0"
                                 />
                             )}
                             <span>{courseDetail.college_name}</span>
@@ -416,9 +451,15 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                     Our course helps set the trajectory for career positions such as:
                                 </p>
 
-                                {typeof careersData === 'string' ? (
+                                {typeof careersData === 'string' && careersData.trim() !== '' ? (
                                     <div
-                                        className="gcu-html-content gcu-html-content--dark"
+                                        // Full structured HTML (headings + nested/ordered lists) renders as a
+                                        // real document with plain bullets/numbers via .gcu-html-content.
+                                        // A short flat list of tag-like phrases instead falls back to the
+                                        // compact pill badges via the --pills modifier.
+                                        className={`gcu-html-content gcu-html-content--dark ${
+                                            careersIsStructuredDoc ? '' : 'gcu-html-content--pills'
+                                        }`}
                                         dangerouslySetInnerHTML={{ __html: careersData }}
                                     />
                                 ) : Array.isArray(careersData) && careersData.length > 0 ? (
@@ -524,6 +565,17 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 .z-2 { z-index: 2; }
                 .gcu-logo-sm { width: 60px; height: 60px; object-fit: contain; }
                 .gcu-logo-xs { width: 50px; height: 50px; object-fit: contain; }
+                /* University/college logos must render with their true source
+                   colors in both light and dark theme — never let any theme
+                   filter, invert, grayscale, or blend-mode rule reach them.
+                   Scoped as a hard reset so no future dark-mode rule added
+                   elsewhere on the page can accidentally recolor these. */
+                .gcu-logo-native {
+                    filter: none !important;
+                    -webkit-filter: none !important;
+                    mix-blend-mode: normal !important;
+                    color-scheme: light !important;
+                }
 
                 .gcu-banner {
                     background: linear-gradient(135deg, var(--gcu-blue-dark) 0%, #041118 100%);
@@ -601,12 +653,45 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 .gcu-html-content h2:first-child { margin-top: 0; }
                 .gcu-html-content h3 { font-size: 1.1rem; font-weight: 700; margin: 22px 0 10px; color: var(--gcu-blue) !important; }
                 .gcu-html-content p { margin-bottom: 14px; }
-                .gcu-html-content ul:not(.gcu-html-content--dark ul) { list-style: none; display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 20px; padding: 0; }
-                .gcu-html-content ul:not(.gcu-html-content--dark ul) li {
-                    background-color: var(--gcu-pill-bg) !important; border: 1px solid var(--gcu-pill-border); padding: 8px 16px;
-                    border-radius: 999px; font-weight: 600; font-size: 0.9rem; color: var(--gcu-blue-dark) !important;
+
+                /* Plain bulleted / numbered lists — the default for real
+                   document-style content (headings, nested sub-lists, and
+                   ordered "career progression" style steps). This is what
+                   renders for the MBA-style careers copy: top-level <ul>
+                   sections as bullets, the nested certifications <ul> as a
+                   sub-bulleted list, and the <ol> "Career Progression"
+                   section as a numbered list — matching how it was authored
+                   in the rich text editor (see RichTextEditor's own
+                   .editor-content ul/ol rules, which this mirrors). */
+                .gcu-html-content ul,
+                .gcu-html-content ol {
+                    margin: 10px 0 20px;
+                    padding-left: 1.5rem;
                 }
-                [data-bs-theme="dark"] .gcu-html-content ul:not(.gcu-html-content--dark ul) li { color: var(--gcu-blue-light) !important; }
+                .gcu-html-content ul { list-style-type: disc; }
+                .gcu-html-content ul ul { list-style-type: circle; margin: 6px 0; }
+                .gcu-html-content ul ul ul { list-style-type: square; }
+                .gcu-html-content ol { list-style-type: decimal; }
+                .gcu-html-content ol ol { list-style-type: lower-alpha; }
+                .gcu-html-content ol ol ol { list-style-type: lower-roman; }
+                .gcu-html-content li { margin: 4px 0; padding-left: 2px; }
+                /* Rich text editors commonly wrap each <li> content in a <p>;
+                   keep it inline so list items don't get extra block spacing. */
+                .gcu-html-content li > p { display: inline; margin: 0; }
+                .gcu-html-content li::marker { color: var(--gcu-blue); font-weight: 700; }
+                [data-bs-theme="dark"] .gcu-html-content li::marker { color: var(--gcu-blue-light); }
+
+                /* Opt-in compact pill/tag style — used only for short, flat
+                   lists of plain tags (e.g. "Skills: X, Y, Z") via the
+                   --pills modifier class, not applied to full documents. */
+                .gcu-html-content--pills ul:not(.gcu-html-content--dark ul) {
+                    list-style: none; display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 20px; padding: 0;
+                }
+                .gcu-html-content--pills ul:not(.gcu-html-content--dark ul) li {
+                    background-color: var(--gcu-pill-bg) !important; border: 1px solid var(--gcu-pill-border); padding: 8px 16px;
+                    border-radius: 999px; font-weight: 600; font-size: 0.9rem; color: var(--gcu-blue-dark) !important; margin: 0;
+                }
+                [data-bs-theme="dark"] .gcu-html-content--pills ul:not(.gcu-html-content--dark ul) li { color: var(--gcu-blue-light) !important; }
 
                 /* Dark variant: used inside the always-dark Career Prospectus
                    panel, so its content colors are fixed white/light rather
@@ -624,7 +709,8 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 }
                 .gcu-html-content--dark h2 { color: #fff !important; }
                 .gcu-html-content--dark h3 { color: var(--gcu-blue-light) !important; }
-                .gcu-html-content--dark ul li {
+                .gcu-html-content--dark li::marker { color: var(--gcu-blue-light) !important; }
+                .gcu-html-content--dark.gcu-html-content--pills ul li {
                     background-color: rgba(255,255,255,0.08) !important; border-color: rgba(255,255,255,0.14); color: #fff !important;
                 }
 
