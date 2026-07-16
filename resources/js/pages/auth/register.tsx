@@ -110,12 +110,13 @@ export default function Register({ passwordRules }: Props) {
             }}>
                 <div style={{ position: "absolute", top: -80, right: -80, width: 320, height: 320, borderRadius: "50%", background: `${PRIMARY}15`, filter: "blur(80px)", pointerEvents: "none" }} />
                 <div style={{ position: "absolute", bottom: -60, left: -60, width: 240, height: 240, borderRadius: "50%", background: `${AMBER}10`, filter: "blur(60px)", pointerEvents: "none" }} />
-    <div className="d-flex align-items-center justify-content-center gap-3 mb-4">
+    
+                <div className="relative z-10 w-full max-w-md mx-auto text-center">
+                    <div className="d-flex align-items-center justify-content-center gap-3 mb-4">
                         <div className="bg-white rounded-circle d-flex align-items-center justify-content-center overflow-hidden shrink-0" style={{ width: 56, height: 56 }}>
                             <img src="https://admin.studyinnepal.com/storage/settings/JhagqBcT0B9QQkFcQkSplV50L2nwBTdMc7DJB0DM.png" alt="Study in Nepal" className="h-100 w-100 object-fit-cover" style={{ transform: "scale(1.79)" }} />
                         </div>
                     </div>
-                <div className="relative z-10 w-full max-w-md mx-auto text-center">
                     <span style={{ display: "inline-block", fontFamily: "Rajdhani, sans-serif", fontSize: "0.75rem", fontWeight: "700", letterSpacing: "0.3em", textTransform: "uppercase", color: AMBER, marginBottom: "1.25rem" }}>
                         Partner Portal
                     </span>
