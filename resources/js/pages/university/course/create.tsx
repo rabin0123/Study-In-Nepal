@@ -24,6 +24,12 @@ interface ApiDataRow {
 }
 
 // Shape returned by the Laravel controller for an existing record.
+// IMPORTANT: a CourseDetail row is ONE institution, not a course with a
+// nested institutions[] array — store() loops and creates one flat row per
+// selected institution, and edit()/update() operate on a single row. Field
+// names match app/Models/CourseDetail.php exactly (note: `careers`, not
+// `careers_summary`; `year_wise_modules` and `fees` are flat columns on the
+// row, not nested under institutions).
 interface CourseDetailRecord {
     uuid: string;
     course_name: string;
@@ -31,7 +37,7 @@ interface CourseDetailRecord {
     college_name: string;
     summary: string | null;
     careers: string | null;
-    year_wise_modules: any[] | null; 
+    year_wise_modules: any[] | null; // raw shape from backend — may be legacy string[] modules or {name, info}[]; run through normalizeYearModules()
     fees: YearFee[] | null;
 }
 
@@ -42,8 +48,6 @@ interface InstitutionOption {
     /** true when this institution came from the saved record but is no longer
      *  present in the live admin.studyinnepal.com master list (renamed/removed/etc). */
     isStale?: boolean;
-    /** true when this combination already exists in the database */
-    alreadyExists?: boolean;
 }
 
 // ── Helpers ──
@@ -59,7 +63,9 @@ function defaultYearModules(): YearModule[] {
     return [{ year: 1, title: 'Year 1', modules: [{ name: '', info: '' }] }];
 }
 
-// Normalize older flat string[] module formats or newer nested objects
+// Backend rows saved before this change store `modules` as a flat string[]
+// (just names, no info). Newer rows store {name, info}[]. This normalizes
+// either shape into ModuleEntry[] so the form works with both.
 function normalizeYearModules(raw: any[] | null | undefined): YearModule[] {
     if (!raw || raw.length === 0) return defaultYearModules();
     return raw.map((y) => ({
@@ -210,11 +216,10 @@ function MultiSelectDropdown({
                         options.map((opt) => (
                             <div
                                 key={opt.key}
-                                className={`flex items-start gap-2 rounded-lg px-2 py-2 mb-1 transition-colors ${opt.alreadyExists ? 'opacity-60 bg-gray-50 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-50'}`}
+                                className="flex items-start gap-2 rounded-lg px-2 py-2 mb-1 cursor-pointer hover:bg-gray-50 transition-colors"
                                 onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    if (opt.alreadyExists) return;
                                     onToggle(opt.key);
                                 }}
                             >
@@ -222,7 +227,6 @@ function MultiSelectDropdown({
                                     type="checkbox"
                                     className="mt-1 flex-shrink-0 cursor-pointer accent-[#008AE6]"
                                     checked={selectedKeys.includes(opt.key)}
-                                    disabled={opt.alreadyExists}
                                     readOnly
                                 />
                                 <div>
@@ -231,11 +235,6 @@ function MultiSelectDropdown({
                                         {opt.isStale && (
                                             <span title="Saved on this record but not found in the current institution list" className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 rounded-full px-1.5 py-0.5" style={{ fontSize: '0.65rem' }}>
                                                 <AlertTriangle size={10} /> not in master list
-                                            </span>
-                                        )}
-                                        {opt.alreadyExists && (
-                                            <span title="An entry for this course and college already exists in the system" className="inline-flex items-center gap-1 text-red-600 bg-red-50 rounded-full px-1.5 py-0.5" style={{ fontSize: '0.65rem' }}>
-                                                <AlertCircle size={10} /> already exists
                                             </span>
                                         )}
                                     </div>
@@ -251,7 +250,8 @@ function MultiSelectDropdown({
 }
 
 // ---------------------------------------------------------------------------
-// 3. Rich Text Editor
+// 3. Rich Text Editor — Word-like toolbar (paragraph/heading styles, font,
+//    size, bold/italic/underline/strike, colors, alignment, lists, links)
 // ---------------------------------------------------------------------------
 const FONT_FAMILIES = [
     { label: 'Default', value: '' },
@@ -336,10 +336,15 @@ function SwatchPopover({
 
 function RichTextEditor({ value, onChange, placeholder, error }: { value: string; onChange: (v: string) => void; placeholder?: string; error?: string; }) {
     const editorRef = useRef<HTMLDivElement>(null);
+    // Track whether we've already pushed `value` into the DOM once, so that
+    // external updates (e.g. loading an existing record) render correctly,
+    // while typing doesn't get clobbered by re-renders.
     const initializedRef = useRef(false);
 
     useEffect(() => {
         if (!editorRef.current) return;
+        // Sync from parent only on first mount / when value changes externally
+        // (e.g. courseDetail finished loading) and editor isn't focused.
         if (!initializedRef.current || document.activeElement !== editorRef.current) {
             if (editorRef.current.innerHTML !== value) {
                 editorRef.current.innerHTML = value || '';
@@ -361,6 +366,7 @@ function RichTextEditor({ value, onChange, placeholder, error }: { value: string
     return (
         <div className={`rounded-2xl shadow-sm bg-white overflow-hidden border ${error ? 'border-red-500' : 'border-gray-200'}`}>
             <div className="bg-gray-50 p-2 border-b border-gray-100 flex flex-wrap items-center gap-1.5">
+                {/* Paragraph / Heading style */}
                 <select
                     onMouseDown={(e) => e.stopPropagation()}
                     onChange={(e) => applyBlock(e.target.value)}
@@ -376,6 +382,7 @@ function RichTextEditor({ value, onChange, placeholder, error }: { value: string
                     <option value="BLOCKQUOTE">Quote</option>
                 </select>
 
+                {/* Font family */}
                 <select
                     onMouseDown={(e) => e.stopPropagation()}
                     onChange={(e) => exec('fontName', e.target.value)}
@@ -390,6 +397,7 @@ function RichTextEditor({ value, onChange, placeholder, error }: { value: string
                     ))}
                 </select>
 
+                {/* Font size */}
                 <select
                     onMouseDown={(e) => e.stopPropagation()}
                     onChange={(e) => exec('fontSize', e.target.value)}
@@ -465,13 +473,14 @@ function RichTextEditor({ value, onChange, placeholder, error }: { value: string
 }
 
 // ----------------------------------------------------------------------
-// Main Component
+// Main Component — handles BOTH create and edit.
+// Pass `courseDetail` (from Inertia props) when editing; leave it
+// undefined/null on the create route.
 // ----------------------------------------------------------------------
 export default function CourseDetailsForm({ courseDetail }: { courseDetail?: CourseDetailRecord | null }) {
     const isEditMode = !!courseDetail;
 
     const [masterData, setMasterData] = useState<ApiDataRow[]>([]);
-    const [existingEntries, setExistingEntries] = useState<{ course_name: string; university_name: string; college_name: string }[]>([]);
     const [masterLoading, setMasterLoading] = useState(true);
     const [masterError, setMasterError] = useState<string | null>(null);
 
@@ -485,7 +494,8 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
     const [summaryHtml, setSummaryHtml] = useState(courseDetail?.summary ?? '');
     const [careersHtml, setCareersHtml] = useState(courseDetail?.careers ?? '');
 
-    // Modules per institution
+    // Modules per institution — seeded from the saved record's flat
+    // `year_wise_modules` column, keyed under this row's single institution.
     const [yearModulesByInst, setYearModulesByInst] = useState<Record<string, YearModule[]>>(() => {
         if (!savedInstKey) return {};
         return {
@@ -493,6 +503,9 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         };
     });
     const [activeModuleTab, setActiveModuleTab] = useState<string | null>(savedInstKey);
+    // Tracks which module rows have their "course info" field expanded, keyed
+    // "instKey:yearIndex:moduleIndex". Separate from the data itself so an
+    // empty info string doesn't force the checkbox closed.
     const [expandedModuleInfo, setExpandedModuleInfo] = useState<Set<string>>(() => {
         const seed = new Set<string>();
         if (savedInstKey) {
@@ -504,7 +517,6 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         }
         return seed;
     });
-
     const moduleInfoKey = (instKey: string, yearIndex: number, moduleIndex: number) => `${instKey}:${yearIndex}:${moduleIndex}`;
     const toggleModuleInfoVisible = (yearIndex: number, moduleIndex: number) => {
         if (!activeModuleTab) return;
@@ -513,6 +525,8 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
             const next = new Set(prev);
             if (next.has(key)) {
                 next.delete(key);
+                // Clear the info text when unchecked so it isn't silently
+                // saved despite the checkbox appearing off.
                 updateModuleInfo(yearIndex, moduleIndex, '');
             } else {
                 next.add(key);
@@ -543,12 +557,12 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         return () => clearTimeout(t);
     }, [errorMessage]);
 
-    // Fetch master list and existing details from database
+    // Fetch the master list (courses + institutions) from the external admin API.
+    // This runs in both create and edit mode — edit mode still needs it so the
+    // combobox/course list and "add another institution" picker work.
     useEffect(() => {
         setMasterLoading(true);
         setMasterError(null);
-        
-        // 1. Fetch university list
         fetch('https://www.admin.studyinnepal.com/api/university')
             .then((res) => { if (!res.ok) throw new Error('Failed to fetch'); return res.json(); })
             .then((data) => { setMasterData(Array.isArray(data) ? data : []); })
@@ -557,19 +571,6 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                 setMasterError('Could not reach the institution directory. Saved selections are still shown below; search for new ones may be unavailable until this loads.');
             })
             .finally(() => setMasterLoading(false));
-
-        // 2. Fetch existing local entries to prevent duplicates
-        fetch('/course-details', {
-            headers: { 'Accept': 'application/json' }
-        })
-            .then((res) => { if (!res.ok) throw new Error('Failed to fetch existing course details'); return res.json(); })
-            .then((data) => {
-                const list = Array.isArray(data) ? data : (data?.data && Array.isArray(data.data) ? data.data : []);
-                setExistingEntries(list);
-            })
-            .catch((err) => {
-                console.error('Error fetching existing course details:', err);
-            });
     }, []);
 
     const uniqueCourses = useMemo(() => Array.from(new Set(masterData.map((item) => item.Course).filter(Boolean))), [masterData]);
@@ -588,7 +589,8 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         return Array.from(unique.values());
     }, [masterData, courseName]);
 
-    // The saved institution on this record (edit mode only).
+    // The saved institution on this record (edit mode only), independent of
+    // whatever the master list currently contains.
     const savedInstitutionOptions = useMemo<InstitutionOption[]>(() => {
         if (!courseDetail) return [];
         return [{
@@ -598,30 +600,19 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         }];
     }, [courseDetail]);
 
-    // Merge: master-list matches ∪ saved selections.
-    // Adds an 'alreadyExists' flag for colleges that are already configured for this course.
+    // Merge: master-list matches ∪ saved selections. Anything present only in
+    // the saved record (not in the live master list) is flagged `isStale` so
+    // the user can see it, but it's never silently dropped.
     const availableInstitutions = useMemo<InstitutionOption[]>(() => {
         const merged = new Map<string, InstitutionOption>();
-        
-        masterInstitutionsForCourse.forEach((opt) => {
-            const [uni, col] = opt.key.split('|||');
-            const exists = !isEditMode && existingEntries.some(
-                (entry) =>
-                    entry.course_name?.toLowerCase() === courseName.trim().toLowerCase() &&
-                    entry.university_name?.toLowerCase() === uni.toLowerCase() &&
-                    entry.college_name?.toLowerCase() === col.toLowerCase()
-            );
-            merged.set(opt.key, { ...opt, alreadyExists: exists });
-        });
-
+        masterInstitutionsForCourse.forEach((opt) => merged.set(opt.key, opt));
         savedInstitutionOptions.forEach((opt) => {
             if (!merged.has(opt.key)) {
                 merged.set(opt.key, { ...opt, isStale: true });
             }
         });
-        
         return Array.from(merged.values());
-    }, [masterInstitutionsForCourse, savedInstitutionOptions, existingEntries, courseName, isEditMode]);
+    }, [masterInstitutionsForCourse, savedInstitutionOptions]);
 
     const institutionLookup = useMemo(() => {
         const map = new Map<string, { label: string; subLabel: string }>();
@@ -629,7 +620,9 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         return map;
     }, [availableInstitutions]);
 
-    // Prune selections that are neither in the master list nor part of the originally-saved record.
+    // Prune selections that are neither in the master list nor part of the
+    // originally-saved record. This only strips genuinely invalid/new-typed
+    // selections — it never removes something that was saved on the record.
     useEffect(() => {
         const validKeys = new Set(availableInstitutions.map((i) => i.key));
         setSelectedInstKeys((prev) => prev.filter((k) => validKeys.has(k)));
@@ -668,6 +661,8 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         if (!activeModuleTab) return;
         setYearModulesByInst((prev) => ({ ...prev, [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? { ...y, modules: y.modules.map((m, mi) => (mi === moduleIndex ? { ...m, name: value } : m)) } : y) }));
     };
+    // Info text is capped at 50 words — extra words typed past the cap are
+    // simply not applied, rather than silently truncating what's on screen.
     const updateModuleInfo = (yearIndex: number, moduleIndex: number, value: string) => {
         if (!activeModuleTab) return;
         const wordCount = value.trim() === '' ? 0 : value.trim().split(/\s+/).length;
@@ -688,7 +683,7 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         });
     };
 
-    // -- Fee Handlers --
+    // -- Fee Handlers (course-level, shared) --
     const addFeeYear = () => {
         setCourseFees((prev) => [...prev, { year: nextYear(prev), amount: '', currency: '', note: '' }]);
     };
@@ -722,34 +717,18 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         if (!courseName.trim()) { setErrors({ course_name: 'Course name is required.' }); return; }
         if (selectedInstKeys.length === 0) { setErrors({ institutions: 'Please select at least one institution from the dropdown.' }); return; }
 
-        // Client-side validation: ensure multiple entries are not saved for matching Course/University/College
-        if (!isEditMode) {
-            const duplicates: string[] = [];
-            selectedInstKeys.forEach((key) => {
-                const [uni, col] = key.split('|||');
-                const exists = existingEntries.some(
-                    (entry) =>
-                        entry.course_name?.toLowerCase() === courseName.trim().toLowerCase() &&
-                        entry.university_name?.toLowerCase() === uni.toLowerCase() &&
-                        entry.college_name?.toLowerCase() === col.toLowerCase()
-                );
-                if (exists) {
-                    duplicates.push(col);
-                }
-            });
-
-            if (duplicates.length > 0) {
-                setErrors({
-                    institutions: `Details already exist for "${courseName.trim()}" at: ${duplicates.join(', ')}. Please deselect them before saving.`
-                });
-                return;
-            }
-        }
-
         setSaving(true);
         setErrors({});
 
         if (isEditMode && courseDetail) {
+            // update() (PUT /course-details/{uuid}) only ever patches THIS single
+            // flat row — it has no concept of a multi-institution course. So:
+            //  - the row's own institution (savedInstKey) is PUT to /course-details/{uuid}
+            //  - any additional institutions the user checked are NEW rows,
+            //    created via the same store() endpoint the create page uses
+            // If the user unchecked the original institution, its row is left
+            // as-is (not deleted) — deleting would need a separate DELETE call,
+            // which this form intentionally doesn't do implicitly.
             const updatePayload = {
                 course_name: courseName.trim(),
                 summary: summaryHtml.trim() || null,
@@ -772,7 +751,7 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
 
             const requests: Promise<Response>[] = [
                 fetch(`/course-details/${courseDetail.uuid}`, {
-                    method: 'POST', 
+                    method: 'POST', // spoofed PUT — see note below
                     headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() },
                     body: JSON.stringify({ ...updatePayload, _method: 'PUT' }),
                 }),
@@ -806,7 +785,7 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
             return;
         }
 
-        // Create mode
+        // Create mode: one store() call creates a row per selected institution.
         const institutionsPayload = selectedInstKeys.map((key) => {
             const [uni, col] = key.split('|||');
             return { university_name: uni, college_name: col, year_wise_modules: cleanModulesFor(key) };
@@ -832,15 +811,8 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                     throw new Error(data.message || 'Failed to save.');
                 }
                 setSavedMessage(data.message || 'Saved successfully.');
-
-                // Append the newly saved entries to existing list local state
-                const newlyCreated = selectedInstKeys.map((key) => {
-                    const [uni, col] = key.split('|||');
-                    return { course_name: courseName.trim(), university_name: uni, college_name: col };
-                });
-                setExistingEntries((prev) => [...prev, ...newlyCreated]);
-
-                // Reset the form
+                // Reset the form so the user can create another entry without
+                // accidentally re-submitting the same course/institutions again.
                 setCourseName('');
                 setSelectedInstKeys([]);
                 setSummaryHtml('');
@@ -1119,7 +1091,7 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                     </div>
                 </div>
 
-                {/* 5. Fees */}
+                {/* 5. Fees (course-level, applies to all selected institutions) */}
                 <div className="bg-white shadow-sm rounded-xl mb-6 border-0">
                     <div className="p-3 md:p-4">
                         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
