@@ -263,10 +263,10 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 </nav>
             )}
 
-            <main className="gcu-main pt-5 pb-5">
+            <main className="gcu-main">
                 {/* ================= OVERVIEW ================= */}
                 {courseDetail.summary && (
-                    <section id="overview" className="container-xl px-4 py-5 border-bottom">
+                    <section id="overview" className="container-xl px-4 gcu-panel border-bottom">
                         <div className="row gy-4 gy-lg-0" style={{ maxWidth: 1200 }}>
                             <div className="col-lg-3">
                                 <h2 className="gcu-heading fw-bold fs-3">Overview</h2>
@@ -283,7 +283,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
                 {/* ================= WHAT YOU WILL STUDY ================= */}
                 {modules.length > 0 && (
-                    <section id="study" className="gcu-panel-dark py-5">
+                    <section id="study" className="gcu-panel-dark gcu-panel">
                         <div className="container-xl px-4">
                             <div className="row gy-4 gy-lg-0" style={{ maxWidth: 1200 }}>
                                 <div className="col-lg-3">
@@ -346,7 +346,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
                 {/* ================= FEES AND FUNDING ================= */}
                 {fees.length > 0 && (
-                    <section id="fees" className="container-xl px-4 py-5 border-bottom">
+                    <section id="fees" className="container-xl px-4 gcu-panel border-bottom">
                         <div className="row gy-4 gy-lg-0" style={{ maxWidth: 1200 }}>
                             <div className="col-lg-3">
                                 <h2 className="gcu-heading fw-bold fs-3">
@@ -361,16 +361,16 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                     breakdown by year is published below for guidance.
                                 </p>
                                 <div className="table-responsive border rounded-3">
-                                    <table className="table table-striped table-hover mb-0 align-middle">
+                                    <table className="table table-striped table-hover mb-0 align-middle gcu-fees-table">
                                         <thead>
                                             <tr className="gcu-table-head">
-                                                <th className="text-white text-uppercase small fw-bold py-3 px-3">
+                                                <th className="text-white text-uppercase fw-bold py-3 px-3">
                                                     Year of Study
                                                 </th>
-                                                <th className="text-white text-uppercase small fw-bold py-3 px-3">
+                                                <th className="text-white text-uppercase fw-bold py-3 px-3">
                                                     Tuition Fee
                                                 </th>
-                                                <th className="text-white text-uppercase small fw-bold py-3 px-3">
+                                                <th className="text-white text-uppercase fw-bold py-3 px-3">
                                                     Additional Notes
                                                 </th>
                                             </tr>
@@ -396,7 +396,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 {/* ================= CAREER PROSPECTUS ================= */}
                 <section
                     id="careers"
-                    className="gcu-panel-careers position-relative py-5"
+                    className="gcu-panel-careers gcu-panel position-relative"
                     style={{
                         backgroundImage: `url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')`,
                     }}
@@ -462,6 +462,11 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     overflow-x: clip;
                 }
 
+                .gcu-main { padding-top: 50px; padding-bottom: 100px; }
+                .gcu-panel { padding-top: 50px; padding-bottom: 50px; }
+                .gcu-panel-dark.gcu-panel,
+                .gcu-panel-careers.gcu-panel { padding-top: 60px; padding-bottom: 60px; }
+
                 /* ---- Hero ---- */
                 .gcu-hero {
                     min-height: 480px;
@@ -489,7 +494,8 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
                 /* ---- Sticky subnav ---- */
                 .gcu-subnav { top: 0; z-index: 1030; }
-                .gcu-subnav__list { --bs-nav-link-padding-y: 1.1rem; }
+                .gcu-subnav__list { --bs-nav-link-padding-y: 0; }
+                .gcu-subnav__link { padding-top: 20px !important; padding-bottom: 17px !important; }
                 .gcu-subnav__link {
                     background: none;
                     border: none;
@@ -553,6 +559,14 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
                 /* ---- Fees table header ---- */
                 .gcu-table-head { background-color: var(--gcu-blue); }
+                .gcu-fees-table { font-size: 0.95rem; }
+                .gcu-fees-table thead th {
+                    font-size: 0.75rem;
+                    letter-spacing: 0.05em;
+                }
+                .gcu-fees-table tbody td {
+                    font-size: 0.95rem;
+                }
 
                 /* ---- Careers panel ---- */
                 .gcu-panel-careers {
