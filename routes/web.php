@@ -30,7 +30,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('explorecourses', 'university/course/coursesearch')->name('coursesearch');
     Route::inertia('/online/survey', 'survey/survey')->name('survey');
     Route::inertia('/agency/survey', 'survey/agent/agencysurveyindex')->name('agencysurveyindex');
-   Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+   
 Route::get('/courses/{university}', [CourseDetailController::class, 'show'])
     ->name('courses.show');
     Route::inertia('/survey', 'survey/surveyindex')->name('surveyindex');
@@ -148,7 +148,7 @@ Route::put('/agent/applications/{application}/assign', [StudentApplicationApiCon
     // Permissions (read-only — the master list from PermissionSeeder)
     Route::get('/permissions', [PermissionController::class, 'index']);
     
-
+Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
