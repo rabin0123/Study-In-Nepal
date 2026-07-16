@@ -221,28 +221,37 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
 
     // Dark/Light Theme Persistence Sync Hook
     useEffect(() => {
-        const savedTheme = localStorage.getItem('theme');
+        const savedTheme = localStorage.getItem('theme') || 'light';
         
-        // Load preference from storage on mount
-        if (savedTheme) {
-            document.documentElement.setAttribute('data-bs-theme', savedTheme);
-            if (savedTheme === 'dark') {
+        const applyTheme = (theme: string) => {
+            document.documentElement.setAttribute('data-bs-theme', theme);
+            if (theme === 'dark') {
                 document.body.classList.add('dark');
             } else {
                 document.body.classList.remove('dark');
             }
-        }
+        };
+
+        // 1. Apply saved preference immediately on mount
+        applyTheme(savedTheme);
+
+        // 2. Run a deferred callback to override delayed script initializations on hard refresh
+        const overrideTimer = setTimeout(() => {
+            applyTheme(savedTheme);
+        }, 100);
 
         const applyDarkTheme = () => {
             localStorage.setItem('theme', 'dark');
-            document.documentElement.setAttribute('data-bs-theme', 'dark');
-            document.body.classList.add('dark');
+            localStorage.setItem('theme-layout', 'dark');
+            localStorage.setItem('data-bs-theme', 'dark');
+            applyTheme('dark');
         };
 
         const applyLightTheme = () => {
             localStorage.setItem('theme', 'light');
-            document.documentElement.setAttribute('data-bs-theme', 'light');
-            document.body.classList.remove('dark');
+            localStorage.setItem('theme-layout', 'light');
+            localStorage.setItem('data-bs-theme', 'light');
+            applyTheme('light');
         };
 
         const darkButtons = document.querySelectorAll('.dark-layout, .moon');
@@ -252,6 +261,7 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
         lightButtons.forEach(btn => btn.addEventListener('click', applyLightTheme));
 
         return () => {
+            clearTimeout(overrideTimer);
             darkButtons.forEach(btn => btn.removeEventListener('click', applyDarkTheme));
             lightButtons.forEach(btn => btn.removeEventListener('click', applyLightTheme));
         };
