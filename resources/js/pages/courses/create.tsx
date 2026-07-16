@@ -8,7 +8,7 @@ import {
     Undo2, Redo2,
     Loader2, Save, CheckCircle2,
     AlertCircle, FileText, Briefcase, Calendar, Trash2, X, Coins, Info,
-    CheckCircle, Copy, Plus, Layers, GraduationCap
+    CheckCircle, Copy, Plus, Layers, GraduationCap, AlertTriangle
 } from 'lucide-react';
 
 // ── Interfaces ──
@@ -21,6 +21,31 @@ interface ApiDataRow {
     College: string;
     Course: string;
     [key: string]: any;
+}
+
+// Shape returned by the Laravel controller for an existing record.
+// Adjust field names here if your controller's edit/show response differs.
+interface CourseDetailInstitution {
+    university_name: string;
+    college_name: string;
+    year_wise_modules: YearModule[];
+}
+interface CourseDetailRecord {
+    uuid: string;
+    course_name: string;
+    summary: string | null;
+    careers_summary: string | null;
+    institutions: CourseDetailInstitution[];
+    fees: YearFee[];
+}
+
+interface InstitutionOption {
+    key: string;
+    label: string;
+    subLabel: string;
+    /** true when this institution came from the saved record but is no longer
+     *  present in the live admin.studyinnepal.com master list (renamed/removed/etc). */
+    isStale?: boolean;
 }
 
 // ── Helpers ──
@@ -38,6 +63,10 @@ function defaultYearModules(): YearModule[] {
 
 function defaultYearFee(): YearFee[] {
     return [{ year: 1, amount: '', currency: '', note: '' }];
+}
+
+function instKey(university: string, college: string): string {
+    return `${university}|||${college}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -121,7 +150,7 @@ function ComboboxInput({
 function MultiSelectDropdown({
     options, selectedKeys, onToggle, disabled, placeholder
 }: {
-    options: { key: string; label: string; subLabel: string }[];
+    options: InstitutionOption[];
     selectedKeys: string[];
     onToggle: (key: string) => void;
     disabled?: boolean;
@@ -185,7 +214,14 @@ function MultiSelectDropdown({
                                     readOnly
                                 />
                                 <div>
-                                    <div className="font-medium leading-snug mb-0.5 text-gray-900 text-sm">{opt.label}</div>
+                                    <div className="font-medium leading-snug mb-0.5 text-gray-900 text-sm flex items-center gap-1.5">
+                                        {opt.label}
+                                        {opt.isStale && (
+                                            <span title="Saved on this record but not found in the current institution list" className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 rounded-full px-1.5 py-0.5" style={{ fontSize: '0.65rem' }}>
+                                                <AlertTriangle size={10} /> not in master list
+                                            </span>
+                                        )}
+                                    </div>
                                     <div className="text-gray-500 leading-snug text-xs">{opt.subLabel}</div>
                                 </div>
                             </div>
@@ -284,10 +320,20 @@ function SwatchPopover({
 
 function RichTextEditor({ value, onChange, placeholder, error }: { value: string; onChange: (v: string) => void; placeholder?: string; error?: string; }) {
     const editorRef = useRef<HTMLDivElement>(null);
+    // Track whether we've already pushed `value` into the DOM once, so that
+    // external updates (e.g. loading an existing record) render correctly,
+    // while typing doesn't get clobbered by re-renders.
+    const initializedRef = useRef(false);
 
     useEffect(() => {
-        if (editorRef.current && value === '' && editorRef.current.innerHTML !== '') {
-            editorRef.current.innerHTML = '';
+        if (!editorRef.current) return;
+        // Sync from parent only on first mount / when value changes externally
+        // (e.g. courseDetail finished loading) and editor isn't focused.
+        if (!initializedRef.current || document.activeElement !== editorRef.current) {
+            if (editorRef.current.innerHTML !== value) {
+                editorRef.current.innerHTML = value || '';
+            }
+            initializedRef.current = true;
         }
     }, [value]);
 
@@ -401,22 +447,44 @@ function RichTextEditor({ value, onChange, placeholder, error }: { value: string
 }
 
 // ----------------------------------------------------------------------
-// Main Component
+// Main Component — handles BOTH create and edit.
+// Pass `courseDetail` (from Inertia props) when editing; leave it
+// undefined/null on the create route.
 // ----------------------------------------------------------------------
-export default function CourseDetailsCreate() {
+export default function CourseDetailsForm({ courseDetail }: { courseDetail?: CourseDetailRecord | null }) {
+    const isEditMode = !!courseDetail;
+
     const [masterData, setMasterData] = useState<ApiDataRow[]>([]);
-    const [courseName, setCourseName] = useState('');
-    const [selectedInstKeys, setSelectedInstKeys] = useState<string[]>([]);
-    const [summaryHtml, setSummaryHtml] = useState('');
-    const [careersHtml, setCareersHtml] = useState('');
+    const [masterLoading, setMasterLoading] = useState(true);
+    const [masterError, setMasterError] = useState<string | null>(null);
 
-    // Modules per institution
-    const [yearModulesByInst, setYearModulesByInst] = useState<Record<string, YearModule[]>>({});
-    const [activeModuleTab, setActiveModuleTab] = useState<string | null>(null);
+    const [courseName, setCourseName] = useState(courseDetail?.course_name ?? '');
+    const [selectedInstKeys, setSelectedInstKeys] = useState<string[]>(
+        () => (courseDetail?.institutions ?? []).map((i) => instKey(i.university_name, i.college_name))
+    );
+    const [summaryHtml, setSummaryHtml] = useState(courseDetail?.summary ?? '');
+    const [careersHtml, setCareersHtml] = useState(courseDetail?.careers_summary ?? '');
 
-    // Fees are course-level (shared across all selected institutions) — this matches
-    // the controller, which persists ONE top-level `fees` array onto every institution row.
-    const [courseFees, setCourseFees] = useState<YearFee[]>(defaultYearFee());
+    // Modules per institution — seeded from the saved record, keyed the same
+    // way as the master-data-derived keys so lookups line up.
+    const [yearModulesByInst, setYearModulesByInst] = useState<Record<string, YearModule[]>>(() => {
+        const seed: Record<string, YearModule[]> = {};
+        (courseDetail?.institutions ?? []).forEach((i) => {
+            seed[instKey(i.university_name, i.college_name)] =
+                i.year_wise_modules && i.year_wise_modules.length > 0 ? i.year_wise_modules : defaultYearModules();
+        });
+        return seed;
+    });
+    const [activeModuleTab, setActiveModuleTab] = useState<string | null>(
+        () => (courseDetail?.institutions?.[0]
+            ? instKey(courseDetail.institutions[0].university_name, courseDetail.institutions[0].college_name)
+            : null)
+    );
+
+    // Fees are course-level (shared across all selected institutions).
+    const [courseFees, setCourseFees] = useState<YearFee[]>(
+        () => (courseDetail?.fees && courseDetail.fees.length > 0 ? courseDetail.fees : defaultYearFee())
+    );
 
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -428,27 +496,61 @@ export default function CourseDetailsCreate() {
         return () => clearTimeout(t);
     }, [savedMessage]);
 
+    // Fetch the master list (courses + institutions) from the external admin API.
+    // This runs in both create and edit mode — edit mode still needs it so the
+    // combobox/course list and "add another institution" picker work.
     useEffect(() => {
+        setMasterLoading(true);
+        setMasterError(null);
         fetch('https://www.admin.studyinnepal.com/api/university')
             .then((res) => { if (!res.ok) throw new Error('Failed to fetch'); return res.json(); })
             .then((data) => { setMasterData(Array.isArray(data) ? data : []); })
-            .catch((err) => console.error('Error fetching university data:', err));
+            .catch((err) => {
+                console.error('Error fetching university data:', err);
+                setMasterError('Could not reach the institution directory. Saved selections are still shown below; search for new ones may be unavailable until this loads.');
+            })
+            .finally(() => setMasterLoading(false));
     }, []);
 
     const uniqueCourses = useMemo(() => Array.from(new Set(masterData.map((item) => item.Course).filter(Boolean))), [masterData]);
 
-    const availableInstitutions = useMemo(() => {
+    // Institutions matching the currently-typed course name, from the live master list.
+    const masterInstitutionsForCourse = useMemo(() => {
         if (!courseName) return [];
         const matches = masterData.filter((d) => d.Course?.toLowerCase() === courseName.toLowerCase());
-        const unique = new Map();
+        const unique = new Map<string, InstitutionOption>();
         matches.forEach((m) => {
             if (m.University && m.College) {
-                const key = `${m.University}|||${m.College}`;
+                const key = instKey(m.University, m.College);
                 if (!unique.has(key)) unique.set(key, { key, label: m.College, subLabel: m.University });
             }
         });
         return Array.from(unique.values());
     }, [masterData, courseName]);
+
+    // The saved institutions on this record (edit mode only), independent of
+    // whatever the master list currently contains.
+    const savedInstitutionOptions = useMemo<InstitutionOption[]>(() => {
+        return (courseDetail?.institutions ?? []).map((i) => ({
+            key: instKey(i.university_name, i.college_name),
+            label: i.college_name,
+            subLabel: i.university_name,
+        }));
+    }, [courseDetail]);
+
+    // Merge: master-list matches ∪ saved selections. Anything present only in
+    // the saved record (not in the live master list) is flagged `isStale` so
+    // the user can see it, but it's never silently dropped.
+    const availableInstitutions = useMemo<InstitutionOption[]>(() => {
+        const merged = new Map<string, InstitutionOption>();
+        masterInstitutionsForCourse.forEach((opt) => merged.set(opt.key, opt));
+        savedInstitutionOptions.forEach((opt) => {
+            if (!merged.has(opt.key)) {
+                merged.set(opt.key, { ...opt, isStale: true });
+            }
+        });
+        return Array.from(merged.values());
+    }, [masterInstitutionsForCourse, savedInstitutionOptions]);
 
     const institutionLookup = useMemo(() => {
         const map = new Map<string, { label: string; subLabel: string }>();
@@ -456,12 +558,15 @@ export default function CourseDetailsCreate() {
         return map;
     }, [availableInstitutions]);
 
+    // Prune selections that are neither in the master list nor part of the
+    // originally-saved record. This only strips genuinely invalid/new-typed
+    // selections — it never removes something that was saved on the record.
     useEffect(() => {
-        const validKeys = availableInstitutions.map(i => i.key);
-        setSelectedInstKeys(prev => prev.filter(k => validKeys.includes(k)));
+        const validKeys = new Set(availableInstitutions.map((i) => i.key));
+        setSelectedInstKeys((prev) => prev.filter((k) => validKeys.has(k)));
     }, [availableInstitutions]);
 
-    // Keep Modules in sync with selected institutions
+    // Keep Modules in sync with selected institutions.
     useEffect(() => {
         setYearModulesByInst((prev) => {
             const next: Record<string, YearModule[]> = {};
@@ -528,9 +633,6 @@ export default function CourseDetailsCreate() {
         setSaving(true);
         setErrors({});
 
-        // Matches CourseDetailController@store validation exactly:
-        // - institutions[].university_name / college_name / year_wise_modules[].{year,title,modules}
-        // - fees[].{year,amount,currency,note}  (top-level, applied to every institution row by the controller)
         const institutionsPayload = selectedInstKeys.map((key) => {
             const [uni, col] = key.split('|||');
 
@@ -564,10 +666,18 @@ export default function CourseDetailsCreate() {
             fees: cleanFees,
         };
 
-        fetch('/course-details', {
-            method: 'POST',
+        const url = isEditMode ? `/course-details/${courseDetail!.uuid}` : '/course-details';
+        // Laravel expects PUT/PATCH to be spoofed via _method when sent as a
+        // normal POST body — adjust to `method: 'PUT'` instead if your route
+        // accepts a real PUT (e.g. you're not going through Laravel's form
+        // method spoofing).
+        const method = 'POST';
+        const body = isEditMode ? { ...payload, _method: 'PUT' } : payload;
+
+        fetch(url, {
+            method,
             headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() },
-            body: JSON.stringify(payload),
+            body: JSON.stringify(body),
         })
             .then(async (res) => {
                 const data = await res.json();
@@ -575,8 +685,8 @@ export default function CourseDetailsCreate() {
                     setErrors(data.errors ? Object.fromEntries(Object.entries(data.errors).map(([k, v]) => [k, (v as string[])[0]])) : {});
                     throw new Error(data.message || 'Failed to save');
                 }
-                setSavedMessage(data.message || 'Saved successfully.');
-                setTimeout(() => router.visit(`/course-details/${data.courseDetail?.uuid || ''}`), 800);
+                setSavedMessage(data.message || (isEditMode ? 'Updated successfully.' : 'Saved successfully.'));
+                setTimeout(() => router.visit(`/course-details/${data.courseDetail?.uuid || courseDetail?.uuid || ''}`), 800);
             })
             .catch((err) => console.error('Failed to save course details', err))
             .finally(() => setSaving(false));
@@ -593,15 +703,17 @@ export default function CourseDetailsCreate() {
                     <div>
                         <h4 className="mb-1 font-bold text-gray-900 flex items-center gap-2 text-xl">
                             <GraduationCap size={22} className="text-[#008AE6]" />
-                            New Course Details
+                            {isEditMode ? 'Edit Course Details' : 'New Course Details'}
                         </h4>
                         <p className="text-gray-500 text-sm mb-0">
-                            Define a course once and securely link it to multiple colleges effortlessly.
+                            {isEditMode
+                                ? 'Update the course and its per-institution details.'
+                                : 'Define a course once and securely link it to multiple colleges effortlessly.'}
                         </p>
                     </div>
                     <button type="submit" className="inline-flex items-center gap-2 rounded-full bg-[#008AE6] hover:bg-[#0071bf] text-white shadow-sm px-4 py-2 transition-colors disabled:opacity-60" disabled={saving}>
                         {saving ? <Loader2 size={16} className="spin" /> : <Save size={16} />}
-                        <span className="font-medium text-sm">{saving ? 'Saving...' : 'Save details'}</span>
+                        <span className="font-medium text-sm">{saving ? 'Saving...' : isEditMode ? 'Update details' : 'Save details'}</span>
                     </button>
                 </div>
 
@@ -609,6 +721,13 @@ export default function CourseDetailsCreate() {
                     <div className="flex items-center gap-2 bg-green-50 text-green-800 border-0 shadow-sm rounded-xl p-2 mb-4 text-sm">
                         <CheckCircle2 size={18} />
                         <span className="font-medium">{savedMessage}</span>
+                    </div>
+                )}
+
+                {masterError && (
+                    <div className="flex items-center gap-2 bg-amber-50 text-amber-800 border-0 shadow-sm rounded-xl p-2 mb-4 text-sm">
+                        <AlertTriangle size={16} />
+                        <span className="font-medium">{masterError}</span>
                     </div>
                 )}
 
@@ -644,7 +763,10 @@ export default function CourseDetailsCreate() {
                             <span className="bg-[#008AE6] text-white rounded-full flex items-center justify-center shadow-sm" style={{ width: 22, height: 22, fontSize: 11 }}>2</span>
                             Select Institutions
                         </h6>
-                        <p className="text-gray-500 text-sm mb-3">Check all the colleges this curriculum should apply to.</p>
+                        <p className="text-gray-500 text-sm mb-3">
+                            Check all the colleges this curriculum should apply to.
+                            {masterLoading && <span className="inline-flex items-center gap-1 text-gray-400 ml-2"><Loader2 size={12} className="spin" /> loading institution directory...</span>}
+                        </p>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="md:col-span-2">
@@ -857,7 +979,7 @@ export default function CourseDetailsCreate() {
                 <div className="flex justify-end pb-10 pt-2">
                     <button type="submit" className="inline-flex items-center gap-2 rounded-full bg-[#008AE6] hover:bg-[#0071bf] text-white shadow-sm px-4 py-2.5 transition-colors disabled:opacity-60" disabled={saving}>
                         {saving ? <Loader2 size={18} className="spin" /> : <CheckCircle size={18} />}
-                        <span className="font-medium text-sm">{saving ? 'Processing...' : 'Save All Details'}</span>
+                        <span className="font-medium text-sm">{saving ? 'Processing...' : isEditMode ? 'Update All Details' : 'Save All Details'}</span>
                     </button>
                 </div>
 
