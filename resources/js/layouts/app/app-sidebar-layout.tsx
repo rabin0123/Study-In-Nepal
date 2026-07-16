@@ -12,7 +12,7 @@ const flatTopItems: NavLeaf[] = [
     { title: 'Dashboard', href: '/dashboard', icon: 'solar:widget-add-line-duotone' },
     { title: 'Applications', href: '/applications', icon: 'solar:layers-line-duotone' },
     { title: 'Search Courses', href: '/courses', icon: 'solar:layers-line-duotone' },
-    { title: 'Courses', href: '/course-details', icon: 'solar:layers-line-duotone' },
+    
 ];
 
 const navGroups: NavGroup[] = [
@@ -23,7 +23,7 @@ const navGroups: NavGroup[] = [
         items: [
             { title: 'University', href: '/university', icon: 'solar:card-search-line-duotone' },
             { title: 'Course Search', href: '/explorecourses', icon: 'solar:mask-happly-line-duotone' },
-            { title: 'Courses', href: '/explorecourses', icon: 'solar:mask-happly-line-duotone' },
+            { title: 'Courses', href: '/course-details', icon: 'solar:layers-line-duotone' },
         ],
     },
     {
