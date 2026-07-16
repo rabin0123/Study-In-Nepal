@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, router } from '@inertiajs/react';
-import { MoreVertical, Trash2 } from 'lucide-react';
+import { MoreVertical, Trash2, CheckCircle2, XCircle, X } from 'lucide-react';
 
 type CourseDetailRow = {
     uuid: string;
@@ -35,6 +35,22 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
     const [pendingDeleteUuid, setPendingDeleteUuid] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
+
+    // Self-contained toast notifications (no external library). Each toast
+    // auto-dismisses after a few seconds; multiple toasts stack bottom-right.
+    type Toast = { id: number; type: 'success' | 'error'; message: string };
+    const [toasts, setToasts] = useState<Toast[]>([]);
+    const toastIdRef = useRef(0);
+
+    const dismissToast = (id: number) => {
+        setToasts((current) => current.filter((t) => t.id !== id));
+    };
+
+    const showToast = (type: Toast['type'], message: string) => {
+        const id = ++toastIdRef.current;
+        setToasts((current) => [...current, { id, type, message }]);
+        window.setTimeout(() => dismissToast(id), 4000);
+    };
 
     // Fetch logos from the external API on mount
     useEffect(() => {
@@ -125,9 +141,18 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
 
     const confirmDelete = () => {
         if (!pendingDeleteUuid) return;
+        const targetRow = courseDetails.data.find((r) => r.uuid === pendingDeleteUuid);
+        const label = targetRow ? `${targetRow.course_name} at ${targetRow.college_name}` : 'Course';
+
         setIsDeleting(true);
         router.delete(`/course-details/${pendingDeleteUuid}`, {
             preserveScroll: true,
+            onSuccess: () => {
+                showToast('success', `${label} was deleted successfully.`);
+            },
+            onError: () => {
+                showToast('error', `Failed to delete ${label}. Please try again.`);
+            },
             onFinish: () => {
                 setIsDeleting(false);
                 setPendingDeleteUuid(null);
@@ -338,9 +363,10 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                 
             </div>
 
-            {/* Delete confirmation modal */}
+            {/* Delete confirmation modal — rendered with a very high z-index
+                so it always sits above app chrome (top nav, sidebar, etc.) */}
             {rowPendingDelete && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
                     <div
                         className="absolute inset-0 bg-gray-900/40"
                         onClick={cancelDelete}
@@ -375,6 +401,34 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                 </div>
             )}
 
+            {/* Toast notifications — bottom-right, stacked, auto-dismissing */}
+            <div className="fixed bottom-5 right-5 z-[110] flex flex-col gap-2.5 w-full max-w-sm pointer-events-none">
+                {toasts.map((toast) => (
+                    <div
+                        key={toast.id}
+                        role="status"
+                        className={`gcu-toast pointer-events-auto flex items-start gap-3 rounded-lg border shadow-lg px-4 py-3 bg-white ${
+                            toast.type === 'success' ? 'border-green-200' : 'border-red-200'
+                        }`}
+                    >
+                        {toast.type === 'success' ? (
+                            <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                        ) : (
+                            <XCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                        )}
+                        <p className="text-sm text-gray-700 flex-1">{toast.message}</p>
+                        <button
+                            type="button"
+                            onClick={() => dismissToast(toast.id)}
+                            className="text-gray-400 hover:text-gray-600 flex-shrink-0"
+                            aria-label="Dismiss notification"
+                        >
+                            <X className="w-4 h-4" aria-hidden="true" />
+                        </button>
+                    </div>
+                ))}
+            </div>
+
             {/* Plain CSS (not a Tailwind utility) for the row-hover reveal of
                 the three-dot menu. Using a real :hover rule here instead of
                 relying only on Tailwind's group-hover class guarantees the
@@ -387,6 +441,19 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                 .gcu-row:hover .gcu-row-menu,
                 .gcu-row-menu--open {
                     opacity: 1;
+                }
+                .gcu-toast {
+                    animation: gcu-toast-in 0.2s ease-out;
+                }
+                @keyframes gcu-toast-in {
+                    from {
+                        opacity: 0;
+                        transform: translateY(8px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
                 }
             `}</style>
         </main>
