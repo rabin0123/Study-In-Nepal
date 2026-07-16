@@ -114,6 +114,14 @@ class CourseDetailController extends Controller
             'courseDetail' => $courseDetail,
         ]);
     }
+    public function coursedetails(CourseDetail $courseDetail): Response
+    {
+        $courseDetail->load('university');
+
+        return Inertia::render('courses/show', [
+            'courseDetail' => $courseDetail,
+        ]);
+    }
 
     /**
      * Show edit form for a single Course Detail.
