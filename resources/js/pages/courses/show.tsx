@@ -312,11 +312,11 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                         </ul>
                                     )}
 
-                                    <div className="accordion gcu-accordion" id="moduleAccordion">
+                                    <div className="gcu-modules-list" id="moduleAccordion">
                                         {modules.map((yearBlock) => {
                                             if (activeTab !== yearBlock.year && modules.length > 1) return null;
                                             return (
-                                                <div key={yearBlock.year} className="d-flex flex-column gap-3">
+                                                <div key={yearBlock.year} className="d-flex flex-column gcu-modules-gap">
                                                     {yearBlock.title && modules.length === 1 && (
                                                         <h3 className="fs-5 fw-bold text-white mb-2">{yearBlock.title}</h3>
                                                     )}
@@ -356,7 +356,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                 </h2>
                             </div>
                             <div className="col-lg-9">
-                                <p className="text-black fs-4 mb-4">
+                                <p className="text-secondary fs-5 mb-4">
                                     The tuition fees you pay are determined by your fee status. Estimated tuition
                                     breakdown by year is published below for guidance.
                                 </p>
@@ -382,7 +382,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                                     <td className="fw-bold text-primary px-3">
                                                         {fee.amount ? `${fee.currency ?? ''} ${fee.amount}`.trim() : '—'}
                                                     </td>
-                                                    <td className="px-3">{fee.note || '—'}</td>
+                                                    <td className="text-secondary px-3">{fee.note || '—'}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -548,7 +548,8 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 }
 
                 /* Module accordion rows */
-                .gcu-accordion .card { border: none; border-radius: 6px; overflow: hidden; }
+                .gcu-modules-gap { gap: 12px; }
+                .gcu-modules-list .card { border: none; border-radius: 6px; overflow: hidden; margin-bottom: 0; }
                 .gcu-mod-btn {
                     color: var(--gcu-blue);
                     font-weight: 700;
