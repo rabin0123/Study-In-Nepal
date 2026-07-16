@@ -63,7 +63,19 @@ class CourseDetail extends Model
     protected function careers(): \Illuminate\Database\Eloquent\Casts\Attribute
 {
     return \Illuminate\Database\Eloquent\Casts\Attribute::make(
-        get: fn ($value) => is_string($value) ? (json_decode($value, true) ?? $value) : $value,
+        get: function ($value) {
+            if (!is_string($value)) {
+                return $value;
+            }
+            $decoded = json_decode($value, true);
+            if (is_string($decoded)) {
+                return $decoded; // correctly-stored plain JSON string
+            }
+            if (is_array($decoded) && isset($decoded['html']) && is_string($decoded['html'])) {
+                return $decoded['html']; // legacy rows saved as {"html": "..."}
+            }
+            return $value; // fallback: return raw value as-is
+        },
         set: fn ($value) => is_string($value) ? json_encode($value) : $value,
     );
 }
