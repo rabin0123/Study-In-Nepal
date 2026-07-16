@@ -27,7 +27,11 @@ export default function VerifyEmail({ status }: { status?: string }) {
                 {/* Background decorative blurry gradient elements */}
                 <div style={{ position: "absolute", top: -80, right: -80, width: 320, height: 320, borderRadius: "50%", background: "rgba(14, 165, 233, 0.15)", filter: "blur(80px)", pointerEvents: "none" }} />
                 <div style={{ position: "absolute", bottom: -60, left: -60, width: 240, height: 240, borderRadius: "50%", background: "rgba(251, 191, 36, 0.1)", filter: "blur(60px)", pointerEvents: "none" }} />
-
+<div className="d-flex align-items-center justify-content-center gap-3 mb-4">
+                        <div className="bg-white rounded-circle d-flex align-items-center justify-content-center overflow-hidden shrink-0" style={{ width: 56, height: 56 }}>
+                            <img src="https://admin.studyinnepal.com/storage/settings/JhagqBcT0B9QQkFcQkSplV50L2nwBTdMc7DJB0DM.png" alt="Study in Nepal" className="h-100 w-100 object-fit-cover" style={{ transform: "scale(1.79)" }} />
+                        </div>
+                    </div>
                 <div className="position-relative z-1 w-100 max-w-sm mx-auto text-center">
                     <span className="d-inline-block fw-bold fs-2 text-uppercase text-warning mb-3" style={{ letterSpacing: "0.3em" }}>
                         Partner Portal
