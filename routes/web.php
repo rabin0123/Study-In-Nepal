@@ -116,7 +116,7 @@ Route::get('/agent/applications/{application}/pdf', [StudentApplicationApiContro
 Route::delete('/agent/applications/{application}', [StudentApplicationApiController::class, 'destroy']);
 Route::post('/agent/applications/download-zip', [StudentApplicationApiController::class, 'downloadZip']);
 Route::post('/agent/applications/{application}/comments', [StudentApplicationApiController::class, 'storeComment']);
-
+Route::get('/applications/search', [ApplicationSearchController::class, 'search']);
 
 Route::put('/agent/applications/{application}/assign', [StudentApplicationApiController::class, 'assign']);
 
