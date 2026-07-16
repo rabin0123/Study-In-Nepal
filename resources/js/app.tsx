@@ -27,7 +27,7 @@ createInertiaApp({
                 return [AppLayout, SettingsLayout];
             case name.startsWith('university/coursesearch'):
             return null;
-            case name.startsWith('courses/show'):
+            case name.startsWith('university/courses/show'):
             return null;
             default:
                 return AppLayout;
