@@ -25,18 +25,16 @@ interface DashboardResponse {
 }
 
 export default function Dashboard() {
-  const [stats, setStats] = useState<Stats | null>(null);
+    const [stats, setStats] = useState<Stats | null>(null);
     const [latestApplications, setLatestApplications] = useState<Application[]>([]);
     
-    // Instantiate the HTTP client
+    // Non-navigating HTTP client hook
     const http = useHttp();
 
     useEffect(() => {
         async function loadDashboardData() {
             try {
-                // Resolved as 'DashboardResponse' using type assertion
                 const response = (await http.get('/api/dashboard')) as DashboardResponse;
-                
                 setStats(response.stats);
                 setLatestApplications(response.latestApplications);
             } catch (error) {
@@ -75,7 +73,14 @@ export default function Dashboard() {
                                 <div className="d-flex align-items-center justify-content-between">
                                     <span className="text-muted fw-medium small">Total Applications</span>
                                     <div className="bg-light rounded p-2 d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }}>
-                                        <span className="iconify fs-5 text-secondary" data-icon="lucide:file-text"></span>
+                                        {/* Inline FileText SVG */}
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-secondary">
+                                            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+                                            <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+                                            <path d="M10 9H8"/>
+                                            <path d="M16 13H8"/>
+                                            <path d="M16 17H8"/>
+                                        </svg>
                                     </div>
                                 </div>
                                 <div className="mt-3">
@@ -99,7 +104,11 @@ export default function Dashboard() {
                                 <div className="d-flex align-items-center justify-content-between">
                                     <span className="text-muted fw-medium small">Applications Processed</span>
                                     <div className="bg-primary-subtle rounded p-2 d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }}>
-                                        <span className="iconify fs-5 text-primary" data-icon="lucide:check-circle"></span>
+                                        {/* Inline CheckCircle SVG */}
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <path d="m9 12 2 2 4-4"/>
+                                        </svg>
                                     </div>
                                 </div>
                                 <div className="mt-3">
@@ -123,7 +132,12 @@ export default function Dashboard() {
                                 <div className="d-flex align-items-center justify-content-between">
                                     <span className="text-muted fw-medium small">Case Closed</span>
                                     <div className="bg-success-subtle rounded p-2 d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }}>
-                                        <span className="iconify fs-5 text-success" data-icon="lucide:archive"></span>
+                                        {/* Inline Archive SVG */}
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-success">
+                                            <rect width="20" height="5" x="2" y="3" rx="1"/>
+                                            <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/>
+                                            <line x1="10" x2="14" y1="12" y2="12"/>
+                                        </svg>
                                     </div>
                                 </div>
                                 <div className="mt-3">
@@ -152,7 +166,11 @@ export default function Dashboard() {
                                     <p className="card-subtitle text-muted small">Recently submitted student entries</p>
                                 </div>
                                 <div className="text-muted small d-flex align-items-center gap-1">
-                                    <span className="iconify fs-6" data-icon="lucide:clock"></span>
+                                    {/* Inline Clock SVG */}
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <polyline points="12 6 12 12 16 14"/>
+                                    </svg>
                                     <span>Real-time updates</span>
                                 </div>
                             </div>
@@ -167,7 +185,11 @@ export default function Dashboard() {
                                     </div>
                                 ) : latestApplications.length === 0 ? (
                                     <div className="text-center py-5 text-muted">
-                                        <span className="iconify display-6 mb-2 opacity-50" data-icon="lucide:user"></span>
+                                        {/* Inline User SVG */}
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2 opacity-50">
+                                            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                                            <circle cx="12" cy="7" r="4"/>
+                                        </svg>
                                         <p className="mb-0">No applications found.</p>
                                     </div>
                                 ) : (
