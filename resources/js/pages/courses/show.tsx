@@ -316,7 +316,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                         {modules.map((yearBlock) => {
                                             if (activeTab !== yearBlock.year && modules.length > 1) return null;
                                             return (
-                                                <div key={yearBlock.year} className="d-flex flex-column gap-3">
+                                                <div key={yearBlock.year} className="d-flex flex-column gap-2">
                                                     {yearBlock.title && modules.length === 1 && (
                                                         <h3 className="fs-5 fw-bold text-white mb-2">{yearBlock.title}</h3>
                                                     )}
