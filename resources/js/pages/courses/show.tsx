@@ -616,7 +616,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 .gcu-subnav__link:focus, 
                 .gcu-subnav__link:active {
                     color: var(--color-skyblue);
-                    border-bottom-color: var(--color-skyblue);
+    border-bottom-color: var(--color-skyblue);
                 }
 
                 .gcu-main-content {
