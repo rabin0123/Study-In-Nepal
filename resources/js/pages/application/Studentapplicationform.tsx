@@ -551,7 +551,7 @@ export default function StudentApplicationForm() {
               onChange={(e) => set("student_name", e.target.value)}
             />
 
-            <div className="row g-3 mt-1">
+            {/* <div className="row g-3 mt-1">
               <div className="col-md-6">
                 <QuestionLabel text="Phone Number" hint="Include country code" />
                 <PhoneInput
@@ -571,7 +571,7 @@ export default function StudentApplicationForm() {
                   onChange={(e) => set("email", e.target.value)}
                 />
               </div>
-            </div>
+            </div> */}
 
             <div className="row g-3 mt-1">
               <div className="col-md-6">
