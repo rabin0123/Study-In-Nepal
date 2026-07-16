@@ -47,7 +47,7 @@ class CourseDetailController extends Controller
 
     /**
      * Store a newly created resource in storage.
-     * Updated to handle multiple institutions sharing the same course mapping.
+     * Updated to handle multiple institutions sharing the same course mapping and prevent duplicate entries.
      */
     public function store(Request $request): JsonResponse
     {
@@ -55,7 +55,7 @@ class CourseDetailController extends Controller
         $validated = $request->validate([
             'course_name'                                  => 'required|string|max:255',
             'summary'                                      => 'nullable|string',
-            'careers'                              => 'nullable|string', // Replaced careers array with HTML string
+            'careers'                                      => 'nullable|string', // Replaced careers array with HTML string
             
             'fees'                                         => 'nullable|array',
             'fees.*.year'                                  => 'required_with:fees|integer|min:1',
@@ -69,20 +69,45 @@ class CourseDetailController extends Controller
             'institutions.*.year_wise_modules'             => 'nullable|array',
             'institutions.*.year_wise_modules.*.year'      => 'required_with:institutions.*.year_wise_modules|integer|min:1',
             'institutions.*.year_wise_modules.*.title'     => 'nullable|string|max:255',
-            'institutions.*.year_wise_modules.*.modules'            => 'nullable|array',
-'institutions.*.year_wise_modules.*.modules.*.name'     => 'required|string|max:255',
-'institutions.*.year_wise_modules.*.modules.*.info'     => 'nullable|string|max:500',
+            'institutions.*.year_wise_modules.*.modules'   => 'nullable|array',
+            'institutions.*.year_wise_modules.*.modules.*.name' => 'required|string|max:255',
+            'institutions.*.year_wise_modules.*.modules.*.info' => 'nullable|string|max:500',
         ]);
+
+        // 2. Check for duplicate entries (same course, university, and college) in the database
+        $duplicates = [];
+        foreach ($validated['institutions'] as $inst) {
+            $exists = CourseDetail::where('course_name', $validated['course_name'])
+                ->where('university_name', $inst['university_name'])
+                ->where('college_name', $inst['college_name'])
+                ->exists();
+
+            if ($exists) {
+                $duplicates[] = "{$inst['college_name']} ({$inst['university_name']})";
+            }
+        }
+
+        // 3. Return standard 422 validation response if duplicates exist
+        if (!empty($duplicates)) {
+            return response()->json([
+                'message' => 'The selected course details already exist for one or more institutions.',
+                'errors' => [
+                    'institutions' => [
+                        'An entry already exists for "' . $validated['course_name'] . '" at: ' . implode(', ', $duplicates) . '.'
+                    ]
+                ]
+            ], 422);
+        }
 
         $firstCreated = null;
 
-        // 2. Loop through each selected institution and create a CourseDetail record
+        // 4. Loop through each selected institution and create a CourseDetail record
         DB::transaction(function () use ($validated, &$firstCreated) {
             foreach ($validated['institutions'] as $inst) {
                 $courseDetail = CourseDetail::create([
                     'course_name'       => $validated['course_name'],
                     'summary'           => $validated['summary'] ?? null,
-                    'careers'   => $validated['careers'] ?? null,
+                    'careers'           => $validated['careers'] ?? null,
                     'fees'              => $validated['fees'] ?? null,
                     
                     'university_name'   => $inst['university_name'],
@@ -90,7 +115,7 @@ class CourseDetailController extends Controller
                     'year_wise_modules' => $inst['year_wise_modules'] ?? null,
                 ]);
 
-                // Store the first one to return in the JSON response so the frontend can redirect to it
+                // Store the first one to return in the JSON response
                 if (!$firstCreated) {
                     $firstCreated = $courseDetail;
                 }
@@ -114,6 +139,7 @@ class CourseDetailController extends Controller
             'courseDetail' => $courseDetail,
         ]);
     }
+    
     public function coursedetails(CourseDetail $courseDetail): Response
     {
         $courseDetail->load('university');
@@ -135,25 +161,23 @@ class CourseDetailController extends Controller
 
     /**
      * Update a SINGLE existing resource in storage.
-     * Since edit usually modifies one specific row, it uses a flat validation structure.
      */
     public function update(Request $request, CourseDetail $courseDetail): JsonResponse
     {
-        // For individual updates, we expect the flat structure
         $validated = $request->validate([
             'university_name'                   => 'sometimes|required|string|max:255',
             'college_name'                      => 'sometimes|required|string|max:255',
             'course_name'                       => 'sometimes|required|string|max:255',
 
             'summary'                           => 'nullable|string',
-            'careers'                   => 'nullable|string', // Note the switch from 'careers' to 'careers_summary'
+            'careers'                           => 'nullable|string',
 
             'year_wise_modules'                 => 'nullable|array',
             'year_wise_modules.*.year'          => 'required_with:year_wise_modules|integer|min:1',
             'year_wise_modules.*.title'         => 'nullable|string|max:255',
-            'year_wise_modules.*.modules'          => 'nullable|array',
-'year_wise_modules.*.modules.*.name'   => 'required|string|max:255',
-'year_wise_modules.*.modules.*.info'   => 'nullable|string|max:500',
+            'year_wise_modules.*.modules'       => 'nullable|array',
+            'year_wise_modules.*.modules.*.name'=> 'required|string|max:255',
+            'year_wise_modules.*.modules.*.info'=> 'nullable|string|max:500',
 
             'fees'                              => 'nullable|array',
             'fees.*.year'                       => 'required_with:fees|integer|min:1',
@@ -173,74 +197,75 @@ class CourseDetailController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-   public function destroy(CourseDetail $courseDetail)
-{
-    $courseDetail->delete();
+    public function destroy(CourseDetail $courseDetail)
+    {
+        $courseDetail->delete();
 
-    return redirect()->back()->with('success', 'Course details deleted successfully.');
-}
-public function resolve(Request $request)
-{
-    $university = $request->query('university');
-    $college = $request->query('college');
-    $course = $request->query('course');
-
-    // 1. Attempt exact database match first
-    $courseDetail = CourseDetail::where('university_name', $university)
-        ->where('college_name', $college)
-        ->where('course_name', $course)
-        ->first();
-
-    // Helper to normalize strings (ignoring spaces, casing, and symbols)
-    $normalize = function ($string) {
-        if (!$string) return '';
-        return preg_replace('/[^a-z0-9]/', '', strtolower(trim($string)));
-    };
-
-    $normUniReq = $normalize($university);
-    $normColReq = $normalize($college);
-    $normCourseReq = $normalize($course);
-
-    // 2. Fallback: Fuzzy substring match
-    if (!$courseDetail) {
-        $courseDetail = CourseDetail::all()->first(function ($detail) use ($normalize, $normUniReq, $normColReq, $normCourseReq) {
-            $normUniDb = $normalize($detail->university_name);
-            $normColDb = $normalize($detail->college_name);
-            $normCourseDb = $normalize($detail->course_name);
-
-            $uniMatches = ($normUniDb === $normUniReq || str_contains($normUniDb, $normUniReq) || str_contains($normUniReq, $normUniDb));
-            $colMatches = ($normColDb === $normColReq || str_contains($normColDb, $normColReq) || str_contains($normColReq, $normColDb));
-            $courseMatches = ($normCourseDb === $normCourseReq || str_contains($normCourseDb, $normCourseReq) || str_contains($normCourseReq, $normCourseDb));
-
-            return $uniMatches && $colMatches && $courseMatches;
-        });
+        return redirect()->back()->with('success', 'Course details deleted successfully.');
     }
+    
+    public function resolve(Request $request)
+    {
+        $university = $request->query('university');
+        $college = $request->query('college');
+        $course = $request->query('course');
 
-    // 3. If a match is found, redirect to the course show page
-    if ($courseDetail) {
-        return redirect('/course/' . $courseDetail->uuid);
+        // 1. Attempt exact database match first
+        $courseDetail = CourseDetail::where('university_name', $university)
+            ->where('college_name', $college)
+            ->where('course_name', $course)
+            ->first();
+
+        // Helper to normalize strings
+        $normalize = function ($string) {
+            if (!$string) return '';
+            return preg_replace('/[^a-z0-9]/', '', strtolower(trim($string)));
+        };
+
+        $normUniReq = $normalize($university);
+        $normColReq = $normalize($college);
+        $normCourseReq = $normalize($course);
+
+        // 2. Fallback: Fuzzy substring match
+        if (!$courseDetail) {
+            $courseDetail = CourseDetail::all()->first(function ($detail) use ($normalize, $normUniReq, $normColReq, $normCourseReq) {
+                $normUniDb = $normalize($detail->university_name);
+                $normColDb = $normalize($detail->college_name);
+                $normCourseDb = $normalize($detail->course_name);
+
+                $uniMatches = ($normUniDb === $normUniReq || str_contains($normUniDb, $normUniReq) || str_contains($normUniReq, $normUniDb));
+                $colMatches = ($normColDb === $normColReq || str_contains($normColDb, $normColReq) || str_contains($normColReq, $normColDb));
+                $courseMatches = ($normCourseDb === $normCourseReq || str_contains($normCourseDb, $normCourseReq) || str_contains($normCourseReq, $normCourseDb));
+
+                return $uniMatches && $colMatches && $courseMatches;
+            });
+        }
+
+        // 3. If a match is found, redirect to the course show page
+        if ($courseDetail) {
+            return redirect('/course/' . $courseDetail->uuid);
+        }
+
+        // 4. Debug output when accessed directly in the browser address bar
+        if (!$request->header('X-Inertia')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No matching course detail found in your database.',
+                'your_request' => [
+                    'university' => $university,
+                    'college' => $college,
+                    'course' => $course,
+                ],
+                'normalized_request_values' => [
+                    'university' => $normUniReq,
+                    'college' => $normColReq,
+                    'course' => $normCourseReq,
+                ],
+                'available_courses_currently_in_database' => CourseDetail::select('id', 'uuid', 'university_name', 'college_name', 'course_name')->get(),
+            ], 404);
+        }
+
+        // 5. Safe fallback redirect back to explore page
+        return redirect()->route('coursesearch')->with('error', 'Matching course details not found.');
     }
-
-    // 4. Debug output when accessed directly in the browser address bar (non-Inertia requests)
-    if (!$request->header('X-Inertia')) {
-        return response()->json([
-            'success' => false,
-            'message' => 'No matching course detail found in your database.',
-            'your_request' => [
-                'university' => $university,
-                'college' => $college,
-                'course' => $course,
-            ],
-            'normalized_request_values' => [
-                'university' => $normUniReq,
-                'college' => $normColReq,
-                'course' => $normCourseReq,
-            ],
-            'available_courses_currently_in_database' => CourseDetail::select('id', 'uuid', 'university_name', 'college_name', 'course_name')->get(),
-        ], 404);
-    }
-
-    // 5. Safe fallback redirect back to explore page, avoiding AJAX session redirection
-    return redirect()->route('coursesearch')->with('error', 'Matching course details not found.');
-}
 }
