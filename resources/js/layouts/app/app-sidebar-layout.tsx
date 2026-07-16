@@ -501,37 +501,34 @@ export default function AppSidebarLayout({ children }: Props) {
                 }
             `}</style>
 
-            {/* ── Vertical sidebar ── */}
-            <aside className="left-sidebar with-vertical" data-sidebar-theme="light">
-                <div className="d-flex flex-column h-100 justify-content-between">
-                    
-                    {/* Top menu section */}
-                    <div className="d-flex flex-column flex-grow-1" style={{ minHeight: 0 }}>
-                        <div className="brand-logo d-flex align-items-center justify-content-between">
-                            <Link href={dashboard()} className="text-nowrap logo-img d-flex align-items-center gap-2">
-                                <img src="/SIN-logo.png" alt="StudyIn Nepal logo" style={{ height: 32, width: 32, objectFit: 'contain' }} />
-                                <span className="fw-bold hide-menu">
-                                    Study In <span className="text-primary">Nepal</span>
-                                </span>
-                            </Link>
-                        </div>
+             <aside className="left-sidebar with-vertical" data-sidebar-theme="light">
+                <div>
+                    <div className="brand-logo d-flex align-items-center justify-content-between">
+                        <Link href={dashboard()} className="text-nowrap logo-img d-flex align-items-center gap-2">
+                            <img src="/SIN-logo.png" alt="StudyIn Nepal logo" style={{ height: 32, width: 32, objectFit: 'contain' }} />
+                            <span className="fw-bold hide-menu">
+                                Study In <span className="text-primary">Nepal</span>
+                            </span>
+                        </Link>
+                    </div>
 
-                        <nav className="sidebar-nav scroll-sidebar sidebar-nav-scroll flex-grow-1">
-                            <ul className="sidebar-menu" id="sidebarnav">
-                                <li className="nav-small-cap">
-                                    <iconify-icon icon="solar:menu-dots-linear" className="mini-icon" />
-                                    {/* <span className="hide-menu">Partner Portal</span> */}
+                    <nav className="sidebar-nav scroll-sidebar sidebar-nav-scroll">
+                        <ul className="sidebar-menu" id="sidebarnav">
+                            <li className="nav-small-cap">
+                                <iconify-icon icon="solar:menu-dots-linear" className="mini-icon" />
+                                <span className="hide-menu">Partner Portal</span>
+                            </li>
+
+                            {flatTopItems.map((item) => (
+                                <li key={item.title} className={`sidebar-item ${isCurrentUrl(item.href) ? 'selected' : ''}`}>
+                                    <Link href={item.href} prefetch className={`sidebar-link ${isCurrentUrl(item.href) ? 'active' : ''}`}>
+                                        <iconify-icon icon={item.icon} />
+                                        <span className="hide-menu">{item.title}</span>
+                                    </Link>
                                 </li>
+                            ))}
 
-                                {flatTopItems.map((item) => (
-                                    <li key={item.title} className={`sidebar-item ${isCurrentUrl(item.href) ? 'selected' : ''}`}>
-                                        <Link href={item.href} prefetch className={`sidebar-link ${isCurrentUrl(item.href) ? 'active' : ''}`}>
-                                            <iconify-icon icon={item.icon} />
-                                            <span className="hide-menu">{item.title}</span>
-                                        </Link>
-                                    </li>
-                                ))}
-                                
+                            {/* <li>
                                 <span className="sidebar-divider lg"></span>
                             </li>
                             <li className="nav-small-cap">
@@ -541,12 +538,9 @@ export default function AppSidebarLayout({ children }: Props) {
 
                             {navGroups.map((group) => (
                                 <NavGroupSection key={group.id} group={group} />
-                            ))} 
-                            </ul>
-                        </nav>
-                    </div>
-
-                    {/* Bottom Profile Section matching image structure */}
+                            ))} */}
+                        </ul>
+                        {/* Bottom Profile Section matching image structure */}
                     <div className="sidebar-profile-card">
                         {auth?.user?.avatar_url ? (
                             <img src={auth.user.avatar_url} className="sidebar-profile-avatar" alt={auth?.user?.name} />
@@ -563,7 +557,7 @@ export default function AppSidebarLayout({ children }: Props) {
                             <iconify-icon icon="solar:logout-line-duotone" width="24" height="24" />
                         </Link>
                     </div>
-
+                    </nav>
                 </div>
             </aside>
 
