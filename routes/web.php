@@ -73,7 +73,7 @@ Route::get('/courses/{university}', [CourseDetailController::class, 'show'])
     Route::get('/course-details/{courseDetail:uuid}/edit', [CourseDetailController::class, 'edit'])->name('edit');
     Route::put('/course-details/{courseDetail:uuid}', [CourseDetailController::class, 'update'])->name('update');
     Route::delete('/course-details/{courseDetail:uuid}', [CourseDetailController::class, 'destroy'])->name('destroy');
-   
+   Route::get('/course/{courseDetail:uuid}', [CourseDetailController::class, 'show'])->name('show');
 
 Route::prefix('api')->middleware(['auth', 'verified'])->group(function () {
 
