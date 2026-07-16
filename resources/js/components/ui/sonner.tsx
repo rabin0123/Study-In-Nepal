@@ -7,8 +7,6 @@ function Toaster({ ...props }: ToasterProps) {
 
     useFlashToast();
 
-    const isDark = resolvedAppearance === 'dark';
-
     return (
         <Sonner
             theme={resolvedAppearance}
@@ -16,38 +14,35 @@ function Toaster({ ...props }: ToasterProps) {
             position="bottom-right"
             closeButton
             icons={{
-                success: <iconify-icon icon="solar:check-circle-bold-duotone" className="fs-5" />,
-                error: <iconify-icon icon="solar:danger-triangle-bold-duotone" className="fs-5" />,
-                warning: <iconify-icon icon="solar:danger-circle-bold-duotone" className="fs-5" />,
-                info: <iconify-icon icon="solar:info-circle-bold-duotone" className="fs-5" />,
-                loading: <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>,
+                success: <iconify-icon icon="solar:check-circle-bold-duotone" className="fs-5 text-success" />,
+                error: <iconify-icon icon="solar:danger-triangle-bold-duotone" className="fs-5 text-danger" />,
+                warning: <iconify-icon icon="solar:danger-circle-bold-duotone" className="fs-5 text-warning" />,
+                info: <iconify-icon icon="solar:info-circle-bold-duotone" className="fs-5 text-info" />,
+                loading: <span className="spinner-border spinner-border-sm text-secondary" role="status" aria-hidden="true"></span>,
             }}
             toastOptions={{
                 classNames: {
                     toast: 'bootstrap-toast',
+                    closeButton: 'bootstrap-toast-close',
                 },
             }}
             style={
                 {
-                    '--normal-bg': isDark ? '#1e2129' : '#ffffff',
-                    '--normal-text': isDark ? '#e9ecef' : '#212529',
-                    '--normal-border': isDark ? '#343a40' : '#dee2e6',
-
-                    '--success-bg': isDark ? '#0f2e1c' : '#e9f8ee',
-                    '--success-text': isDark ? '#4ade80' : '#146c2e',
-                    '--success-border': isDark ? '#1d5334' : '#a6e9bd',
-
-                    '--error-bg': isDark ? '#3a1418' : '#fdeeee',
-                    '--error-text': isDark ? '#f87171' : '#b02a30',
-                    '--error-border': isDark ? '#5c2126' : '#f3c2c5',
-
-                    '--warning-bg': isDark ? '#3a2e0f' : '#fff8e6',
-                    '--warning-text': isDark ? '#fbbf24' : '#a35c00',
-                    '--warning-border': isDark ? '#5c4a1d' : '#f5deac',
-
-                    '--info-bg': isDark ? '#0f2733' : '#e8f6fc',
-                    '--info-text': isDark ? '#38bdf8' : '#055160',
-                    '--info-border': isDark ? '#1d4759' : '#b6effb',
+                    '--normal-bg': 'var(--bs-body-bg)',
+                    '--normal-text': 'var(--bs-body-color)',
+                    '--normal-border': 'var(--bs-border-color)',
+                    '--success-bg': 'var(--bs-success-bg-subtle)',
+                    '--success-text': 'var(--bs-success-text-emphasis)',
+                    '--success-border': 'var(--bs-success-border-subtle)',
+                    '--error-bg': 'var(--bs-danger-bg-subtle)',
+                    '--error-text': 'var(--bs-danger-text-emphasis)',
+                    '--error-border': 'var(--bs-danger-border-subtle)',
+                    '--warning-bg': 'var(--bs-warning-bg-subtle)',
+                    '--warning-text': 'var(--bs-warning-text-emphasis)',
+                    '--warning-border': 'var(--bs-warning-border-subtle)',
+                    '--info-bg': 'var(--bs-info-bg-subtle)',
+                    '--info-text': 'var(--bs-info-text-emphasis)',
+                    '--info-border': 'var(--bs-info-border-subtle)',
                 } as React.CSSProperties
             }
             {...props}
