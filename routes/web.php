@@ -27,7 +27,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('universities', 'university/universityentryform')->name('universityentryform');
     Route::inertia('universities/{id}', 'university/universityedit')->name('universityedit');
     Route::inertia('university', 'university/universitylist')->name('universitylist');
-    Route::inertia('explorecourses', 'university/course/coursesearch')->name('coursesearch');
+    // Route::inertia('explorecourses', 'university/course/coursesearch')->name('coursesearch');
     Route::inertia('/online/survey', 'survey/survey')->name('survey');
     Route::inertia('/agency/survey', 'survey/agent/agencysurveyindex')->name('agencysurveyindex');
    
