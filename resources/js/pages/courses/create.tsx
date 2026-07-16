@@ -23,29 +23,6 @@ interface ApiDataRow {
     [key: string]: any;
 }
 
-interface CourseDetailPayload {
-    id: number;
-    uuid: string;
-    course_name: string;
-    summary: string | null;
-    careers_summary: string | null;
-    institutions?: Array<{
-        university_name: string;
-        college_name: string;
-        year_wise_modules?: Array<{
-            year: number;
-            title: string | null;
-            modules: string[];
-        }>;
-    }>;
-    fees?: Array<{
-        year: number;
-        amount: string | null;
-        currency: string | null;
-        note: string | null;
-    }>;
-}
-
 // ── Helpers ──
 function nextYear(existing: { year: number }[]): number {
     return !existing || existing.length === 0 ? 1 : Math.max(...existing.map((e) => e.year)) + 1;
@@ -221,7 +198,8 @@ function MultiSelectDropdown({
 }
 
 // ---------------------------------------------------------------------------
-// 3. Rich Text Editor
+// 3. Rich Text Editor — Word-like toolbar (paragraph/heading styles, font,
+//    size, bold/italic/underline/strike, colors, alignment, lists, links)
 // ---------------------------------------------------------------------------
 const FONT_FAMILIES = [
     { label: 'Default', value: '' },
@@ -306,14 +284,10 @@ function SwatchPopover({
 
 function RichTextEditor({ value, onChange, placeholder, error }: { value: string; onChange: (v: string) => void; placeholder?: string; error?: string; }) {
     const editorRef = useRef<HTMLDivElement>(null);
-    const isFirstRender = useRef(true);
 
     useEffect(() => {
-        if (editorRef.current) {
-            if (isFirstRender.current || (value === '' && editorRef.current.innerHTML !== '')) {
-                editorRef.current.innerHTML = value || '';
-                isFirstRender.current = false;
-            }
+        if (editorRef.current && value === '' && editorRef.current.innerHTML !== '') {
+            editorRef.current.innerHTML = '';
         }
     }, [value]);
 
@@ -330,6 +304,7 @@ function RichTextEditor({ value, onChange, placeholder, error }: { value: string
     return (
         <div className={`rounded-2xl shadow-sm bg-white overflow-hidden border ${error ? 'border-red-500' : 'border-gray-200'}`}>
             <div className="bg-gray-50 p-2 border-b border-gray-100 flex flex-wrap items-center gap-1.5">
+                {/* Paragraph / Heading style */}
                 <select
                     onMouseDown={(e) => e.stopPropagation()}
                     onChange={(e) => applyBlock(e.target.value)}
@@ -345,6 +320,7 @@ function RichTextEditor({ value, onChange, placeholder, error }: { value: string
                     <option value="BLOCKQUOTE">Quote</option>
                 </select>
 
+                {/* Font family */}
                 <select
                     onMouseDown={(e) => e.stopPropagation()}
                     onChange={(e) => exec('fontName', e.target.value)}
@@ -359,6 +335,7 @@ function RichTextEditor({ value, onChange, placeholder, error }: { value: string
                     ))}
                 </select>
 
+                {/* Font size */}
                 <select
                     onMouseDown={(e) => e.stopPropagation()}
                     onChange={(e) => exec('fontSize', e.target.value)}
@@ -424,11 +401,9 @@ function RichTextEditor({ value, onChange, placeholder, error }: { value: string
 }
 
 // ----------------------------------------------------------------------
-// Unified Component
+// Main Component
 // ----------------------------------------------------------------------
-export default function CourseDetailsForm({ courseDetail }: { courseDetail?: CourseDetailPayload }) {
-    const isEdit = !!courseDetail;
-
+export default function CourseDetailsCreate() {
     const [masterData, setMasterData] = useState<ApiDataRow[]>([]);
     const [courseName, setCourseName] = useState('');
     const [selectedInstKeys, setSelectedInstKeys] = useState<string[]>([]);
@@ -439,7 +414,8 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
     const [yearModulesByInst, setYearModulesByInst] = useState<Record<string, YearModule[]>>({});
     const [activeModuleTab, setActiveModuleTab] = useState<string | null>(null);
 
-    // Fees are course-level
+    // Fees are course-level (shared across all selected institutions) — this matches
+    // the controller, which persists ONE top-level `fees` array onto every institution row.
     const [courseFees, setCourseFees] = useState<YearFee[]>(defaultYearFee());
 
     const [saving, setSaving] = useState(false);
@@ -452,53 +428,12 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         return () => clearTimeout(t);
     }, [savedMessage]);
 
-    // Fetch university list on mount
     useEffect(() => {
         fetch('https://www.admin.studyinnepal.com/api/university')
             .then((res) => { if (!res.ok) throw new Error('Failed to fetch'); return res.json(); })
             .then((data) => { setMasterData(Array.isArray(data) ? data : []); })
             .catch((err) => console.error('Error fetching university data:', err));
     }, []);
-
-    // Set initial values dynamically if in edit mode (or when courseDetail prop updates)
-    useEffect(() => {
-        if (!courseDetail) return;
-
-        setCourseName(courseDetail.course_name ?? '');
-        setSummaryHtml(courseDetail.summary ?? '');
-        setCareersHtml(courseDetail.careers_summary ?? '');
-
-        if (courseDetail.fees && courseDetail.fees.length > 0) {
-            setCourseFees(courseDetail.fees.map((f: any) => ({
-                year: Number(f.year),
-                amount: String(f.amount ?? ''),
-                currency: String(f.currency ?? ''),
-                note: String(f.note ?? '')
-            })));
-        } else {
-            setCourseFees(defaultYearFee());
-        }
-
-        if (courseDetail.institutions && courseDetail.institutions.length > 0) {
-            const keys = courseDetail.institutions.map((i: any) => `${i.university_name}|||${i.college_name}`);
-            setSelectedInstKeys(keys);
-
-            const modules: Record<string, YearModule[]> = {};
-            courseDetail.institutions.forEach((i: any) => {
-                const key = `${i.university_name}|||${i.college_name}`;
-                if (i.year_wise_modules && i.year_wise_modules.length > 0) {
-                    modules[key] = i.year_wise_modules.map((y: any) => ({
-                        year: Number(y.year),
-                        title: String(y.title ?? ''),
-                        modules: Array.isArray(y.modules) ? y.modules.map(String) : ['']
-                    }));
-                } else {
-                    modules[key] = defaultYearModules();
-                }
-            });
-            setYearModulesByInst(modules);
-        }
-    }, [courseDetail]);
 
     const uniqueCourses = useMemo(() => Array.from(new Set(masterData.map((item) => item.Course).filter(Boolean))), [masterData]);
 
@@ -521,12 +456,10 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         return map;
     }, [availableInstitutions]);
 
-    // Safeguard selected keys from being purged until master data successfully finishes loading
     useEffect(() => {
-        if (masterData.length === 0) return;
         const validKeys = availableInstitutions.map(i => i.key);
         setSelectedInstKeys(prev => prev.filter(k => validKeys.includes(k)));
-    }, [availableInstitutions, masterData]);
+    }, [availableInstitutions]);
 
     // Keep Modules in sync with selected institutions
     useEffect(() => {
@@ -575,7 +508,7 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         });
     };
 
-    // -- Fee Handlers --
+    // -- Fee Handlers (course-level, shared) --
     const addFeeYear = () => {
         setCourseFees((prev) => [...prev, { year: nextYear(prev), amount: '', currency: '', note: '' }]);
     };
@@ -590,11 +523,14 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         e.preventDefault();
 
         if (!courseName.trim()) { setErrors({ course_name: 'Course name is required.' }); return; }
-        if (selectedInstKeys.length === 0) { setErrors({ institutions: 'Please select at least one institution.' }); return; }
+        if (selectedInstKeys.length === 0) { setErrors({ institutions: 'Please select at least one institution from the dropdown.' }); return; }
 
         setSaving(true);
         setErrors({});
 
+        // Matches CourseDetailController@store validation exactly:
+        // - institutions[].university_name / college_name / year_wise_modules[].{year,title,modules}
+        // - fees[].{year,amount,currency,note}  (top-level, applied to every institution row by the controller)
         const institutionsPayload = selectedInstKeys.map((key) => {
             const [uni, col] = key.split('|||');
 
@@ -628,11 +564,8 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
             fees: cleanFees,
         };
 
-        const endpoint = isEdit ? `/course-details/${courseDetail.uuid}` : '/course-details';
-        const method = isEdit ? 'PUT' : 'POST';
-
-        fetch(endpoint, {
-            method: method,
+        fetch('/course-details', {
+            method: 'POST',
             headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() },
             body: JSON.stringify(payload),
         })
@@ -660,19 +593,15 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                     <div>
                         <h4 className="mb-1 font-bold text-gray-900 flex items-center gap-2 text-xl">
                             <GraduationCap size={22} className="text-[#008AE6]" />
-                            {isEdit ? 'Edit Course Details' : 'New Course Details'}
+                            New Course Details
                         </h4>
                         <p className="text-gray-500 text-sm mb-0">
-                            {isEdit 
-                              ? 'Modify this curriculum specification and apply updates to connected colleges.' 
-                              : 'Define a course once and securely link it to multiple colleges effortlessly.'}
+                            Define a course once and securely link it to multiple colleges effortlessly.
                         </p>
                     </div>
                     <button type="submit" className="inline-flex items-center gap-2 rounded-full bg-[#008AE6] hover:bg-[#0071bf] text-white shadow-sm px-4 py-2 transition-colors disabled:opacity-60" disabled={saving}>
                         {saving ? <Loader2 size={16} className="spin" /> : <Save size={16} />}
-                        <span className="font-medium text-sm">
-                            {saving ? (isEdit ? 'Updating...' : 'Saving...') : (isEdit ? 'Update details' : 'Save details')}
-                        </span>
+                        <span className="font-medium text-sm">{saving ? 'Saving...' : 'Save details'}</span>
                     </button>
                 </div>
 
@@ -859,7 +788,7 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                     </div>
                 </div>
 
-                {/* 5. Fees */}
+                {/* 5. Fees (course-level, applies to all selected institutions) */}
                 <div className="bg-white shadow-sm rounded-xl mb-6 border-0">
                     <div className="p-3 md:p-4">
                         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
@@ -928,9 +857,7 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                 <div className="flex justify-end pb-10 pt-2">
                     <button type="submit" className="inline-flex items-center gap-2 rounded-full bg-[#008AE6] hover:bg-[#0071bf] text-white shadow-sm px-4 py-2.5 transition-colors disabled:opacity-60" disabled={saving}>
                         {saving ? <Loader2 size={18} className="spin" /> : <CheckCircle size={18} />}
-                        <span className="font-medium text-sm">
-                            {saving ? 'Processing...' : (isEdit ? 'Update All Details' : 'Save All Details')}
-                        </span>
+                        <span className="font-medium text-sm">{saving ? 'Processing...' : 'Save All Details'}</span>
                     </button>
                 </div>
 
