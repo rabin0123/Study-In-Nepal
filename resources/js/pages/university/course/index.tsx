@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, router } from '@inertiajs/react';
+import { MoreVertical, Trash2, CheckCircle2, XCircle, X } from 'lucide-react';
 
 type CourseDetailRow = {
     uuid: string;
@@ -28,11 +29,15 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
     const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
     const isFirstRender = useRef(true);
 
+    // Tracks which row's three-dot menu is currently open (by uuid)
     const [openMenuUuid, setOpenMenuUuid] = useState<string | null>(null);
+    // Tracks the row pending delete confirmation (by uuid)
     const [pendingDeleteUuid, setPendingDeleteUuid] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
 
+    // Self-contained toast notifications (no external library). Each toast
+    // auto-dismisses after a few seconds; multiple toasts stack bottom-right.
     type Toast = { id: number; type: 'success' | 'error'; message: string };
     const [toasts, setToasts] = useState<Toast[]>([]);
     const toastIdRef = useRef(0);
@@ -47,6 +52,7 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
         window.setTimeout(() => dismissToast(id), 4000);
     };
 
+    // Fetch logos from the external API on mount
     useEffect(() => {
         const fetchLogos = async () => {
             try {
@@ -60,9 +66,11 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                     dataList = result.data;
                 }
 
+                // Map 'College' name to 'college_logo_url'
                 const logosMap: Record<string, string> = {};
                 dataList.forEach((item: any) => {
                     if (item.College && item.college_logo_url) {
+                        // Using trim() to prevent mismatch due to trailing spaces
                         logosMap[item.College.trim()] = item.college_logo_url;
                     }
                 });
@@ -76,6 +84,7 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
         fetchLogos();
     }, []);
 
+    // Debounced search effect
     useEffect(() => {
         if (isFirstRender.current) {
             isFirstRender.current = false;
@@ -97,6 +106,7 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
         return () => clearTimeout(debounceTimer);
     }, [search]);
 
+    // Close the open row menu when clicking anywhere outside of it
     useEffect(() => {
         if (!openMenuUuid) return;
 
@@ -119,7 +129,7 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
     };
 
     const handleMenuToggle = (e: React.MouseEvent, uuid: string) => {
-        e.stopPropagation();
+        e.stopPropagation(); // prevent the row click (navigate-to-edit) from firing
         setOpenMenuUuid((current) => (current === uuid ? null : uuid));
     };
 
@@ -158,211 +168,294 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
     const rowPendingDelete = courseDetails.data.find((r) => r.uuid === pendingDeleteUuid) ?? null;
 
     return (
-        <>
-            {/* ── Page header ── */}
-            <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-6">
-                <div className="d-flex align-items-center gap-3">
-                    <span className="d-none d-sm-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-3 round-48">
-                        <iconify-icon icon="solar:square-academic-cap-line-duotone" className="fs-6"></iconify-icon>
-                    </span>
+        <main className="min-h-screen bg-gray-50/50 py-8 px-4 sm:px-6 lg:px-8 font-sans">
+            <div className="max-w-7xl mx-auto space-y-6">
+                
+                {/* Page Header */}
+                <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                        <h3 className="mb-0 fw-semibold">Course Details</h3>
-                        <p className="text-body-secondary mb-0">Manage and view all registered courses, colleges, and university affiliations.</p>
+                        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+                            Course Details
+                        </h1>
+                        <p className="mt-1 text-sm text-gray-500">
+                            Manage and view all registered courses, colleges, and university affiliations.
+                        </p>
                     </div>
-                </div>
-
-                <div className="d-flex align-items-center gap-2">
-                    <Link href="/course/create" className="btn btn-primary d-inline-flex align-items-center gap-2">
-                        <iconify-icon icon="solar:add-circle-line-duotone" className="fs-5"></iconify-icon>
-                        <span>Add New Course</span>
+                    <Link 
+                        href="/course/create" 
+                        className="inline-flex items-center justify-center px-5 py-2.5 bg-[#008AE6] hover:bg-[#0071bf] text-white text-sm font-medium rounded-lg shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#008AE6]"
+                    >
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add New Course
                     </Link>
-                </div>
-            </div>
+                </header>
 
-            {/* ── Filters card (Search Input) ── */}
-            <div className="card mb-6">
-                <div className="card-body d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-4">
-                    <div className="position-relative flex-grow-1" style={{ maxWidth: 460 }}>
-                        <iconify-icon
-                            icon="solar:magnifer-line-duotone"
-                            className="position-absolute top-50 translate-middle-y text-body-secondary fs-5"
-                            style={{ left: '0.9rem' }}
-                        ></iconify-icon>
-                        <input
-                            type="text"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Search by university, college, or course..."
-                            className="form-control ps-11"
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {/* ── Main Data Table Card ── */}
-            <div className="card">
-                <div className="card-body p-0">
-                    {courseDetails.data.length === 0 ? (
-                        <div className="text-center py-16 text-body-secondary fw-semibold">
-                            <iconify-icon icon="solar:notes-line-duotone" className="fs-8 text-body-secondary mb-3 d-block"></iconify-icon>
-                            No course details found. Try adjusting your search.
+                {/* Main Data Card */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    
+                    {/* Toolbar / Search Bar */}
+                    <div className="p-4 border-b border-gray-200 bg-white sm:flex sm:items-center sm:justify-between">
+                        <div className="relative max-w-md w-full">
+                            <label className="sr-only" htmlFor="search">Search</label>
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
+                                </svg>
+                            </div>
+                            <input
+                                id="search"
+                                type="text"
+                                className="block w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#008AE6]/20 focus:border-[#008AE6] sm:text-sm transition-all outline-none placeholder-gray-400"
+                                placeholder="Search by university, college, or course..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                            />
                         </div>
-                    ) : (
-                        <>
-                            <div className="table-responsive sidebar-nav-scroll" style={{ maxHeight: 520, minHeight: 200, overflowY: 'auto', width: '100%' }}>
-                                <table className="table mb-0 align-middle" style={{ minWidth: 800 }}>
-                                    <thead className="text-dark fs-4" style={{ position: 'sticky', top: 0, zIndex: 1, background: 'var(--bs-card-bg, #fff)' }}>
-                                        <tr>
-                                            <th className="ps-6"><h6 className="fs-4 fw-semibold mb-0">College</h6></th>
-                                            <th><h6 className="fs-4 fw-semibold mb-0">University</h6></th>
-                                            <th className="pe-6"><h6 className="fs-4 fw-semibold mb-0">Course</h6></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {courseDetails.data.map((row) => {
-                                            const cleanCollegeName = row.college_name.trim();
-                                            const logoUrl = collegeLogos[cleanCollegeName];
-                                            const hasValidLogo = logoUrl && !imageErrors[cleanCollegeName];
-                                            const isMenuOpen = openMenuUuid === row.uuid;
+                    </div>
 
-                                            return (
-                                                <tr
-                                                    key={row.uuid}
-                                                    role="button"
-                                                    onClick={() => handleRowClick(row.uuid)}
-                                                    className="position-relative"
-                                                >
-                                                    <td className="ps-6">
-                                                        <div className="d-flex align-items-center justify-content-between">
-                                                            <div className="d-flex align-items-center">
-                                                                <div className="rounded bg-light border d-flex align-items-center justify-content-center overflow-hidden flex-shrink-0" style={{ width: 40, height: 40 }}>
-                                                                    {hasValidLogo ? (
-                                                                        <img
-                                                                            src={logoUrl}
-                                                                            alt={`${row.college_name} logo`}
-                                                                            className="w-100 h-100 p-1"
-                                                                            style={{ objectFit: 'contain' }}
-                                                                            onError={() => handleImageError(cleanCollegeName)}
-                                                                        />
-                                                                    ) : (
-                                                                        <span className="fw-bold text-muted text-uppercase">
-                                                                            {row.college_name.charAt(0)}
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                                <div className="ms-3 text-truncate" style={{ maxWidth: 220 }}>
-                                                                    <h6 className="fs-4 fw-semibold mb-0 text-dark-hover text-truncate">{row.college_name}</h6>
-                                                                </div>
-                                                            </div>
+                    {/* Data Table */}
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50/70">
+                                <tr>
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">College</th>
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">University</th>
+                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Course</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-100">
+                                {courseDetails.data.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={3} className="px-6 py-16 text-center">
+                                            <div className="flex flex-col items-center justify-center text-gray-500">
+                                                <svg className="w-12 h-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                                </svg>
+                                                <p className="text-base font-medium text-gray-900">No course details found</p>
+                                                <p className="text-sm mt-1">Try adjusting your search or add a new course.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    courseDetails.data.map((row) => {
+                                        const cleanCollegeName = row.college_name.trim();
+                                        const logoUrl = collegeLogos[cleanCollegeName];
+                                        const hasValidLogo = logoUrl && !imageErrors[cleanCollegeName];
+                                        const isMenuOpen = openMenuUuid === row.uuid;
 
-                                                            <div className="position-relative" onClick={(e) => e.stopPropagation()} ref={isMenuOpen ? menuRef : undefined}>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={(e) => handleMenuToggle(e, row.uuid)}
-                                                                    className="btn btn-link p-0 text-muted d-flex align-items-center justify-content-center"
-                                                                    style={{ width: 32, height: 32 }}
-                                                                >
-                                                                    <iconify-icon icon="solar:menu-dots-bold-duotone" className="fs-5"></iconify-icon>
-                                                                </button>
-
-                                                                {isMenuOpen && (
-                                                                    <div className="dropdown-menu show dropdown-menu-end position-absolute shadow-lg border m-0" style={{ right: 0, top: '100%', zIndex: 100, minWidth: 120 }}>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={(e) => handleDeleteClick(e, row.uuid)}
-                                                                            className="dropdown-item text-danger d-flex align-items-center gap-2"
-                                                                        >
-                                                                            <iconify-icon icon="solar:trash-bin-trash-line-duotone" className="fs-4"></iconify-icon>
-                                                                            <span>Delete</span>
-                                                                        </button>
-                                                                    </div>
+                                        return (
+                                            <tr 
+                                                key={row.uuid} 
+                                                onClick={() => handleRowClick(row.uuid)}
+                                                className="gcu-row hover:bg-gray-50/80 transition-colors cursor-pointer group"
+                                            >
+                                                {/* College (First Column) */}
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center justify-between gap-3.5">
+                                                        <div className="flex items-center gap-3.5 min-w-0">
+                                                            <div className="h-10 w-10 flex-shrink-0 rounded-lg border border-gray-200 bg-white shadow-sm flex items-center justify-center overflow-hidden">
+                                                                {hasValidLogo ? (
+                                                                    <img 
+                                                                        src={logoUrl} 
+                                                                        alt={`${row.college_name} logo`}
+                                                                        className="h-full w-full object-contain p-1.5"
+                                                                        onError={() => handleImageError(cleanCollegeName)}
+                                                                    />
+                                                                ) : (
+                                                                    <span className="text-gray-400 font-bold text-sm bg-gray-50 w-full h-full flex items-center justify-center">
+                                                                        {row.college_name.charAt(0).toUpperCase()}
+                                                                    </span>
                                                                 )}
                                                             </div>
+                                                            <div className="text-sm font-semibold text-gray-900 group-hover:text-[#008AE6] transition-colors truncate">
+                                                                {row.college_name}
+                                                            </div>
                                                         </div>
-                                                    </td>
 
-                                                    <td>
-                                                        <div className="d-flex align-items-center gap-2 fw-normal">
-                                                            <iconify-icon icon="solar:map-point-line-duotone" className="text-body-secondary fs-5 flex-shrink-0"></iconify-icon>
-                                                            <span className="text-truncate">{row.university_name}</span>
+                                                        {/* Three-dot row menu — hidden until the row is hovered
+                                                            (or while its own menu is open, so it doesn't vanish
+                                                            out from under an active click). Uses the group/row
+                                                            class plus a plain CSS rule (see <style> block below)
+                                                            instead of relying solely on Tailwind's group-hover
+                                                            utility, since that utility can be unreliable across
+                                                            table row/cell boundaries in some setups. */}
+                                                        <div
+                                                            className={`gcu-row-menu relative flex-shrink-0 transition-opacity ${
+                                                                isMenuOpen ? 'gcu-row-menu--open' : ''
+                                                            }`}
+                                                            ref={isMenuOpen ? menuRef : undefined}
+                                                        >
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => handleMenuToggle(e, row.uuid)}
+                                                                className="h-8 w-8 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#008AE6]/30 transition-colors"
+                                                                aria-haspopup="true"
+                                                                aria-expanded={isMenuOpen}
+                                                                aria-label={`More actions for ${row.college_name}`}
+                                                            >
+                                                                <MoreVertical className="w-5 h-5" aria-hidden="true" />
+                                                            </button>
+
+                                                            {isMenuOpen && (
+                                                                <div className="absolute right-0 top-full mt-1 w-36 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => handleDeleteClick(e, row.uuid)}
+                                                                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" aria-hidden="true" />
+                                                                        Delete
+                                                                    </button>
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                    </td>
+                                                    </div>
+                                                </td>
+                                                
+                                                {/* University */}
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                    {row.university_name}
+                                                </td>
 
-                                                    <td className="pe-6">
-                                                        <span className="badge bg-primary-subtle text-primary fw-semibold fs-2">
-                                                            {row.course_name}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
+                                                {/* Course */}
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-[#008AE6]/10 text-[#008AE6] border border-[#008AE6]/20">
+                                                        {row.course_name}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Pagination Options */}
+                    {courseDetails.last_page > 1 && (
+                        <div className="bg-gray-50/50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                            <div className="hidden sm:block text-sm text-gray-500">
+                                Showing page <span className="font-medium text-gray-900">{courseDetails.current_page}</span> of <span className="font-medium text-gray-900">{courseDetails.last_page}</span>
                             </div>
-
-                            {courseDetails.last_page > 1 && (
-                                <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between gap-3 border-top px-6 py-4">
-                                    <div className="text-body-secondary fs-3">
-                                        Showing page <strong className="text-dark">{courseDetails.current_page}</strong> of <strong className="text-dark">{courseDetails.last_page}</strong>
-                                    </div>
-                                    <nav aria-label="Course details navigation">
-                                        <ul className="pagination pagination-sm mb-0 flex-wrap">
-                                            {courseDetails.links.map((link, i) => (
-                                                <li key={i} className={`page-item ${link.active ? 'active' : ''} ${!link.url ? 'disabled' : ''}`}>
-                                                    <Link
-                                                        href={link.url ?? '#'}
-                                                        preserveState
-                                                        className="page-link"
-                                                        dangerouslySetInnerHTML={{ __html: link.label }}
-                                                    />
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </nav>
-                                </div>
-                            )}
-                        </>
+                            <div className="flex items-center gap-1.5 flex-wrap justify-center sm:justify-end w-full sm:w-auto">
+                                {courseDetails.links.map((link, i) => (
+                                    <Link
+                                        key={i}
+                                        href={link.url ?? ''}
+                                        preserveState
+                                        className={`inline-flex items-center justify-center min-w-[32px] px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                                            link.active 
+                                                ? 'bg-[#008AE6] text-white shadow-sm' 
+                                                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:text-gray-900'
+                                        } ${
+                                            !link.url ? 'opacity-50 cursor-not-allowed pointer-events-none bg-transparent border-transparent' : ''
+                                        }`}
+                                        dangerouslySetInnerHTML={{ __html: link.label }}
+                                        aria-disabled={!link.url}
+                                    />
+                                ))}
+                            </div>
+                        </div>
                     )}
                 </div>
+                
             </div>
 
+            {/* Delete confirmation modal — rendered with a very high z-index
+                so it always sits above app chrome (top nav, sidebar, etc.) */}
             {rowPendingDelete && (
-                <div className="modal fade show d-block" tabIndex={-1} role="dialog" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
-                    <div className="modal-dialog modal-dialog-centered modal-sm" role="document">
-                        <div className="modal-content rounded border shadow">
-                            <div className="modal-header border-bottom-0 pb-0 justify-content-between">
-                                <h5 className="modal-title fw-semibold">Delete course?</h5>
-                                <button type="button" className="btn-close shadow-none" onClick={cancelDelete} disabled={isDeleting}></button>
-                            </div>
-                            <div className="modal-body py-3">
-                                <p className="mb-0 text-body-secondary fs-3">
-                                    Permanently remove <strong className="text-dark">{rowPendingDelete.course_name}</strong> at <strong className="text-dark">{rowPendingDelete.college_name}</strong>?
-                                </p>
-                            </div>
-                            <div className="modal-footer border-top-0 pt-0 gap-2 justify-content-end">
-                                <button type="button" className="btn btn-outline-secondary" onClick={cancelDelete} disabled={isDeleting}>Cancel</button>
-                                <button type="button" className="btn btn-danger" onClick={confirmDelete} disabled={isDeleting}>
-                                    {isDeleting ? 'Deleting…' : 'Delete'}
-                                </button>
-                            </div>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+                    <div
+                        className="absolute inset-0 bg-gray-900/40"
+                        onClick={cancelDelete}
+                    />
+                    <div className="relative bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-sm p-6">
+                        <h2 className="text-base font-semibold text-gray-900">Delete this course?</h2>
+                        <p className="mt-2 text-sm text-gray-500">
+                            This will permanently remove{' '}
+                            <span className="font-medium text-gray-700">{rowPendingDelete.course_name}</span> at{' '}
+                            <span className="font-medium text-gray-700">{rowPendingDelete.college_name}</span>. This
+                            action cannot be undone.
+                        </p>
+                        <div className="mt-5 flex justify-end gap-2.5">
+                            <button
+                                type="button"
+                                onClick={cancelDelete}
+                                disabled={isDeleting}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={confirmDelete}
+                                disabled={isDeleting}
+                                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                            >
+                                {isDeleting ? 'Deleting…' : 'Delete'}
+                            </button>
                         </div>
                     </div>
                 </div>
             )}
 
-            <div className="toast-container position-fixed bottom-0 end-0 p-3" style={{ zIndex: 1060 }}>
+            {/* Toast notifications — bottom-right, stacked, auto-dismissing */}
+            <div className="fixed bottom-5 right-5 z-[110] flex flex-col gap-2.5 w-full max-w-sm pointer-events-none">
                 {toasts.map((toast) => (
-                    <div key={toast.id} className="toast show align-items-center text-white border-0 bg-dark mb-2" role="alert" aria-live="assertive" aria-atomic="true">
-                        <div className="d-flex">
-                            <div className="toast-body d-flex align-items-center gap-2">
-                                <iconify-icon icon={toast.type === 'success' ? 'solar:check-circle-line-duotone' : 'solar:danger-triangle-line-duotone'} className={`fs-5 ${toast.type === 'success' ? 'text-success' : 'text-danger'}`}></iconify-icon>
-                                <span>{toast.message}</span>
-                            </div>
-                            <button type="button" className="btn-close btn-close-white me-2 m-auto" onClick={() => dismissToast(toast.id)} aria-label="Close"></button>
-                        </div>
+                    <div
+                        key={toast.id}
+                        role="status"
+                        className={`gcu-toast pointer-events-auto flex items-start gap-3 rounded-lg border shadow-lg px-4 py-3 bg-white ${
+                            toast.type === 'success' ? 'border-green-200' : 'border-red-200'
+                        }`}
+                    >
+                        {toast.type === 'success' ? (
+                            <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                        ) : (
+                            <XCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                        )}
+                        <p className="text-sm text-gray-700 flex-1">{toast.message}</p>
+                        <button
+                            type="button"
+                            onClick={() => dismissToast(toast.id)}
+                            className="text-gray-400 hover:text-gray-600 flex-shrink-0"
+                            aria-label="Dismiss notification"
+                        >
+                            <X className="w-4 h-4" aria-hidden="true" />
+                        </button>
                     </div>
                 ))}
             </div>
-        </>
+
+            {/* Plain CSS (not a Tailwind utility) for the row-hover reveal of
+                the three-dot menu. Using a real :hover rule here instead of
+                relying only on Tailwind's group-hover class guarantees the
+                button appears regardless of how Tailwind's class scanner
+                handles the dynamically-built className string above. */}
+            <style>{`
+                .gcu-row-menu {
+                    opacity: 0;
+                }
+                .gcu-row:hover .gcu-row-menu,
+                .gcu-row-menu--open {
+                    opacity: 1;
+                }
+                .gcu-toast {
+                    animation: gcu-toast-in 0.2s ease-out;
+                }
+                @keyframes gcu-toast-in {
+                    from {
+                        opacity: 0;
+                        transform: translateY(8px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+            `}</style>
+        </main>
     );
 }
