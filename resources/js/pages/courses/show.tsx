@@ -1,7 +1,8 @@
 import { Head } from '@inertiajs/react';
 import { useEffect, useState, useMemo } from 'react';
 
-type YearModule = { year: number; title?: string | null; modules?: string[] | null };
+type ModuleEntry = { name: string; info?: string | null };
+type YearModule = { year: number; title?: string | null; modules?: (string | ModuleEntry)[] | null };
 type YearFee = { year: number; amount?: string | null; currency?: string | null; note?: string | null };
 
 type Props = {
@@ -29,6 +30,14 @@ type Props = {
 function sortByYear<T extends { year: number }>(items: T[] | null | undefined): T[] {
     if (!items) return [];
     return [...items].sort((a, b) => a.year - b.year);
+}
+
+// Modules may come through as either a legacy flat string (just a name) or
+// the newer {name, info} object. Normalize to a consistent shape so the
+// rendering logic doesn't need to branch everywhere.
+function normalizeModuleEntry(m: string | ModuleEntry): ModuleEntry {
+    if (typeof m === 'string') return { name: m, info: null };
+    return { name: m.name, info: m.info ?? null };
 }
 
 // Defensive unwrap: if `careers` ever comes through as a raw JSON string like
@@ -284,7 +293,9 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                                         <h3 className="gcu-single-year-title">{yearBlock.title}</h3>
                                                     )}
                                                     {yearBlock.modules && yearBlock.modules.length > 0 ? (
-                                                        yearBlock.modules.map((moduleName, i) => <ModuleAccordion key={i} label={moduleName} />)
+                                                        yearBlock.modules
+                                                            .map(normalizeModuleEntry)
+                                                            .map((mod, i) => <ModuleAccordion key={i} name={mod.name} info={mod.info} />)
                                                     ) : (
                                                         <p className="gcu-muted">No modules listed for this period.</p>
                                                     )}
@@ -384,14 +395,14 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
             <style>{`
                 :root {
-                    --color-skyblue: #0284c7;
-                    --color-skyblue-dark: #0369a1;
-                    --color-skyblue-deep: #075985;
-                    --color-skyblue-light: #7dd3fc;
+                    --color-skyblue: #0085da;
+                    --color-skyblue-dark: #006bb0;
+                    --color-skyblue-deep: #005490;
+                    --color-skyblue-light: #6ec4f7;
                     --color-white: #ffffff;
 
                     --color-grey: #f4f6f8;
-                    --color-border: #bae6fd;
+                    --color-border: #bae0fb;
                     --color-black: #12181f;
                     --color-muted-text: #4c5764;
                 }
@@ -439,7 +450,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     content: '';
                     position: absolute;
                     inset: 0;
-                    background: linear-gradient(90deg, rgba(0, 0, 0, 0.9) 0%, rgba(3, 105, 161, 0.6) 100%);
+                    background: linear-gradient(90deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 133, 218, 0.6) 100%);
                     pointer-events: none;
                 }
 
@@ -773,12 +784,18 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     font-size: 1.02rem;
                     font-weight: 700;
                     color: var(--color-skyblue);
-                    cursor: pointer;
                     text-align: left;
                     transition: background 0.15s;
                 }
-                .gcu-module-row__head:hover {
+                /* Only rows with expandable info are clickable/hoverable */
+                .gcu-module-row.has-info .gcu-module-row__head {
+                    cursor: pointer;
+                }
+                .gcu-module-row.has-info .gcu-module-row__head:hover {
                     background-color: var(--color-grey);
+                }
+                .gcu-module-row:not(.has-info) .gcu-module-row__head {
+                    cursor: default;
                 }
                 .gcu-module-row__arrow {
                     color: var(--color-skyblue);
@@ -1052,22 +1069,33 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
     );
 }
 
-function ModuleAccordion({ label }: { label: string }) {
+// Renders a single module row. The expand arrow and click-to-open behavior
+// only appear when `info` has real content — modules with no info are shown
+// as a plain, non-interactive row (no arrow, no expand).
+function ModuleAccordion({ name, info }: { name: string; info?: string | null }) {
+    const hasInfo = Boolean(info && info.trim() !== '');
     const [open, setOpen] = useState(false);
+
     return (
-        <div className={`gcu-module-row ${open ? 'is-open' : ''}`}>
-            <button type="button" className="gcu-module-row__head" onClick={() => setOpen((o) => !o)}>
-                <span>{label}</span>
-                <span className="gcu-module-row__arrow" aria-hidden="true">
-                    &#10142;
-                </span>
+        <div className={`gcu-module-row ${hasInfo ? 'has-info' : ''} ${open && hasInfo ? 'is-open' : ''}`}>
+            <button
+                type="button"
+                className="gcu-module-row__head"
+                onClick={() => {
+                    if (hasInfo) setOpen((o) => !o);
+                }}
+                aria-expanded={hasInfo ? open : undefined}
+            >
+                <span>{name}</span>
+                {hasInfo && (
+                    <span className="gcu-module-row__arrow" aria-hidden="true">
+                        &#10142;
+                    </span>
+                )}
             </button>
-            {open && (
+            {hasInfo && open && (
                 <div className="gcu-module-row__body">
-                    <p>
-                        This module develops specialized learning outcomes designed for {label}. Details include critical thinking
-                        practices, case examinations, and operational assessments focused on sector advancements.
-                    </p>
+                    <p>{info}</p>
                 </div>
             )}
         </div>
