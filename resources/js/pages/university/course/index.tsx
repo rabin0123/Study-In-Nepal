@@ -28,13 +28,6 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
     const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
     const isFirstRender = useRef(true);
 
-    // Tracks which row's three-dot menu is currently open (by uuid)
-    const [openMenuUuid, setOpenMenuUuid] = useState<string | null>(null);
-    // Tracks the row pending delete confirmation (by uuid)
-    const [pendingDeleteUuid, setPendingDeleteUuid] = useState<string | null>(null);
-    const [isDeleting, setIsDeleting] = useState(false);
-    const menuRef = useRef<HTMLDivElement | null>(null);
-
     // Fetch logos from the external API on mount
     useEffect(() => {
         const fetchLogos = async () => {
@@ -89,20 +82,6 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
         return () => clearTimeout(debounceTimer);
     }, [search]);
 
-    // Close the open row menu when clicking anywhere outside of it
-    useEffect(() => {
-        if (!openMenuUuid) return;
-
-        const handleClickOutside = (e: MouseEvent) => {
-            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-                setOpenMenuUuid(null);
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [openMenuUuid]);
-
     const handleRowClick = (uuid: string) => {
         router.visit(`/course-details/${uuid}/edit`);
     };
@@ -110,36 +89,6 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
     const handleImageError = (collegeName: string) => {
         setImageErrors(prev => ({ ...prev, [collegeName]: true }));
     };
-
-    const handleMenuToggle = (e: React.MouseEvent, uuid: string) => {
-        e.stopPropagation(); // prevent the row click (navigate-to-edit) from firing
-        setOpenMenuUuid((current) => (current === uuid ? null : uuid));
-    };
-
-    const handleDeleteClick = (e: React.MouseEvent, uuid: string) => {
-        e.stopPropagation();
-        setOpenMenuUuid(null);
-        setPendingDeleteUuid(uuid);
-    };
-
-    const confirmDelete = () => {
-        if (!pendingDeleteUuid) return;
-        setIsDeleting(true);
-        router.delete(`/course-details/${pendingDeleteUuid}`, {
-            preserveScroll: true,
-            onFinish: () => {
-                setIsDeleting(false);
-                setPendingDeleteUuid(null);
-            },
-        });
-    };
-
-    const cancelDelete = () => {
-        if (isDeleting) return;
-        setPendingDeleteUuid(null);
-    };
-
-    const rowPendingDelete = courseDetails.data.find((r) => r.uuid === pendingDeleteUuid) ?? null;
 
     return (
         <main className="min-h-screen bg-gray-50/50 py-8 px-4 sm:px-6 lg:px-8 font-sans">
@@ -217,7 +166,6 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                                         const cleanCollegeName = row.college_name.trim();
                                         const logoUrl = collegeLogos[cleanCollegeName];
                                         const hasValidLogo = logoUrl && !imageErrors[cleanCollegeName];
-                                        const isMenuOpen = openMenuUuid === row.uuid;
 
                                         return (
                                             <tr 
@@ -227,63 +175,23 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                                             >
                                                 {/* College (First Column) */}
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="flex items-center justify-between gap-3.5">
-                                                        <div className="flex items-center gap-3.5 min-w-0">
-                                                            <div className="h-10 w-10 flex-shrink-0 rounded-lg border border-gray-200 bg-white shadow-sm flex items-center justify-center overflow-hidden">
-                                                                {hasValidLogo ? (
-                                                                    <img 
-                                                                        src={logoUrl} 
-                                                                        alt={`${row.college_name} logo`}
-                                                                        className="h-full w-full object-contain p-1.5"
-                                                                        onError={() => handleImageError(cleanCollegeName)}
-                                                                    />
-                                                                ) : (
-                                                                    <span className="text-gray-400 font-bold text-sm bg-gray-50 w-full h-full flex items-center justify-center">
-                                                                        {row.college_name.charAt(0).toUpperCase()}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            <div className="text-sm font-semibold text-gray-900 group-hover:text-[#008AE6] transition-colors truncate">
-                                                                {row.college_name}
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Three-dot row menu — hidden until the row is hovered
-                                                            (or while its own menu is open, so it doesn't vanish
-                                                            out from under an active click) */}
-                                                        <div
-                                                            className={`relative flex-shrink-0 ${
-                                                                isMenuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                                                            } transition-opacity`}
-                                                            ref={isMenuOpen ? menuRef : undefined}
-                                                        >
-                                                            <button
-                                                                type="button"
-                                                                onClick={(e) => handleMenuToggle(e, row.uuid)}
-                                                                className="h-8 w-8 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#008AE6]/30 transition-colors"
-                                                                aria-haspopup="true"
-                                                                aria-expanded={isMenuOpen}
-                                                                aria-label={`More actions for ${row.college_name}`}
-                                                            >
-                                                                <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                                                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z" />
-                                                                </svg>
-                                                            </button>
-
-                                                            {isMenuOpen && (
-                                                                <div className="absolute right-0 top-full mt-1 w-36 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={(e) => handleDeleteClick(e, row.uuid)}
-                                                                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                                                                    >
-                                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                                        </svg>
-                                                                        Delete
-                                                                    </button>
-                                                                </div>
+                                                    <div className="flex items-center gap-3.5">
+                                                        <div className="h-10 w-10 flex-shrink-0 rounded-lg border border-gray-200 bg-white shadow-sm flex items-center justify-center overflow-hidden">
+                                                            {hasValidLogo ? (
+                                                                <img 
+                                                                    src={logoUrl} 
+                                                                    alt={`${row.college_name} logo`}
+                                                                    className="h-full w-full object-contain p-1.5"
+                                                                    onError={() => handleImageError(cleanCollegeName)}
+                                                                />
+                                                            ) : (
+                                                                <span className="text-gray-400 font-bold text-sm bg-gray-50 w-full h-full flex items-center justify-center">
+                                                                    {row.college_name.charAt(0).toUpperCase()}
+                                                                </span>
                                                             )}
+                                                        </div>
+                                                        <div className="text-sm font-semibold text-gray-900 group-hover:text-[#008AE6] transition-colors">
+                                                            {row.college_name}
                                                         </div>
                                                     </div>
                                                 </td>
@@ -336,43 +244,6 @@ export default function CourseDetailsIndex({ courseDetails, filters }: Props) {
                 </div>
                 
             </div>
-
-            {/* Delete confirmation modal */}
-            {rowPendingDelete && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-                    <div
-                        className="absolute inset-0 bg-gray-900/40"
-                        onClick={cancelDelete}
-                    />
-                    <div className="relative bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-sm p-6">
-                        <h2 className="text-base font-semibold text-gray-900">Delete this course?</h2>
-                        <p className="mt-2 text-sm text-gray-500">
-                            This will permanently remove{' '}
-                            <span className="font-medium text-gray-700">{rowPendingDelete.course_name}</span> at{' '}
-                            <span className="font-medium text-gray-700">{rowPendingDelete.college_name}</span>. This
-                            action cannot be undone.
-                        </p>
-                        <div className="mt-5 flex justify-end gap-2.5">
-                            <button
-                                type="button"
-                                onClick={cancelDelete}
-                                disabled={isDeleting}
-                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="button"
-                                onClick={confirmDelete}
-                                disabled={isDeleting}
-                                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-                            >
-                                {isDeleting ? 'Deleting…' : 'Delete'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </main>
     );
 }
