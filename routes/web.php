@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'auth/login')->name('home');
 Route::post('/api/survey', [SurveyApiController::class, 'store']);
-Route::get('/course/{courseDetail:uuid}', [CourseDetailController::class, 'show'])->name('show');
+// Route::get('/course/{courseDetail:uuid}', [CourseDetailController::class, 'show'])->name('show');
 Route::get('/course-details/{courseDetail:uuid}', [CourseDetailController::class, 'coursedetails'])->name('coursedetails');
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
