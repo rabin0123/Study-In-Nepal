@@ -204,7 +204,7 @@ class CourseDetailController extends Controller
         return redirect()->back()->with('success', 'Course details deleted successfully.');
     }
     
-   public function resolve(Request $request)
+  public function resolve(Request $request)
 {
     $university = $request->query('university');
     $college = $request->query('college');
@@ -266,7 +266,7 @@ class CourseDetailController extends Controller
     }
 
     // 5. Safe fallback redirect back to explore page carrying the error and toast parameters
-    return redirect()->route('coursesearch')->with([
+    return redirect()->back()->with([
         'error' => 'No course details found',
         'toast' => 'No course details found'
     ]);
