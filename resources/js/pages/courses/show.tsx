@@ -266,7 +266,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
             <main className="gcu-main">
                 {/* ================= OVERVIEW ================= */}
                 {courseDetail.summary && (
-                    <section id="overview" className="container-xl px-4 gcu-panel border-bottom">
+                    <section id="overview" className="container-xl px-4 gcu-panel gcu-panel--surface border-bottom">
                         <div className="row gy-4 gy-lg-0" style={{ maxWidth: 1200 }}>
                             <div className="col-lg-3">
                                 <h2 className="gcu-heading fw-bold fs-7">Overview</h2>
@@ -346,7 +346,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
                 {/* ================= FEES AND FUNDING ================= */}
                 {fees.length > 0 && (
-                    <section id="fees" className="container-xl px-4 gcu-panel border-bottom">
+                    <section id="fees" className="container-xl px-4 gcu-panel gcu-panel--surface border-bottom">
                         <div className="row gy-4 gy-lg-0" style={{ maxWidth: 1200 }}>
                             <div className="col-lg-3">
                                 <h2 className="gcu-heading fw-bold fs-7">
@@ -499,6 +499,13 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 .gcu-main { padding-top: 50px; padding-bottom: 100px; background-color: var(--gcu-surface); }
                 .gcu-panel { padding-top: 50px; padding-bottom: 50px; }
                 .gcu-panel.border-bottom { border-color: var(--gcu-border) !important; }
+                /* Explicit surface background on the panel itself (not just
+                   inherited from .gcu-main) — CMS-authored HTML dropped in
+                   via dangerouslySetInnerHTML can carry its own background
+                   on wrapper tags from the rich-text editor, which without
+                   this would show through as a stray white block in dark
+                   mode instead of repainting with the theme. */
+                .gcu-panel--surface { background-color: var(--gcu-surface); }
                 .gcu-panel-dark.gcu-panel,
                 .gcu-panel-careers.gcu-panel { padding-top: 60px; padding-bottom: 60px; }
 
@@ -560,24 +567,65 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 .gcu-heading { color: var(--gcu-blue-dark); }
                 [data-bs-theme="dark"] .gcu-heading { color: var(--gcu-blue-light); }
                 .gcu-body-text { color: var(--gcu-text); }
+                /* CMS-authored HTML rendered via dangerouslySetInnerHTML often
+                   carries its own inline style="color:#000" /
+                   style="background:#fff" attributes from whatever
+                   rich-text editor produced it (this is exactly what the
+                   MBA course's Overview/Career content does). An inline
+                   style attribute always beats an external stylesheet rule
+                   at equal or lower specificity, so a plain color: var(...)
+                   here was being silently ignored — that's why text was
+                   unreadable in dark mode even though the panel background
+                   correctly switched. !important on the inherited-content
+                   selectors is the only reliable way to beat arbitrary
+                   inline styles we don't control the source of, so it's
+                   used deliberately here, scoped tightly to
+                   .gcu-html-content descendants only. */
                 .gcu-html-content { font-size: 1.05rem; line-height: 1.75; color: var(--gcu-text); }
-                .gcu-html-content h2 { font-size: 1.4rem; font-weight: 800; margin: 28px 0 12px; color: var(--gcu-blue-dark); }
-                [data-bs-theme="dark"] .gcu-html-content h2 { color: var(--gcu-blue-light); }
-                .gcu-html-content h2:first-child { margin-top: 0; }
-                .gcu-html-content h3 { font-size: 1.1rem; font-weight: 700; margin: 22px 0 10px; color: var(--gcu-blue); }
-                .gcu-html-content p { margin-bottom: 14px; color: var(--gcu-text); }
-                .gcu-html-content ul { list-style: none; display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 20px; padding: 0; }
-                .gcu-html-content ul li {
-                    background: var(--gcu-pill-bg); border: 1px solid var(--gcu-pill-border); padding: 8px 16px;
-                    border-radius: 999px; font-weight: 600; font-size: 0.9rem; color: var(--gcu-blue-dark);
+                .gcu-html-content,
+                .gcu-html-content * {
+                    background-color: transparent !important;
                 }
-                [data-bs-theme="dark"] .gcu-html-content ul li { color: var(--gcu-blue-light); }
-                .gcu-html-content--dark { color: rgba(255,255,255,0.9); }
-                .gcu-html-content--dark h2 { color: #fff; }
-                .gcu-html-content--dark h3 { color: var(--gcu-blue-light); }
-                .gcu-html-content--dark p { color: rgba(255,255,255,0.8); }
+                .gcu-html-content,
+                .gcu-html-content p,
+                .gcu-html-content span,
+                .gcu-html-content div,
+                .gcu-html-content li,
+                .gcu-html-content strong,
+                .gcu-html-content b,
+                .gcu-html-content em {
+                    color: var(--gcu-text) !important;
+                }
+                .gcu-html-content h2 { font-size: 1.4rem; font-weight: 800; margin: 28px 0 12px; color: var(--gcu-blue-dark) !important; }
+                [data-bs-theme="dark"] .gcu-html-content h2 { color: var(--gcu-blue-light) !important; }
+                .gcu-html-content h2:first-child { margin-top: 0; }
+                .gcu-html-content h3 { font-size: 1.1rem; font-weight: 700; margin: 22px 0 10px; color: var(--gcu-blue) !important; }
+                .gcu-html-content p { margin-bottom: 14px; }
+                .gcu-html-content ul:not(.gcu-html-content--dark ul) { list-style: none; display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 20px; padding: 0; }
+                .gcu-html-content ul:not(.gcu-html-content--dark ul) li {
+                    background-color: var(--gcu-pill-bg) !important; border: 1px solid var(--gcu-pill-border); padding: 8px 16px;
+                    border-radius: 999px; font-weight: 600; font-size: 0.9rem; color: var(--gcu-blue-dark) !important;
+                }
+                [data-bs-theme="dark"] .gcu-html-content ul:not(.gcu-html-content--dark ul) li { color: var(--gcu-blue-light) !important; }
+
+                /* Dark variant: used inside the always-dark Career Prospectus
+                   panel, so its content colors are fixed white/light rather
+                   than theme-token driven — same !important reasoning as
+                   above applies since it also renders CMS HTML. */
+                .gcu-html-content--dark,
+                .gcu-html-content--dark p,
+                .gcu-html-content--dark span,
+                .gcu-html-content--dark div,
+                .gcu-html-content--dark li,
+                .gcu-html-content--dark strong,
+                .gcu-html-content--dark b,
+                .gcu-html-content--dark em {
+                    color: rgba(255,255,255,0.85) !important;
+                }
+                .gcu-html-content--dark h2 { color: #fff !important; }
+                .gcu-html-content--dark h3 { color: var(--gcu-blue-light) !important; }
                 .gcu-html-content--dark ul li {
-                    background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.14); color: #fff;
+                    background-color: rgba(255,255,255,0.08) !important; border-color: rgba(255,255,255,0.14); color: #fff !important;
                 }
 
                 /* ---- Study panel (dark) ----
