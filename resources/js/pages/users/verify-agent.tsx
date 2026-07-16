@@ -1,18 +1,7 @@
 import { useState } from 'react';
 import { Head, router, Link } from '@inertiajs/react';
-import {
-    Mail,
-    Phone,
-    MapPin,
-    Building,
-    UserCheck,
-    Loader2,
-    Clock,
-    ShieldQuestion,
-} from 'lucide-react';
 
 const PRIMARY = "#0ea5e9";
-const SUCCESS = "#059669";
 
 type PendingUser = {
     id: number;
@@ -26,6 +15,7 @@ type PendingUser = {
 
 type Props = {
     pendingUser: PendingUser;
+    onClose?: () => void;
 };
 
 function formatDate(iso: string): string {
@@ -40,7 +30,7 @@ function formatDate(iso: string): string {
     }
 }
 
-export default function VerifyAgent({ pendingUser }: Props) {
+export default function VerifyAgent({ pendingUser, onClose }: Props) {
     const [verifying, setVerifying] = useState(false);
     const [done, setDone] = useState(false);
 
@@ -58,30 +48,64 @@ export default function VerifyAgent({ pendingUser }: Props) {
         );
     };
 
+    const handleClose = () => {
+        if (onClose) {
+            onClose();
+        } else {
+            router.visit('/users');
+        }
+    };
+
     return (
-        <div className="min-h-screen flex items-center justify-center px-6 py-12 font-['Rajdhani']" style={{ background: "var(--surface-bg)" }}>
+        <div className="modal show d-block" tabIndex={-1} style={{ background: "rgba(0, 0, 0, 0.6)", fontFamily: "'Rajdhani', sans-serif" }}>
             <Head title="Verify New Agent" />
 
             <style>
                 {`
                     @import url('https://fonts.googleapis.com/css2?family=Castoro+Titling&family=Rajdhani:wght@400;500;600;700&display=swap');
+                    
+                    @keyframes spin {
+                        from { transform: rotate(0deg); }
+                        to { transform: rotate(360deg); }
+                    }
+                    .animate-spin {
+                        display: inline-block;
+                        animation: spin 1s linear infinite;
+                    }
                 `}
             </style>
 
-            <div className="w-full max-w-lg">
-                <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--border-color-soft)] shadow-[var(--shadow-card)] overflow-hidden">
-                    <div className="h-1.5 bg-gradient-to-r from-[#0ea5e9] to-[#fbbf24]" />
+            <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: '32rem' }}>
+                <div 
+                    className="modal-content overflow-hidden border-0 position-relative" 
+                    style={{ 
+                        backgroundColor: "var(--surface-card, #ffffff)", 
+                        boxShadow: "var(--shadow-card, 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1))" 
+                    }}
+                >
+                    {/* Decorative Top Accent Line */}
+                    <div style={{ height: '6px', background: 'linear-gradient(to right, #0ea5e9, #fbbf24)' }} />
 
-                    <div className="p-8 xl:p-10">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="p-2.5 bg-amber-50 dark:bg-amber-950/40 rounded-lg text-amber-500">
-                                <ShieldQuestion className="h-5.5 w-5.5" />
+                    {/* Close (X) Button */}
+                    <div className="position-absolute top-0 end-0 p-3" style={{ zIndex: 10 }}>
+                        <button 
+                            type="button" 
+                            className="btn-close" 
+                            onClick={handleClose} 
+                            aria-label="Close"
+                        />
+                    </div>
+
+                    <div className="modal-body p-4 p-md-5">
+                        <div className="d-flex align-items-center gap-3 mb-4">
+                            <div className="p-2 rounded-3 d-flex align-items-center justify-content-center bg-warning-subtle text-warning">
+                                <iconify-icon icon="lucide:shield-question" style={{ fontSize: '1.35rem' }}></iconify-icon>
                             </div>
                             <div>
-                                <h1 className="font-['Castoro_Titling'] text-lg xl:text-xl text-[var(--text-strong)] uppercase tracking-wide">
+                                <h1 className="m-0 text-uppercase fw-semibold" style={{ fontFamily: "'Castoro Titling', serif", fontSize: '1.15rem', color: "var(--text-strong, #1f2937)", letterSpacing: '0.05em' }}>
                                     Verify New Agent
                                 </h1>
-                                <p className="text-xs xl:text-sm text-[var(--text-faint)] font-medium">
+                                <p className="small m-0" style={{ color: "var(--text-faint, #6b7280)", fontWeight: 500 }}>
                                     Confirm this registration to grant login access.
                                 </p>
                             </div>
@@ -89,37 +113,37 @@ export default function VerifyAgent({ pendingUser }: Props) {
 
                         {!done ? (
                             <>
-                                <div className="rounded-xl border border-[var(--border-color-soft)] bg-[var(--surface-bg)] p-5 space-y-3 mb-6">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-lg font-bold text-[var(--text-strong)]">{pendingUser.name}</span>
-                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[0.68rem] font-bold tracking-wider uppercase bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-100 dark:border-red-900">
-                                            <Clock className="h-3 w-3" /> Pending
+                                <div className="p-4 border rounded-3 mb-4" style={{ backgroundColor: "var(--surface-bg, #f8f9fa)", borderColor: "var(--border-color-soft, #e5e7eb)" }}>
+                                    <div className="d-flex align-items-center justify-content-between mb-3">
+                                        <span className="fs-5 fw-bold" style={{ color: "var(--text-strong, #1f2937)" }}>{pendingUser.name}</span>
+                                        <span className="badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle d-inline-flex align-items-center gap-1 text-uppercase px-2.5 py-1.5" style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.05em' }}>
+                                            <iconify-icon icon="lucide:clock" style={{ fontSize: '0.8rem' }}></iconify-icon> Pending
                                         </span>
                                     </div>
 
-                                    <div className="flex items-center gap-3 text-sm font-semibold text-[var(--text-muted)]">
-                                        <Building className="h-4 w-4 text-[var(--text-faint)] shrink-0" />
+                                    <div className="d-flex align-items-center gap-3 small fw-semibold mb-2" style={{ color: "var(--text-muted, #4b5563)" }}>
+                                        <iconify-icon icon="lucide:building" style={{ color: "var(--text-faint, #9ca3af)", fontSize: '1.1rem' }}></iconify-icon>
                                         {pendingUser.agency_name}
                                     </div>
-                                    <div className="flex items-center gap-3 text-sm font-semibold text-[var(--text-muted)]">
-                                        <Mail className="h-4 w-4 text-[var(--text-faint)] shrink-0" />
+                                    <div className="d-flex align-items-center gap-3 small fw-semibold mb-2" style={{ color: "var(--text-muted, #4b5563)" }}>
+                                        <iconify-icon icon="lucide:mail" style={{ color: "var(--text-faint, #9ca3af)", fontSize: '1.1rem' }}></iconify-icon>
                                         {pendingUser.email}
                                     </div>
-                                    <div className="flex items-center gap-3 text-sm font-semibold text-[var(--text-muted)]">
-                                        <Phone className="h-4 w-4 text-[var(--text-faint)] shrink-0" />
+                                    <div className="d-flex align-items-center gap-3 small fw-semibold mb-2" style={{ color: "var(--text-muted, #4b5563)" }}>
+                                        <iconify-icon icon="lucide:phone" style={{ color: "var(--text-faint, #9ca3af)", fontSize: '1.1rem' }}></iconify-icon>
                                         {pendingUser.contact_number}
                                     </div>
-                                    <div className="flex items-center gap-3 text-sm font-semibold text-[var(--text-muted)]">
-                                        <MapPin className="h-4 w-4 text-[var(--text-faint)] shrink-0" />
+                                    <div className="d-flex align-items-center gap-3 small fw-semibold mb-3" style={{ color: "var(--text-muted, #4b5563)" }}>
+                                        <iconify-icon icon="lucide:map-pin" style={{ color: "var(--text-faint, #9ca3af)", fontSize: '1.1rem' }}></iconify-icon>
                                         {pendingUser.country}
                                     </div>
 
-                                    <p className="text-[0.72rem] text-[var(--text-faint)] font-medium pt-1">
+                                    <p className="m-0 pt-2 border-top" style={{ fontSize: '0.72rem', color: "var(--text-faint, #6b7280)", fontWeight: 500, borderColor: "var(--border-color-soft, #e5e7eb)" }}>
                                         Registered on {formatDate(pendingUser.created_at)}
                                     </p>
                                 </div>
 
-                                <p className="text-sm text-[var(--text-muted)] font-medium leading-relaxed mb-6">
+                                <p className="small mb-4" style={{ color: "var(--text-muted, #4b5563)", fontWeight: 500, lineHeight: 1.5 }}>
                                     This person cannot log in until you approve them. Only confirm if you recognize this registration as legitimate for your agency.
                                 </p>
 
@@ -127,39 +151,48 @@ export default function VerifyAgent({ pendingUser }: Props) {
                                     type="button"
                                     onClick={handleVerify}
                                     disabled={verifying}
+                                    className="btn w-100 d-inline-flex align-items-center justify-content-center gap-2 py-3 rounded-3 text-uppercase border-0 text-white"
                                     style={{
-                                        width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                                        background: verifying ? 'var(--text-faint)' : SUCCESS, color: 'white', border: 'none',
-                                        borderRadius: '0.75rem', padding: '0.85rem 1.5rem', fontFamily: "Rajdhani, sans-serif",
-                                        fontSize: '0.85rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-                                        cursor: verifying ? 'not-allowed' : 'pointer', transition: 'all 0.2s ease',
+                                        background: verifying ? 'var(--text-faint, #9ca3af)' : PRIMARY,
+                                        fontFamily: "'Rajdhani', sans-serif",
+                                        fontSize: '0.85rem',
+                                        fontWeight: 700,
+                                        letterSpacing: '0.08em',
+                                        cursor: verifying ? 'not-allowed' : 'pointer',
+                                        transition: 'all 0.2s ease',
                                     }}
                                 >
-                                    {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserCheck className="h-4 w-4" />}
+                                    {verifying ? (
+                                        <iconify-icon icon="lucide:loader-2" className="animate-spin" style={{ fontSize: '1.1rem' }}></iconify-icon>
+                                    ) : (
+                                        <iconify-icon icon="lucide:user-check" style={{ fontSize: '1.1rem' }}></iconify-icon>
+                                    )}
                                     {verifying ? 'Verifying...' : 'Confirm & Verify'}
                                 </button>
                             </>
                         ) : (
                             <div className="text-center py-4">
-                                <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center text-emerald-600">
-                                    <UserCheck className="h-7 w-7" />
+                                <div className="mx-auto mb-3 rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style={{ width: '3.5rem', height: '3.5rem' }}>
+                                    <iconify-icon icon="lucide:user-check" style={{ fontSize: '1.75rem' }}></iconify-icon>
                                 </div>
-                                <p className="text-base font-bold text-[var(--text-strong)] mb-1">
+                                <p className="fs-5 fw-bold mb-1" style={{ color: "var(--text-strong, #1f2937)" }}>
                                     {pendingUser.name} is verified
                                 </p>
-                                <p className="text-sm text-[var(--text-faint)] font-medium mb-6">
+                                <p className="small mb-4" style={{ color: "var(--text-faint, #6b7280)", fontWeight: 500 }}>
                                     They can now log in to the portal.
                                 </p>
-                                <Link
-                                    href="/users"
+                                <button
+                                    type="button"
+                                    onClick={handleClose}
+                                    className="btn btn-link text-decoration-none d-inline-flex align-items-center gap-2 fw-bold text-uppercase p-0 border-0"
                                     style={{
-                                        display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-                                        color: PRIMARY, fontWeight: 700, fontSize: '0.85rem',
-                                        letterSpacing: '0.05em', textTransform: 'uppercase',
+                                        color: PRIMARY,
+                                        fontSize: '0.85rem',
+                                        letterSpacing: '0.05em',
                                     }}
                                 >
                                     Back to Users
-                                </Link>
+                                </button>
                             </div>
                         )}
                     </div>
