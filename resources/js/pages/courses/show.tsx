@@ -363,14 +363,14 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                 <div className="table-responsive border rounded-3">
                                     <table className="table table-striped table-hover mb-0 align-middle gcu-fees-table">
                                         <thead>
-                                            <tr className="gcu-table-head">
-                                                <th className="text-white text-uppercase fw-bold py-3 px-3">
+                                            <tr>
+                                                <th className="text-uppercase fw-bold py-3 px-3">
                                                     Year of Study
                                                 </th>
-                                                <th className="text-white text-uppercase fw-bold py-3 px-3">
+                                                <th className="text-uppercase fw-bold py-3 px-3">
                                                     Tuition Fee
                                                 </th>
-                                                <th className="text-white text-uppercase fw-bold py-3 px-3">
+                                                <th className="text-uppercase fw-bold py-3 px-3">
                                                     Additional Notes
                                                 </th>
                                             </tr>
@@ -557,8 +557,20 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 .gcu-mod-arrow { transition: transform 0.2s ease; }
                 .gcu-mod-btn[aria-expanded="true"] .gcu-mod-arrow { transform: rotate(90deg); }
 
-                /* ---- Fees table header ---- */
-                .gcu-table-head { background-color: var(--gcu-blue); }
+                /* ---- Fees table header ----
+                   Bootstrap's .table/.table-striped set background via the
+                   --bs-table-bg CSS variable on td/th, which otherwise wins
+                   over a plain background-color rule here. Set both the
+                   variable and the property directly on thead th, and force
+                   white text so header labels stay visible against the blue
+                   background — this fixes the header row rendering blank
+                   (white text was landing on a white-inherited background). */
+                .gcu-fees-table thead th {
+                    --bs-table-bg: var(--gcu-blue);
+                    background-color: var(--gcu-blue) !important;
+                    color: #fff !important;
+                    border-color: var(--gcu-blue);
+                }
                 .gcu-fees-table { font-size: 0.95rem; }
                 .gcu-fees-table thead th {
                     font-size: 0.75rem;
