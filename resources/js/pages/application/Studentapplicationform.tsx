@@ -585,7 +585,7 @@ export default function StudentApplicationForm() {
                   {countriesList.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
-              <div className="col-md-6">
+              {/* <div className="col-md-6">
                 <QuestionLabel text="Passport Number" hint="Optional" />
                 <input
                   type="text"
@@ -594,10 +594,10 @@ export default function StudentApplicationForm() {
                   value={form.passport_number}
                   onChange={(e) => set("passport_number", e.target.value)}
                 />
-              </div>
+              </div> */}
             </div>
 
-            <div className="row g-3 mt-1">
+            {/* <div className="row g-3 mt-1">
               <div className="col-md-6">
                 <QuestionLabel text="Date of Birth" hint="Optional" />
                 <input
@@ -607,7 +607,7 @@ export default function StudentApplicationForm() {
                   onChange={(e) => set("date_of_birth", e.target.value)}
                 />
               </div>
-            </div>
+            </div> */}
 
             <div className="mt-4">
               <QuestionLabel text="Address" required />
