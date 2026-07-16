@@ -7,7 +7,7 @@ import { dashboard } from '@/routes';
 import type { BreadcrumbItem as BreadcrumbItemType } from '@/types';
 
 // ---------------------------------------------------------------------------
-// Nav data — same items as before, now rendered with MaterialM markup
+// Nav data — same items as before, rendered with MaterialM markup
 // ---------------------------------------------------------------------------
 type NavLeaf = { title: string; href: string; icon: string };
 type NavGroup = { id: string; label: string; icon: string; items: NavLeaf[] };
@@ -174,27 +174,39 @@ function useNotifications(userId?: number) {
 }
 
 // ---------------------------------------------------------------------------
-// Sidebar nav group (collapsible submenu) — MaterialM markup + classes
+// Sidebar nav group (collapsible submenu) — Managed entirely by React State
 // ---------------------------------------------------------------------------
 function NavGroupSection({ group }: { group: NavGroup }) {
     const isCurrentUrl = useIsCurrentUrl();
     const isActiveGroup = group.items.some((item) => isCurrentUrl(item.href));
+    const [isOpen, setIsOpen] = useState(isActiveGroup);
+
+    // Sync expanded state with navigation changes
+    useEffect(() => {
+        setIsOpen(isActiveGroup);
+    }, [isActiveGroup]);
+
+    const toggleOpen = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation(); // Stops jQuery sidebarmenu.js from modifying classes on click
+        setIsOpen(!isOpen);
+    };
 
     return (
-        <li className={`sidebar-item ${isActiveGroup ? 'active' : ''}`}>
+        <li className={`sidebar-item ${isOpen ? 'active' : ''}`}>
             <a
-                className={`sidebar-link has-arrow ${isActiveGroup ? 'active' : ''}`}
+                className={`sidebar-link has-arrow ${isOpen ? 'active' : ''}`}
                 href="#"
-                onClick={(e) => e.preventDefault()}
-                aria-expanded={isActiveGroup}
+                onClick={toggleOpen}
+                aria-expanded={isOpen}
             >
                 <iconify-icon icon={group.icon}></iconify-icon>
                 <span className="hide-menu">{group.label}</span>
             </a>
 
             <ul
-                aria-expanded={isActiveGroup}
-                className={`collapse first-level ${isActiveGroup ? 'in' : ''}`}
+                aria-expanded={isOpen}
+                className={`collapse first-level ${isOpen ? 'show in' : ''}`}
             >
                 {group.items.map((item) => (
                     <li
@@ -303,6 +315,25 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
                     max-width: none !important;
                     width: 100% !important;
                 }
+
+                /* Force visible expanded submenu states and bypass legacy lock transitions */
+                #sidebarnav .sidebar-item.active > .first-level,
+                #sidebarnav .first-level.show,
+                #sidebarnav .first-level.in {
+                    display: block !important;
+                    height: auto !important;
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                    overflow: visible !important;
+                }
+
+                /* Ensure closed states are strictly hidden */
+                #sidebarnav .first-level:not(.show):not(.in) {
+                    display: none !important;
+                    height: 0 !important;
+                    opacity: 0 !important;
+                    visibility: hidden !important;
+                }
             `}</style>
 
             {/* ── Vertical sidebar ── */}
@@ -407,11 +438,29 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
 
                                         {/* Dark / light toggle */}
                                         <li className="nav-item nav-icon-hover">
-                                            <a className="nav-link moon dark-layout" href="#" onClick={(e) => e.preventDefault()}>
-                                                <iconify-icon icon="solar:moon-line-duotone" className="moon fs-6" />
+                                            <a 
+                                                className="nav-link moon dark-layout" 
+                                                href="#" 
+                                                onClick={(e) => e.preventDefault()}
+                                                suppressHydrationWarning={true}
+                                            >
+                                                <iconify-icon 
+                                                    icon="solar:moon-line-duotone" 
+                                                    className="moon fs-6" 
+                                                    suppressHydrationWarning={true}
+                                                />
                                             </a>
-                                            <a className="nav-link sun light-layout" href="#" onClick={(e) => e.preventDefault()}>
-                                                <iconify-icon icon="solar:sun-2-line-duotone" className="sun fs-6" />
+                                            <a 
+                                                className="nav-link sun light-layout" 
+                                                href="#" 
+                                                onClick={(e) => e.preventDefault()}
+                                                suppressHydrationWarning={true}
+                                            >
+                                                <iconify-icon 
+                                                    icon="solar:sun-2-line-duotone" 
+                                                    className="sun fs-6" 
+                                                    suppressHydrationWarning={true}
+                                                />
                                             </a>
                                         </li>
 
