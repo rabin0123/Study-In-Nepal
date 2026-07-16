@@ -269,7 +269,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     <section id="overview" className="container-xl px-4 py-5 border-bottom">
                         <div className="row gy-4 gy-lg-0" style={{ maxWidth: 1200 }}>
                             <div className="col-lg-3">
-                                <h2 className="gcu-heading fw-bold fs-5">Overview</h2>
+                                <h2 className="gcu-heading fw-bold fs-7">Overview</h2>
                             </div>
                             <div className="col-lg-9">
                                 <div
