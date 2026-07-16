@@ -1,13 +1,5 @@
 import { Head } from '@inertiajs/react';
 import { dashboard } from '@/routes';
-import { 
-    FileText, 
-    CheckCircle, 
-    Archive, 
-    Clock, 
-    ArrowUpRight,
-    User
-} from 'lucide-react';
 
 interface Application {
     id: number;
@@ -30,131 +22,152 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ stats, latestApplications = [] }: DashboardProps) {
-    // Utility to style status badges
+    // Utility to map statuses to modern Bootstrap 5 contextual colors
     const getStatusStyles = (status: string) => {
         switch (status?.toUpperCase()) {
             case 'APPROVED':
-                return 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-900/50';
+                return 'bg-success-subtle text-success border border-success-subtle';
             case 'REJECTED':
-                return 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900/50';
+                return 'bg-danger-subtle text-danger border border-danger-subtle';
             case 'PENDING REVIEW':
             default:
-                return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50';
+                return 'bg-warning-subtle text-warning border border-warning-subtle';
         }
     };
 
     return (
         <>
             <Head title="Dashboard" />
-            <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto rounded-xl p-6">
+            <div className="container-fluid p-4">
                 
                 {/* Statistics Cards Section */}
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="row g-4 mb-4">
                     
                     {/* Card 1: Total Applications */}
-                    <div className="rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-muted-foreground">Total Applications</span>
-                            <div className="rounded-lg bg-neutral-100 p-2 dark:bg-neutral-800">
-                                <FileText className="h-5 w-5 text-neutral-600 dark:text-neutral-400" />
+                    <div className="col-12 col-md-4">
+                        <div className="card border-0 shadow-sm h-100">
+                            <div className="card-body p-4">
+                                <div className="d-flex align-items-center justify-content-between">
+                                    <span className="text-muted fw-medium small">Total Applications</span>
+                                    <div className="bg-light rounded p-2 d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }}>
+                                        {/* Iconify CDN span placeholder */}
+                                        <span className="iconify fs-5 text-secondary" data-icon="lucide:file-text"></span>
+                                    </div>
+                                </div>
+                                <div className="mt-3">
+                                    <h3 className="display-6 fw-bold mb-1">{stats?.totalApplications ?? 0}</h3>
+                                    <p className="text-muted small mb-0">Submitted applications across agencies</p>
+                                </div>
                             </div>
-                        </div>
-                        <div className="mt-4">
-                            <h3 className="text-3xl font-bold tracking-tight">{stats?.totalApplications ?? 0}</h3>
-                            <p className="text-xs text-muted-foreground mt-1">Submitted applications across agencies</p>
                         </div>
                     </div>
 
-                    {/* Card 2: Processed Applications */}
-                    <div className="rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-muted-foreground">Applications Processed</span>
-                            <div className="rounded-lg bg-blue-50 p-2 dark:bg-blue-950/30">
-                                <CheckCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    {/* Card 2: Applications Processed */}
+                    <div className="col-12 col-md-4">
+                        <div className="card border-0 shadow-sm h-100">
+                            <div className="card-body p-4">
+                                <div className="d-flex align-items-center justify-content-between">
+                                    <span className="text-muted fw-medium small">Applications Processed</span>
+                                    <div className="bg-primary-subtle rounded p-2 d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }}>
+                                        {/* Iconify CDN span placeholder */}
+                                        <span className="iconify fs-5 text-primary" data-icon="lucide:check-circle"></span>
+                                    </div>
+                                </div>
+                                <div className="mt-3">
+                                    <h3 className="display-6 fw-bold mb-1">{stats?.processedApplications ?? 0}</h3>
+                                    <p className="text-muted small mb-0">Approved or rejected applications</p>
+                                </div>
                             </div>
-                        </div>
-                        <div className="mt-4">
-                            <h3 className="text-3xl font-bold tracking-tight">{stats?.processedApplications ?? 0}</h3>
-                            <p className="text-xs text-muted-foreground mt-1">Approved or rejected applications</p>
                         </div>
                     </div>
 
-                    {/* Card 3: Case Closed Applications */}
-                    <div className="rounded-xl border border-sidebar-border/70 bg-card p-6 shadow-sm dark:border-sidebar-border">
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-muted-foreground">Case Closed</span>
-                            <div className="rounded-lg bg-green-50 p-2 dark:bg-green-950/30">
-                                <Archive className="h-5 w-5 text-green-600 dark:text-green-400" />
+                    {/* Card 3: Case Closed */}
+                    <div className="col-12 col-md-4">
+                        <div className="card border-0 shadow-sm h-100">
+                            <div className="card-body p-4">
+                                <div className="d-flex align-items-center justify-content-between">
+                                    <span className="text-muted fw-medium small">Case Closed</span>
+                                    <div className="bg-success-subtle rounded p-2 d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }}>
+                                        {/* Iconify CDN span placeholder */}
+                                        <span className="iconify fs-5 text-success" data-icon="lucide:archive"></span>
+                                    </div>
+                                </div>
+                                <div className="mt-3">
+                                    <h3 className="display-6 fw-bold mb-1">{stats?.closedApplications ?? 0}</h3>
+                                    <p className="text-muted small mb-0">Completed / approved enrollments</p>
+                                </div>
                             </div>
-                        </div>
-                        <div className="mt-4">
-                            <h3 className="text-3xl font-bold tracking-tight">{stats?.closedApplications ?? 0}</h3>
-                            <p className="text-xs text-muted-foreground mt-1">Completed / approved enrollments</p>
                         </div>
                     </div>
 
                 </div>
 
                 {/* Latest Applications Table Section */}
-                <div className="rounded-xl border border-sidebar-border/70 bg-card shadow-sm dark:border-sidebar-border">
-                    <div className="flex items-center justify-between border-b border-sidebar-border/70 p-6 dark:border-sidebar-border">
-                        <div>
-                            <h2 className="text-lg font-semibold tracking-tight">Latest Applications</h2>
-                            <p className="text-sm text-muted-foreground">Recently submitted student entries</p>
-                        </div>
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <Clock className="h-4 w-4" />
-                            <span>Real-time updates</span>
-                        </div>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                        {latestApplications.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
-                                <User className="h-8 w-8 mb-2 opacity-50" />
-                                <p>No applications found.</p>
+                <div className="row">
+                    <div className="col-12">
+                        <div className="card border-0 shadow-sm">
+                            <div className="card-header bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 className="card-title fw-bold mb-1">Latest Applications</h5>
+                                    <p className="card-subtitle text-muted small">Recently submitted student entries</p>
+                                </div>
+                                <div className="text-muted small d-flex align-items-center gap-1">
+                                    <span className="iconify fs-6" data-icon="lucide:clock"></span>
+                                    <span>Real-time updates</span>
+                                </div>
                             </div>
-                        ) : (
-                            <table className="w-full text-left text-sm border-collapse">
-                                <thead>
-                                    <tr className="border-b border-sidebar-border/50 text-xs font-semibold text-muted-foreground uppercase bg-muted/30">
-                                        <th className="px-6 py-3">App ID</th>
-                                        <th className="px-6 py-3">Student Name</th>
-                                        <th className="px-6 py-3">Course / University</th>
-                                        <th className="px-6 py-3">Status</th>
-                                        <th className="px-6 py-3 text-right">Submitted</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-sidebar-border/50">
-                                    {latestApplications.map((app) => (
-                                        <tr key={app.id} className="hover:bg-muted/20 transition-colors">
-                                            <td className="px-6 py-4 font-mono text-xs font-semibold text-neutral-600 dark:text-neutral-400">
-                                                {app.app_id}
-                                            </td>
-                                            <td className="px-6 py-4 font-medium">
-                                                {app.student_name}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex flex-col">
-                                                    <span className="font-medium text-neutral-800 dark:text-neutral-200">{app.course_name}</span>
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {app.college_name || app.university_name}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusStyles(app.status)}`}>
-                                                    {app.status}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-right text-xs text-muted-foreground">
-                                                {app.created_at}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        )}
+
+                            <div className="card-body px-0 pb-0">
+                                {latestApplications.length === 0 ? (
+                                    <div className="text-center py-5 text-muted">
+                                        <span className="iconify display-6 mb-2 opacity-50" data-icon="lucide:user"></span>
+                                        <p className="mb-0">No applications found.</p>
+                                    </div>
+                                ) : (
+                                    <div className="table-responsive">
+                                        <table className="table table-hover align-middle mb-0">
+                                            <thead className="table-light">
+                                                <tr className="text-muted text-uppercase" style={{ fontSize: '0.75rem', letterSpacing: '0.05em' }}>
+                                                    <th className="px-4 py-3">App ID</th>
+                                                    <th className="px-4 py-3">Student Name</th>
+                                                    <th className="px-4 py-3">Course / University</th>
+                                                    <th className="px-4 py-3">Status</th>
+                                                    <th className="px-4 py-3 text-end">Submitted</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {latestApplications.map((app) => (
+                                                    <tr key={app.id}>
+                                                        <td className="px-4 py-3 font-monospace text-muted small fw-semibold">
+                                                            {app.app_id}
+                                                        </td>
+                                                        <td className="px-4 py-3 fw-semibold">
+                                                            {app.student_name}
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <div className="d-flex flex-column">
+                                                                <span className="fw-semibold text-dark">{app.course_name}</span>
+                                                                <span className="text-muted small">
+                                                                    {app.college_name || app.university_name}
+                                                                </span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <span className={`badge rounded-pill px-3 py-1.5 ${getStatusStyles(app.status)}`}>
+                                                                {app.status}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-end text-muted small">
+                                                            {app.created_at}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
 
