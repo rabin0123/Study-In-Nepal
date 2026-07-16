@@ -79,5 +79,6 @@
         <script src="/assets/js/theme/app.min.js"></script>
         <script src="/assets/js/theme/sidebarmenu-default.js"></script>
         <script src="https://code.iconify.design/iconify-icon/2.3.0/iconify-icon.min.js"></script>
+        <script src="https://code.iconify.design/iconify-icon/2.0.0/iconify-icon.min.js"></script>
     </body>
 </html>
