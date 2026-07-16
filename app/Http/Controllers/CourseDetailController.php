@@ -7,8 +7,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Inertia\Response;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class CourseDetailController extends Controller
@@ -182,65 +180,67 @@ class CourseDetailController extends Controller
     return redirect()->back()->with('success', 'Course details deleted successfully.');
 }
 
+private function normalizeForMatching(?string $string): string
+{
+    if (!$string) {
+        return '';
+    }
+    // Convert to lowercase and strip all non-alphanumeric characters
+    return preg_replace('/[^a-z0-9]/', '', strtolower(trim($string)));
+}
 public function getMatchedCourses(): JsonResponse
 {
-    // Cache the matched results for 30 minutes to keep page load times fast
-    $matchedData = Cache::remember('matched_university_courses', 1800, function () {
+    // Cache the matched list for 30 minutes to ensure quick loading speeds
+    $matchedList = Cache::remember('matched_university_courses', 1800, function () {
         // 1. Fetch from the external API
-        $response = Http::get('https://admin.studyinnepal.com/api/university');
-        
-        if (!$response->successful()) {
+        try {
+            $response = Http::get('https://admin.studyinnepal.com/api/university');
+            if (!$response->successful()) {
+                return [];
+            }
+            $externalData = $response->json();
+            $externalCourses = $externalData['data'] ?? $externalData;
+        } catch (\Exception $e) {
             return [];
         }
-        
-        $externalCourses = $response->json();
-        $externalList = $externalCourses['data'] ?? $externalCourses;
-        
-        if (!is_array($externalList)) {
+
+        if (!is_array($externalCourses)) {
             return [];
         }
 
-        // 2. Fetch all local CourseDetail records with their UUIDs
-        // Only select the required columns for memory efficiency
-        $localDetails = CourseDetail::select('uuid', 'university_name', 'college_name', 'course_name')->get();
+        // 2. Fetch local course details with their local UUIDs
+        $localCourses = CourseDetail::select('uuid', 'university_name', 'college_name', 'course_name')->get();
 
-        // 3. Normalized key generator to avoid mismatch issues with spaces/casing
-        $normalize = function ($string) {
-            if (!$string) return '';
-            $s = trim($string);
-            // Remove common duplicate white spaces and normalize punctuation
-            $s = preg_replace('/[\x{FFFD}\x{2013}\x{2014}]/u', '-', $s);
-            $s = preg_replace('/\s+/', ' ', $s);
-            return strtolower($s);
-        };
-
-        // 4. Build a fast lookup map: "normalized_university|normalized_college|normalized_course" => uuid
+        // 3. Build an index map based on clean normalized names
         $lookupMap = [];
-        foreach ($localDetails as $detail) {
-            $key = $normalize($detail->university_name) . '|' . 
-                   $normalize($detail->college_name) . '|' . 
-                   $normalize($detail->course_name);
-            $lookupMap[$key] = $detail->uuid;
+        foreach ($localCourses as $local) {
+            $hashKey = $this->normalizeForMatching($local->university_name) . '|' .
+                       $this->normalizeForMatching($local->college_name) . '|' .
+                       $this->normalizeForMatching($local->course_name);
+            $lookupMap[$hashKey] = $local->uuid;
         }
 
-        // 5. Match the external list entries with the lookup map
-        return array_map(function ($item) use ($normalize, $lookupMap) {
-            $itemArray = (array) $item;
+        // 4. Map UUIDs back onto the external items
+        $result = [];
+        foreach ($externalCourses as $course) {
+            $courseArray = (array) $course;
+            
+            $hashKey = $this->normalizeForMatching($courseArray['University'] ?? null) . '|' .
+                       $this->normalizeForMatching($courseArray['College'] ?? null) . '|' .
+                       $this->normalizeForMatching($courseArray['Course'] ?? null);
 
-            $key = $normalize($itemArray['University'] ?? null) . '|' . 
-                   $normalize($itemArray['College'] ?? null) . '|' . 
-                   $normalize($itemArray['Course'] ?? null);
+            // Attach the matching local UUID if present, otherwise set to null
+            $courseArray['uuid'] = $lookupMap[$hashKey] ?? null;
+            $result[] = $courseArray;
+        }
 
-            // Append the matching uuid from our local db if it exists
-            $itemArray['uuid'] = $lookupMap[$key] ?? null;
-
-            return $itemArray;
-        }, $externalList);
+        return $result;
     });
 
     return response()->json([
         'success' => true,
-        'data' => $matchedData
+        'data' => $matchedList,
     ]);
 }
+
 }
