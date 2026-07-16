@@ -531,6 +531,17 @@ export default function AppSidebarLayout({ children }: Props) {
                                         </Link>
                                     </li>
                                 ))}
+                                
+                                <span className="sidebar-divider lg"></span>
+                            </li>
+                            <li className="nav-small-cap">
+                                <iconify-icon icon="solar:menu-dots-linear" className="mini-icon" />
+                                <span className="hide-menu">Application</span>
+                            </li>
+
+                            {navGroups.map((group) => (
+                                <NavGroupSection key={group.id} group={group} />
+                            ))} 
                             </ul>
                         </nav>
                     </div>
