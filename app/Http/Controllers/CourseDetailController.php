@@ -179,4 +179,66 @@ class CourseDetailController extends Controller
 
     return redirect()->back()->with('success', 'Course details deleted successfully.');
 }
+
+public function getMatchedCourses(): JsonResponse
+{
+    // Cache the matched results for 30 minutes to keep page load times fast
+    $matchedData = Cache::remember('matched_university_courses', 1800, function () {
+        // 1. Fetch from the external API
+        $response = Http::get('https://admin.studyinnepal.com/api/university');
+        
+        if (!$response->successful()) {
+            return [];
+        }
+        
+        $externalCourses = $response->json();
+        $externalList = $externalCourses['data'] ?? $externalCourses;
+        
+        if (!is_array($externalList)) {
+            return [];
+        }
+
+        // 2. Fetch all local CourseDetail records with their UUIDs
+        // Only select the required columns for memory efficiency
+        $localDetails = CourseDetail::select('uuid', 'university_name', 'college_name', 'course_name')->get();
+
+        // 3. Normalized key generator to avoid mismatch issues with spaces/casing
+        $normalize = function ($string) {
+            if (!$string) return '';
+            $s = trim($string);
+            // Remove common duplicate white spaces and normalize punctuation
+            $s = preg_replace('/[\x{FFFD}\x{2013}\x{2014}]/u', '-', $s);
+            $s = preg_replace('/\s+/', ' ', $s);
+            return strtolower($s);
+        };
+
+        // 4. Build a fast lookup map: "normalized_university|normalized_college|normalized_course" => uuid
+        $lookupMap = [];
+        foreach ($localDetails as $detail) {
+            $key = $normalize($detail->university_name) . '|' . 
+                   $normalize($detail->college_name) . '|' . 
+                   $normalize($detail->course_name);
+            $lookupMap[$key] = $detail->uuid;
+        }
+
+        // 5. Match the external list entries with the lookup map
+        return array_map(function ($item) use ($normalize, $lookupMap) {
+            $itemArray = (array) $item;
+
+            $key = $normalize($itemArray['University'] ?? null) . '|' . 
+                   $normalize($itemArray['College'] ?? null) . '|' . 
+                   $normalize($itemArray['Course'] ?? null);
+
+            // Append the matching uuid from our local db if it exists
+            $itemArray['uuid'] = $lookupMap[$key] ?? null;
+
+            return $itemArray;
+        }, $externalList);
+    });
+
+    return response()->json([
+        'success' => true,
+        'data' => $matchedData
+    ]);
+}
 }
