@@ -100,7 +100,7 @@ const standardizeCourse = (course: string | null | undefined): string => {
 
 interface UniversityEntry {
   id: number;
-  uuid?: string; // Optional property now matched dynamically on the backend
+  uuid?: string; // Optional property to match with course details show section
   University: string;
   university_logo_url: string | null;
   level: string;
@@ -115,6 +115,7 @@ interface UniversityEntry {
   requireddocuments: string | null;
 }
 
+// Shape returned by GET /api/agent/applications/search-students
 interface StudentResult {
   id: string;
   app_id: string;
@@ -608,7 +609,7 @@ export default function CourseSearch() {
   const [selectedColleges, setSelectedColleges] = useState<string[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
 
-  // Apply Now modal state
+  // Apply Now modal state — tracks which course card triggered it
   const [applyTarget, setApplyTarget] = useState<{ university: string; college: string; course: string } | null>(null);
 
   // Prefetched "recent students" cache
@@ -641,8 +642,7 @@ export default function CourseSearch() {
   const fetchUniversities = async () => {
     setLoading(true);
     try {
-      // Adjusted path to query your local matched-courses endpoint instead of the direct third-party API
-      const res = await fetch("/api/matched-courses", {
+      const res = await fetch("https://admin.studyinnepal.com/api/university", {
         headers: { "Accept": "application/json" }
       });
       if (res.ok) {
