@@ -586,12 +586,13 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     overflow-x: hidden;
                 }
                 .gcu-subnav__list {
-                    list-style: none;
-                    display: flex;
-                    gap: 24px;
-                    overflow-x: auto;
-                    scrollbar-width: none;
-                }
+    list-style: none;
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
                 .gcu-subnav__list::-webkit-scrollbar { display: none; }
                 .gcu-subnav__link {
                     background: none;
