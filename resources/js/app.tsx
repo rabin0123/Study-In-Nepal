@@ -6,6 +6,7 @@ import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { configureEcho } from '@laravel/echo-react';
+import { ConfirmDialogProvider } from '@/components/confirm-dialog-provider';
 
 
 
@@ -36,11 +37,13 @@ createInertiaApp({
     strictMode: true,
     withApp(app) {
         return (
-            <TooltipProvider delayDuration={0}>
+        <TooltipProvider delayDuration={0}>
+            <ConfirmDialogProvider>
                 {app}
                 <Toaster />
-            </TooltipProvider>
-        );
+            </ConfirmDialogProvider>
+        </TooltipProvider>
+    );
     },
     progress: {
         color: '#4B5563',
