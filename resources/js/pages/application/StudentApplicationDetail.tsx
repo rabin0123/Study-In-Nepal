@@ -1088,7 +1088,7 @@ export default function StudentApplicationDetail({ application: initialApplicati
                     )}
                   </div>
                    <div className="col-6">
-                    <span className="fs-2 fw-semibold text-uppercase text-body-secondary d-flex align-items-center gap-1 mb-1">
+                    <span className="fs-2 fw-semibold text-uppercase text-body-secondary d-flex align-items-center gap-1 mb-1 justify-end">
                       <iconify-icon icon="solar:hashtag-square-line-duotone" className="fs-4"></iconify-icon>
                       App ID
                     </span>
