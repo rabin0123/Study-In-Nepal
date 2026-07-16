@@ -35,7 +35,7 @@ function Toaster({ ...props }: ToasterProps) {
                     '--success-text': 'var(--bs-success-text-emphasis)',
                     '--success-border': 'var(--bs-success-border-subtle)',
                     '--error-bg': 'var(--bs-danger-bg-subtle)',
-                    '--error-text': 'var(--bs-danger-text-emphasis)',
+                    '--error-text': '#7a1620',
                     '--error-border': 'var(--bs-danger-border-subtle)',
                     '--warning-bg': 'var(--bs-warning-bg-subtle)',
                     '--warning-text': 'var(--bs-warning-text-emphasis)',
