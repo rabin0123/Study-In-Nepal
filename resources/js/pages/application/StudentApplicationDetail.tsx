@@ -1093,7 +1093,7 @@ export default function StudentApplicationDetail({ application: initialApplicati
                       App ID
                     </span>
                     <p className="sad-value fs-3 fw-semibold mb-0 text-truncate justify-end">
-                      {student?.app_id || <span className="text-body-secondary fw-normal fst-italic">Not set</span>}
+                      {student?.app_id }
                     </p>
                   </div>
                 </div>
