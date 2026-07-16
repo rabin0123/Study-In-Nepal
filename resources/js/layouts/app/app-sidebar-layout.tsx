@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, type PropsWithChildren } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import { useEchoNotification } from '@laravel/echo-react';
-import { Breadcrumbs } from '@/components/breadcrumbs';
 import { useInitials } from '@/hooks/use-initials';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem as BreadcrumbItemType } from '@/types';
@@ -234,7 +233,7 @@ function NavGroupSection({ group }: { group: NavGroup }) {
 // ---------------------------------------------------------------------------
 // Layout
 // ---------------------------------------------------------------------------
-export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) {
+export default function AppSidebarLayout({ children }: Props) {
     const page = usePage();
     const { auth } = page.props as any;
     const getInitials = useInitials();
@@ -334,13 +333,7 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
                     visibility: hidden !important;
                 }
 
-                /* ── Theme Switch Controls Display Rules ──
-                   Actual dark/light attribute handling (data-bs-theme) and
-                   persistence live in app.init.js (handleTheme()), which is
-                   loaded globally in app.blade.php and binds click listeners
-                   to .dark-layout / .light-layout below. These rules just
-                   control which of the two icons is visible for a given
-                   theme state. */
+                /* ── Theme Switch Controls Display Rules ── */
                 .dark-layout {
                     display: flex !important;
                     align-items: center;
@@ -447,11 +440,7 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
                             >
                                 <div className="d-flex align-items-center justify-content-between">
                                     <ul className="navbar-nav flex-row mx-auto ms-lg-auto align-items-center justify-content-center">
-                                        {/* Breadcrumb */}
-                                        <li className="nav-item d-none d-md-flex align-items-center me-3">
-                                            <Breadcrumbs breadcrumbs={breadcrumbs} />
-                                        </li>
-
+                                        
                                         {/* Search */}
                                         <li className="nav-item nav-icon-hover d-none d-lg-block">
                                             <a className="nav-link" href="#" onClick={(e) => { e.preventDefault(); setSearchOpen(true); }}>
@@ -464,14 +453,7 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: Props) 
                                             </a>
                                         </li>
 
-                                        {/* Dark / light toggle.
-                                            No onClick handler here on purpose: app.init.js's
-                                            handleTheme() attaches delegated click listeners to
-                                            every .dark-layout / .light-layout element on
-                                            DOMContentLoaded, sets data-bs-theme, and now also
-                                            persists the choice to localStorage. Keeping the click
-                                            logic in one place (MaterialM's own script) avoids two
-                                            competing theme systems. */}
+                                        {/* Dark / light toggle */}
                                         <li className="nav-item nav-icon-hover">
                                             <a
                                                 className="nav-link moon dark-layout"
