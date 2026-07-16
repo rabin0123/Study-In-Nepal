@@ -173,9 +173,10 @@ class CourseDetailController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(CourseDetail $courseDetail)
+   public function destroy(CourseDetail $courseDetail)
 {
     $courseDetail->delete();
 
     return redirect()->back()->with('success', 'Course details deleted successfully.');
+}
 }
