@@ -204,7 +204,7 @@ export default function Dashboard() {
         <th className="px-4 py-3 text-end">Submitted</th>
     </tr>
 </thead>
-                                            <tbody>
+                                            <tbody className="table-group-divider">
                                                 {latestApplications.map((app) => (
                                                     <tr key={app.id}>
                                                         <td className="px-4 py-3 font-monospace text-muted small fw-semibold">
