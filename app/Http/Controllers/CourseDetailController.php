@@ -179,68 +179,42 @@ class CourseDetailController extends Controller
 
     return redirect()->back()->with('success', 'Course details deleted successfully.');
 }
-
-private function normalizeForMatching(?string $string): string
+public function resolve(Request $request)
 {
-    if (!$string) {
-        return '';
+    $university = trim($request->query('university'));
+    $college = trim($request->query('college'));
+    $course = trim($request->query('course'));
+
+    // १. सुरुमा डेटाबेसमा हुबहु मिल्ने रेकर्ड छ कि खोज्ने (Fastest Lookup)
+    $courseDetail = CourseDetail::where('university_name', $university)
+        ->where('college_name', $college)
+        ->where('course_name', $course)
+        ->first();
+
+    // २. यदि हुबहु भेटिएन भने सानातिना स्पेस वा सिम्बल फरक हुन सक्ने हुँदा सफा गरेर म्याच गर्ने
+    if (!$courseDetail) {
+        $normalize = function ($string) {
+            if (!$string) return '';
+            return preg_replace('/[^a-z0-9]/', '', strtolower(trim($string)));
+        };
+        
+        $normUni = $normalize($university);
+        $normCol = $normalize($college);
+        $normCourse = $normalize($course);
+
+        $courseDetail = CourseDetail::all()->first(function ($detail) use ($normalize, $normUni, $normCol, $normCourse) {
+            return $normalize($detail->university_name) === $normUni &&
+                   $normalize($detail->college_name) === $normCol &&
+                   $normalize($detail->course_name) === $normCourse;
+        });
     }
-    // Convert to lowercase and strip all non-alphanumeric characters
-    return preg_replace('/[^a-z0-9]/', '', strtolower(trim($string)));
+
+    // ३. रेकर्ड फेला परेमा यसको वास्तविक विवरण पेजमा Redirect गरिदिने
+    if ($courseDetail) {
+        return redirect()->action([CourseDetailController::class, 'show'], ['courseDetail' => $courseDetail->uuid]);
+    }
+
+    // रेकर्ड नभेटिएमा पुरानै पेजमा फिर्ता पठाइदिने
+    return redirect()->back()->with('error', 'यो कोर्सको स्थानीय विवरण फेला परेन।');
 }
-public function getMatchedCourses(): JsonResponse
-{
-    // Cache the matched list for 30 minutes to ensure quick loading speeds
-    $matchedList = Cache::remember('matched_university_courses', 1800, function () {
-        // 1. Fetch from the external API
-        try {
-            $response = Http::get('https://admin.studyinnepal.com/api/university');
-            if (!$response->successful()) {
-                return [];
-            }
-            $externalData = $response->json();
-            $externalCourses = $externalData['data'] ?? $externalData;
-        } catch (\Exception $e) {
-            return [];
-        }
-
-        if (!is_array($externalCourses)) {
-            return [];
-        }
-
-        // 2. Fetch local course details with their local UUIDs
-        $localCourses = CourseDetail::select('uuid', 'university_name', 'college_name', 'course_name')->get();
-
-        // 3. Build an index map based on clean normalized names
-        $lookupMap = [];
-        foreach ($localCourses as $local) {
-            $hashKey = $this->normalizeForMatching($local->university_name) . '|' .
-                       $this->normalizeForMatching($local->college_name) . '|' .
-                       $this->normalizeForMatching($local->course_name);
-            $lookupMap[$hashKey] = $local->uuid;
-        }
-
-        // 4. Map UUIDs back onto the external items
-        $result = [];
-        foreach ($externalCourses as $course) {
-            $courseArray = (array) $course;
-            
-            $hashKey = $this->normalizeForMatching($courseArray['University'] ?? null) . '|' .
-                       $this->normalizeForMatching($courseArray['College'] ?? null) . '|' .
-                       $this->normalizeForMatching($courseArray['Course'] ?? null);
-
-            // Attach the matching local UUID if present, otherwise set to null
-            $courseArray['uuid'] = $lookupMap[$hashKey] ?? null;
-            $result[] = $courseArray;
-        }
-
-        return $result;
-    });
-
-    return response()->json([
-        'success' => true,
-        'data' => $matchedList,
-    ]);
-}
-
 }
