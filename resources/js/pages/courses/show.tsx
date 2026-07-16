@@ -242,7 +242,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
             {/* ================= STICKY SUBNAV ================= */}
             {sections.length > 1 && (
-                <nav className="gcu-subnav sticky-top bg-white border-bottom" aria-label="Course Sections">
+                <nav className="gcu-subnav sticky-top border-bottom" aria-label="Course Sections">
                     <div className="container-xl px-4">
                         <ul className="nav gcu-subnav__list justify-content-center flex-nowrap overflow-auto">
                             {sections.map((s) => (
@@ -287,7 +287,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                         <div className="container-xl px-4">
                             <div className="row gy-4 gy-lg-0" style={{ maxWidth: 1200 }}>
                                 <div className="col-lg-3">
-                                    <h2 className="fw-bold fs-7 text-white">
+                                    <h2 className="fw-bold fs-7 gcu-panel-dark__heading">
                                         What you
                                         <br />
                                         will study
@@ -318,7 +318,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                             return (
                                                 <div key={yearBlock.year} className="d-flex flex-column gcu-modules-gap">
                                                     {yearBlock.title && modules.length === 1 && (
-                                                        <h3 className="fs-5 fw-bold text-white mb-2">{yearBlock.title}</h3>
+                                                        <h3 className="fs-5 fw-bold gcu-panel-dark__heading mb-2">{yearBlock.title}</h3>
                                                     )}
                                                     {yearBlock.modules && yearBlock.modules.length > 0 ? (
                                                         yearBlock.modules
@@ -332,7 +332,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                                                 />
                                                             ))
                                                     ) : (
-                                                        <p className="text-white-50 mb-0">No modules listed for this period.</p>
+                                                        <p className="gcu-panel-dark__muted mb-0">No modules listed for this period.</p>
                                                     )}
                                                 </div>
                                             );
@@ -356,7 +356,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                 </h2>
                             </div>
                             <div className="col-lg-9">
-                                <p className="text-black fs-4 mb-4">
+                                <p className="gcu-body-text fs-4 mb-4">
                                     The tuition fees you pay are determined by your fee status. Estimated tuition
                                     breakdown by year is published below for guidance.
                                 </p>
@@ -447,6 +447,14 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 brand colors, the hero image treatment, sticky-tab underline
                 styling, module accordion look, and the dark careers panel
                 pill tags. No Tailwind, no other custom framework.
+
+                Theme support: the app layout toggles `data-bs-theme="dark"`
+                on <html> via MaterialM's theme.js (bound to the .moon/.sun
+                triggers in the topbar). Every custom color below is defined
+                as a CSS variable on :root, with a `[data-bs-theme="dark"]`
+                override block, so this page repaints correctly whenever the
+                user flips the toggle — instead of staying stuck with
+                hardcoded light-mode whites/blacks like it did before.
             */}
             <style>{`
                 :root {
@@ -455,15 +463,42 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     --gcu-blue-deep: #005490;
                     --gcu-blue-light: #6ec4f7;
                     --gcu-black: #12181f;
+
+                    /* Surface / text tokens — light mode defaults */
+                    --gcu-surface: #ffffff;
+                    --gcu-surface-alt: #f4f6f8;
+                    --gcu-text: #12181f;
+                    --gcu-text-muted: #4c5764;
+                    --gcu-border: #e5e9ef;
+                    --gcu-subnav-bg: #ffffff;
+                    --gcu-pill-bg: #f4f6f8;
+                    --gcu-pill-border: #bae0fb;
+                    --gcu-table-row-stripe: rgba(0, 133, 218, 0.04);
+                }
+
+                [data-bs-theme="dark"] {
+                    --gcu-surface: #1a2028;
+                    --gcu-surface-alt: #222a34;
+                    --gcu-text: #e6ebf1;
+                    --gcu-text-muted: #a6b0bd;
+                    --gcu-border: #2c3644;
+                    --gcu-subnav-bg: #1a2028;
+                    --gcu-pill-bg: #222a34;
+                    --gcu-pill-border: #2f5d80;
+                    --gcu-table-row-stripe: rgba(110, 196, 247, 0.06);
+                    --gcu-black: #0b0e13;
                 }
 
                 .gcu-page {
                     font-family: -apple-system, BlinkMacSystemFont, "Montserrat", "Segoe UI", Arial, sans-serif;
                     overflow-x: clip;
+                    background-color: var(--gcu-surface);
+                    color: var(--gcu-text);
                 }
 
-                .gcu-main { padding-top: 50px; padding-bottom: 100px; }
+                .gcu-main { padding-top: 50px; padding-bottom: 100px; background-color: var(--gcu-surface); }
                 .gcu-panel { padding-top: 50px; padding-bottom: 50px; }
+                .gcu-panel.border-bottom { border-color: var(--gcu-border) !important; }
                 .gcu-panel-dark.gcu-panel,
                 .gcu-panel-careers.gcu-panel { padding-top: 60px; padding-bottom: 60px; }
 
@@ -493,7 +528,12 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 }
 
                 /* ---- Sticky subnav ---- */
-                .gcu-subnav { top: 0; z-index: 1030; }
+                .gcu-subnav {
+                    top: 0;
+                    z-index: 1030;
+                    background-color: var(--gcu-subnav-bg) !important;
+                    border-color: var(--gcu-border) !important;
+                }
                 .gcu-subnav__list { --bs-nav-link-padding-y: 0; }
                 .gcu-subnav__link { padding-top: 20px !important; padding-bottom: 17px !important; }
                 .gcu-subnav__link {
@@ -501,7 +541,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     border: none;
                     border-bottom: 3px solid transparent !important;
                     border-radius: 0 !important;
-                    color: #4c5764 !important;
+                    color: var(--gcu-text-muted) !important;
                 }
                 .gcu-subnav__link:hover {
                     color: var(--gcu-blue) !important;
@@ -518,16 +558,20 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
                 /* ---- Headings / prose ---- */
                 .gcu-heading { color: var(--gcu-blue-dark); }
-                .gcu-html-content { font-size: 1.05rem; line-height: 1.75; }
+                [data-bs-theme="dark"] .gcu-heading { color: var(--gcu-blue-light); }
+                .gcu-body-text { color: var(--gcu-text); }
+                .gcu-html-content { font-size: 1.05rem; line-height: 1.75; color: var(--gcu-text); }
                 .gcu-html-content h2 { font-size: 1.4rem; font-weight: 800; margin: 28px 0 12px; color: var(--gcu-blue-dark); }
+                [data-bs-theme="dark"] .gcu-html-content h2 { color: var(--gcu-blue-light); }
                 .gcu-html-content h2:first-child { margin-top: 0; }
                 .gcu-html-content h3 { font-size: 1.1rem; font-weight: 700; margin: 22px 0 10px; color: var(--gcu-blue); }
-                .gcu-html-content p { margin-bottom: 14px; }
+                .gcu-html-content p { margin-bottom: 14px; color: var(--gcu-text); }
                 .gcu-html-content ul { list-style: none; display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 20px; padding: 0; }
                 .gcu-html-content ul li {
-                    background: #f4f6f8; border: 1px solid #bae0fb; padding: 8px 16px;
+                    background: var(--gcu-pill-bg); border: 1px solid var(--gcu-pill-border); padding: 8px 16px;
                     border-radius: 999px; font-weight: 600; font-size: 0.9rem; color: var(--gcu-blue-dark);
                 }
+                [data-bs-theme="dark"] .gcu-html-content ul li { color: var(--gcu-blue-light); }
                 .gcu-html-content--dark { color: rgba(255,255,255,0.9); }
                 .gcu-html-content--dark h2 { color: #fff; }
                 .gcu-html-content--dark h3 { color: var(--gcu-blue-light); }
@@ -536,8 +580,14 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.14); color: #fff;
                 }
 
-                /* ---- Study panel (dark) ---- */
+                /* ---- Study panel (dark) ----
+                   Always dark regardless of app theme (deliberate brand
+                   panel), but the app-wide dark toggle deepens it slightly
+                   via the --gcu-black override above so it doesn't look
+                   flat/mismatched against a dark shell. */
                 .gcu-panel-dark { background-color: var(--gcu-black); }
+                .gcu-panel-dark__heading { color: #fff; }
+                .gcu-panel-dark__muted { color: rgba(255,255,255,0.6); }
                 .gcu-tab-headers { border-bottom: 2px solid rgba(255,255,255,0.2); }
                 .gcu-tab-header-btn {
                     background: none; border: none; border-bottom: 4px solid transparent !important;
@@ -549,39 +599,63 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
                 /* Module accordion rows */
                 .gcu-modules-gap { gap: 12px; }
-                .gcu-modules-list .card { border: none; border-radius: 6px; overflow: hidden; margin-bottom: 0; }
+                .gcu-modules-list .card {
+                    border: none;
+                    border-radius: 6px;
+                    overflow: hidden;
+                    margin-bottom: 0;
+                    background-color: var(--gcu-surface);
+                }
                 .gcu-mod-btn {
                     color: var(--gcu-blue);
                     font-weight: 700;
+                    background-color: var(--gcu-surface) !important;
                 }
                 .gcu-mod-btn:not(.collapsed) { color: var(--gcu-blue-dark); }
+                [data-bs-theme="dark"] .gcu-mod-btn:not(.collapsed) { color: var(--gcu-blue-light); }
                 .gcu-mod-arrow { transition: transform 0.2s ease; }
                 .gcu-mod-btn[aria-expanded="true"] .gcu-mod-arrow { transform: rotate(90deg); }
+                .gcu-mod-info {
+                    background-color: var(--gcu-surface);
+                    border-top: 1px dashed var(--gcu-border) !important;
+                }
+                .gcu-mod-info p { color: var(--gcu-text-muted); }
 
                 /* ---- Fees table header ----
                    Bootstrap's .table/.table-striped set background via the
                    --bs-table-bg CSS variable on td/th, which otherwise wins
                    over a plain background-color rule here. Set both the
-                   variable and the property directly on thead th, and force
-                   white text so header labels stay visible against the blue
-                   background — this fixes the header row rendering blank
-                   (white text was landing on a white-inherited background). */
+                   variable and the property directly, and drive text/stripe
+                   colors from our theme tokens so the table repaints in
+                   dark mode instead of leaving white cells with light text. */
+                .gcu-fees-table {
+                    --bs-table-bg: var(--gcu-surface);
+                    --bs-table-striped-bg: var(--gcu-table-row-stripe);
+                    --bs-table-color: var(--gcu-text);
+                    --bs-table-striped-color: var(--gcu-text);
+                    --bs-table-hover-bg: var(--gcu-surface-alt);
+                    --bs-table-hover-color: var(--gcu-text);
+                    --bs-border-color: var(--gcu-border);
+                    font-size: 0.95rem;
+                }
                 .gcu-fees-table thead th {
                     --bs-table-bg: var(--gcu-blue);
                     background-color: var(--gcu-blue) !important;
                     color: #fff !important;
                     border-color: var(--gcu-blue);
-                }
-                .gcu-fees-table { font-size: 0.95rem; }
-                .gcu-fees-table thead th {
                     font-size: 0.75rem;
                     letter-spacing: 0.05em;
                 }
                 .gcu-fees-table tbody td {
                     font-size: 0.95rem;
+                    color: var(--gcu-text);
                 }
 
-                /* ---- Careers panel ---- */
+                /* ---- Careers panel ----
+                   Always a dark, image-backed panel by design in both app
+                   themes; overlay opacity nudges slightly darker in dark
+                   mode so the background photo doesn't look washed out
+                   next to a dark shell. */
                 .gcu-panel-careers {
                     background-color: #1e293b;
                     background-size: cover;
@@ -589,6 +663,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     background-repeat: no-repeat;
                 }
                 .gcu-panel-careers__overlay { background-color: rgba(15,23,42,0.88); }
+                [data-bs-theme="dark"] .gcu-panel-careers__overlay { background-color: rgba(8,12,20,0.92); }
                 .gcu-career-pill {
                     background: rgba(255,255,255,0.08);
                     border: 1px solid rgba(255,255,255,0.14);
@@ -623,7 +698,7 @@ function ModuleAccordion({ id, name, info }: { id: string; name: string; info?: 
         <div className="card border-0 shadow-sm">
             <button
                 type="button"
-                className={`gcu-mod-btn btn bg-white w-100 d-flex align-items-center justify-content-between text-start px-4 py-3 ${
+                className={`gcu-mod-btn btn w-100 d-flex align-items-center justify-content-between text-start px-4 py-3 ${
                     !hasInfo ? 'pe-none' : ''
                 }`}
                 onClick={() => hasInfo && setOpen((o) => !o)}
@@ -641,8 +716,8 @@ function ModuleAccordion({ id, name, info }: { id: string; name: string; info?: 
                 )}
             </button>
             {hasInfo && open && (
-                <div className="bg-white px-4 pb-3 pt-2 border-top border-dashed">
-                    <p className="text-secondary small mb-0" id={id}>
+                <div className="gcu-mod-info px-4 pb-3 pt-2 border-top border-dashed">
+                    <p className="small mb-0" id={id}>
                         {info}
                     </p>
                 </div>
