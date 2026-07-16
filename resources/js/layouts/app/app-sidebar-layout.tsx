@@ -22,6 +22,7 @@ const navGroups: NavGroup[] = [
         icon: 'solar:home-angle-line-duotone',
         items: [
             { title: 'University', href: '/university', icon: 'solar:card-search-line-duotone' },
+            { title: 'Course Search', href: '/explorecourses', icon: 'solar:mask-happly-line-duotone' },
             { title: 'Courses', href: '/explorecourses', icon: 'solar:mask-happly-line-duotone' },
         ],
     },
