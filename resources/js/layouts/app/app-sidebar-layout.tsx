@@ -515,7 +515,7 @@ export default function AppSidebarLayout({ children }: Props) {
                                 </span>
                             </Link>
                         </div>
-<span className="sidebar-divider lg"></span>
+
                         <nav className="sidebar-nav scroll-sidebar sidebar-nav-scroll flex-grow-1">
                             
                             <ul className="sidebar-menu" id="sidebarnav">
