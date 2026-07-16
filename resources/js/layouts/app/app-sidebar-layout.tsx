@@ -485,7 +485,7 @@ export default function AppSidebarLayout({ children }: Props) {
                                 aria-label="Toggle navigation"
                             >
                                 <span className="p-2">
-                                    <i className="ti ti-dots fs-7"></i>
+                                    <iconify-icon icon="solar:menu-dots-bold-duotone" className="fs-6"></iconify-icon>
                                 </span>
                             </a>
 
