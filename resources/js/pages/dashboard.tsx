@@ -35,7 +35,7 @@ export default function Dashboard() {
         async function loadDashboardData() {
             try {
                 // Resolved as 'DashboardResponse' using type assertion
-                const response = (await http.get('/api/dashboard-stats')) as DashboardResponse;
+                const response = (await http.get('/api/dashboard')) as DashboardResponse;
                 
                 setStats(response.stats);
                 setLatestApplications(response.latestApplications);
