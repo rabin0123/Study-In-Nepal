@@ -112,7 +112,10 @@ export default function CommissionStructureList() {
       is the only element allowed to scroll, and it does so via its own
       max-height, not via constraining this wrapper's height.
     */
-    <div className="d-flex flex-column">
+    <div
+      className="d-flex flex-column"
+      style={{ height: 'calc(100vh - var(--app-topbar-height, 90px))', minHeight: 0, overflow: 'hidden' }}
+    >
       {/* ── Page header ── */}
       <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-6 flex-shrink-0">
         <div className="d-flex align-items-center gap-3">
@@ -182,8 +185,8 @@ export default function CommissionStructureList() {
       </div>
 
       {/* ── Table card ── */}
-      <div className="card flex-shrink-0">
-        <div className="card-body p-0">
+      <div className="card flex-grow-1 d-flex flex-column" style={{ minHeight: 0, overflow: 'hidden' }}>
+        <div className="card-body p-0 d-flex flex-column flex-grow-1" style={{ minHeight: 0, overflow: 'hidden' }}>
           {entries.length === 0 ? (
             <div className="text-center py-16 text-body-secondary fw-semibold">
               No commission entries available.
@@ -194,15 +197,16 @@ export default function CommissionStructureList() {
             </div>
           ) : (
             /*
-              This is the ONLY scrollable region. It has its own bounded
-              max-height (independent of viewport math on the outer
-              wrapper) and scrolls internally once content exceeds it.
-              The rest of the page/component scrolls normally if needed,
-              but this box will show its own scrollbar first.
+              This is the ONLY scrollable region on the page. It fills
+              whatever space is left after the header + search card
+              (via flex-grow-1 on its ancestors) and never exceeds it,
+              because every ancestor above has minHeight: 0 set — that's
+              what lets this box shrink and scroll internally instead of
+              stretching the page taller. The page itself never scrolls.
             */
             <div
-              className="table-responsive sidebar-nav-scroll"
-              style={{ overflowY: 'auto', overflowX: 'auto', width: '100%', maxHeight: 700 }}
+              className="table-responsive sidebar-nav-scroll flex-grow-1"
+              style={{ overflowY: 'auto', overflowX: 'auto', width: '100%', minHeight: 0 }}
             >
               <table
                 className="table mb-0 align-middle"
