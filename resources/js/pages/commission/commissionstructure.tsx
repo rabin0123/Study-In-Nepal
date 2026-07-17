@@ -107,14 +107,15 @@ export default function CommissionStructureList() {
 
   return (
     /*
-      Outer layout container: NOT fixed-height and NOT the scroll owner.
-      It just participates in normal document flow. The table area below
-      is the only element allowed to scroll, and it does so via its own
-      max-height, not via constraining this wrapper's height.
+      Outer layout container fills 100% of its parent, which is now
+      .container-fluid inside .body-wrapper (constrained to viewport
+      height by app-sidebar-layout.tsx's global CSS). minHeight: 0 lets
+      this shrink correctly inside that flex parent instead of forcing
+      it to grow, so the table below is the only thing that scrolls.
     */
     <div
-      className="d-flex flex-column"
-      style={{ height: 'calc(100vh - var(--app-topbar-height, 90px))', minHeight: 0, overflow: 'hidden' }}
+      className="d-flex flex-column h-100"
+      style={{ minHeight: 0, overflow: 'hidden' }}
     >
       {/* ── Page header ── */}
       <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-6 flex-shrink-0">
