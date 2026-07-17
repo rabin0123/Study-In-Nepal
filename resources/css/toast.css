@@ -1,0 +1,106 @@
+/* Sonner toast — single neutral white/dark card for ALL types.
+   Only the icon (colored via text-success/text-danger/etc. Bootstrap
+   classes passed directly in sonner.tsx's icons prop) signals the type. */
+
+.bootstrap-toast {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 0.75rem;
+    border-radius: var(--bs-border-radius-lg, 0.75rem);
+    box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.04),
+        0 8px 24px rgba(0, 0, 0, 0.08);
+    padding: 1rem 2.25rem 1rem 1rem;
+    font-family: inherit;
+    border-width: 1px;
+    border-style: solid;
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+
+    /* Single neutral card — same for every toast type, light mode */
+    background: linear-gradient(180deg, #ffffff 0%, #fbfbfc 100%);
+    color: #1f2328;
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+:where(.dark, [data-theme="dark"]) .bootstrap-toast,
+html.dark .bootstrap-toast {
+    background: linear-gradient(180deg, #2a2e37 0%, #22262e 100%);
+    color: #e9ecef;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.bootstrap-toast > [data-content],
+.bootstrap-toast div:has(> [data-title]) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.bootstrap-toast-title,
+.bootstrap-toast [data-title] {
+    font-weight: 600;
+    font-size: 0.9rem;
+    line-height: 1.35;
+    margin: 0;
+    color: inherit;
+}
+
+.bootstrap-toast-description,
+.bootstrap-toast [data-description] {
+    font-size: 0.825rem;
+    line-height: 1.45;
+    opacity: 0.65;
+    margin: 0;
+    color: inherit;
+}
+
+.bootstrap-toast-icon,
+.bootstrap-toast [data-icon] {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    margin-top: 0.05rem;
+}
+
+.bootstrap-toast-icon iconify-icon,
+.bootstrap-toast [data-icon] iconify-icon {
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
+/* Close button — top-right corner */
+.bootstrap-toast button[data-close-button] {
+    position: absolute !important;
+    left: auto !important;
+    right: 0.5rem !important;
+    top: 0.5rem !important;
+    transform: none !important;
+    background: transparent !important;
+    border: none !important;
+    width: 20px;
+    height: 20px;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: 50%;
+    opacity: 0.45;
+    cursor: pointer;
+    color: inherit;
+}
+
+.bootstrap-toast button[data-close-button]:hover {
+    opacity: 1;
+    background: rgba(127, 127, 127, 0.12) !important;
+}
+
+.bootstrap-toast button[data-close-button] svg {
+    width: 14px;
+    height: 14px;
+}

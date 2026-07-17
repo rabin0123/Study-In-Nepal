@@ -3,10 +3,6 @@ import { Form, Head } from '@inertiajs/react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
 
@@ -36,7 +32,7 @@ export default function Register({ passwordRules }: Props) {
     const countryName = isoCountry ? en[isoCountry] : '';
 
     return (
-        <div className="fixed inset-0 z-[999] flex bg-white font-['Rajdhani']">
+        <div className="position-fixed top-0 start-0 w-100 h-100 bg-white row g-0" style={{ zIndex: 999, fontFamily: "'Rajdhani', sans-serif" }}>
             <Head title="Register - Partner Portal" />
 
             <style>
@@ -69,6 +65,17 @@ export default function Register({ passwordRules }: Props) {
                         text-transform: uppercase;
                         color: #1a1a1a;
                         margin-bottom: 0.35rem;
+                    }
+
+                    /* Link Hover State Transition */
+                    .survey-link {
+                        color: ${PRIMARY} !important;
+                        font-weight: 700 !important;
+                        text-decoration: none;
+                        transition: color 0.2s ease-in-out;
+                    }
+                    .survey-link:hover {
+                        color: ${AMBER} !important;
                     }
 
                     /* react-phone-number-input, restyled to match .survey-input */
@@ -104,14 +111,19 @@ export default function Register({ passwordRules }: Props) {
             </style>
 
             {/* ── Left Panel ── */}
-            <div className="hidden lg:flex w-5/12 flex-col justify-center relative overflow-hidden" style={{
+            <div className="d-none d-lg-flex col-lg-5 flex-column justify-content-center position-relative overflow-hidden" style={{
                 background: `linear-gradient(135deg, ${DARK} 0%, #0f172a 60%, #0c2d48 100%)`,
                 padding: "4rem 3rem",
             }}>
                 <div style={{ position: "absolute", top: -80, right: -80, width: 320, height: 320, borderRadius: "50%", background: `${PRIMARY}15`, filter: "blur(80px)", pointerEvents: "none" }} />
                 <div style={{ position: "absolute", bottom: -60, left: -60, width: 240, height: 240, borderRadius: "50%", background: `${AMBER}10`, filter: "blur(60px)", pointerEvents: "none" }} />
-
-                <div className="relative z-10 w-full max-w-md mx-auto text-center">
+    
+                <div className="position-relative z-3 w-100 mx-auto text-center" style={{ maxWidth: "448px" }}>
+                    <div className="d-flex align-items-center justify-content-center gap-3 mb-4">
+                        <div className="bg-white rounded-circle d-flex align-items-center justify-content-center overflow-hidden flex-shrink-0" style={{ width: 56, height: 56 }}>
+                            <img src="https://admin.studyinnepal.com/storage/settings/JhagqBcT0B9QQkFcQkSplV50L2nwBTdMc7DJB0DM.png" alt="Study in Nepal" className="h-100 w-100 object-fit-cover" style={{ transform: "scale(1.79)" }} />
+                        </div>
+                    </div>
                     <span style={{ display: "inline-block", fontFamily: "Rajdhani, sans-serif", fontSize: "0.75rem", fontWeight: "700", letterSpacing: "0.3em", textTransform: "uppercase", color: AMBER, marginBottom: "1.25rem" }}>
                         Partner Portal
                     </span>
@@ -128,36 +140,34 @@ export default function Register({ passwordRules }: Props) {
             </div>
 
             {/* ── Right Panel ── */}
-            <div className="w-full lg:w-7/12 flex items-center justify-center p-6 sm:p-10 overflow-y-auto" style={{ background: SURFACE }}>
-                <div className="w-full max-w-lg my-auto">
+            <div className="col-12 col-lg-7 d-flex align-items-center justify-content-center p-4 p-sm-5 overflow-y-auto h-100" style={{ background: SURFACE }}>
+                <div className="w-100 my-auto" style={{ maxWidth: "512px" }}>
 
-                    <div className="lg:hidden text-center mb-6 mt-4">
+                    <div className="d-lg-none text-center mb-4 mt-3">
                         <span style={{ display: "inline-block", fontFamily: "Rajdhani, sans-serif", fontSize: "0.75rem", fontWeight: "700", letterSpacing: "0.3em", textTransform: "uppercase", color: PRIMARY, marginBottom: "0.5rem" }}>
                             Partner Portal
                         </span>
                         <h2 style={{ fontFamily: "'Castoro Titling', serif", fontSize: "2rem", color: DARK, textTransform: "uppercase" }}>Create Account</h2>
                     </div>
 
-                    <div className="bg-white p-8 rounded-[1.25rem] shadow-[0_8px_32px_rgba(14,165,233,0.06)] border border-[#0ea5e925]">
-                        <Form {...store.form()} resetOnSuccess={['password', 'password_confirmation']} disableWhileProcessing className="flex flex-col gap-5">
+                    <div className="bg-white p-4 p-md-5" style={{ borderRadius: "1.25rem", boxShadow: "0 8px 32px rgba(14,165,233,0.06)", border: "1px solid rgba(14, 165, 233, 0.15)" }}>
+                        <Form {...store.form()} resetOnSuccess={['password', 'password_confirmation']} disableWhileProcessing className="d-flex flex-column gap-4">
                             {({ processing, errors }) => (
                                 <>
-                                    <div className="grid gap-4">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <Label htmlFor="agency_name" className="survey-label">Agency Name <span className="text-red-500">*</span></Label>
-                                                <Input id="agency_name" type="text" required autoFocus tabIndex={1} name="agency_name" placeholder="Agency Ltd." className="survey-input" />
-                                                <InputError message={errors.agency_name} />
-                                            </div>
-                                            <div>
-                                                <Label htmlFor="name" className="survey-label">Person Name <span className="text-red-500">*</span></Label>
-                                                <Input id="name" type="text" required tabIndex={2} name="name" autoComplete="name" placeholder="Full Name" className="survey-input" />
-                                                <InputError message={errors.name} />
-                                            </div>
+                                    <div className="row g-3">
+                                        <div className="col-12 col-md-6">
+                                            <label htmlFor="agency_name" className="survey-label">Agency Name <span className="text-danger">*</span></label>
+                                            <input id="agency_name" type="text" required autoFocus tabIndex={1} name="agency_name" placeholder="Agency Ltd." className="form-control survey-input" />
+                                            <InputError message={errors.agency_name} />
+                                        </div>
+                                        <div className="col-12 col-md-6">
+                                            <label htmlFor="name" className="survey-label">Person Name <span className="text-danger">*</span></label>
+                                            <input id="name" type="text" required tabIndex={2} name="name" autoComplete="name" placeholder="Full Name" className="form-control survey-input" />
+                                            <InputError message={errors.name} />
                                         </div>
 
-                                        <div>
-                                            <Label htmlFor="contact_number" className="survey-label">Contact Number <span className="text-red-500">*</span></Label>
+                                        <div className="col-12">
+                                            <label htmlFor="contact_number" className="survey-label">Contact Number <span className="text-danger">*</span></label>
                                             <div className="survey-phone">
                                                 <PhoneInput
                                                     international
@@ -175,43 +185,45 @@ export default function Register({ passwordRules }: Props) {
                                             <InputError message={errors.country} />
                                         </div>
 
-                                        <div>
-                                            <Label htmlFor="email" className="survey-label">Email Address <span className="text-red-500">*</span></Label>
-                                            <Input id="email" type="email" required tabIndex={4} autoComplete="email" name="email" placeholder="email@example.com" className="survey-input" />
+                                        <div className="col-12">
+                                            <label htmlFor="email" className="survey-label">Email Address <span className="text-danger">*</span></label>
+                                            <input id="email" type="email" required tabIndex={4} autoComplete="email" name="email" placeholder="email@example.com" className="form-control survey-input" />
                                             <InputError message={errors.email} />
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <Label htmlFor="password" className="survey-label">Password <span className="text-red-500">*</span></Label>
-                                                <PasswordInput id="password" required tabIndex={5} autoComplete="new-password" name="password" placeholder="Password" passwordrules={passwordRules} className="survey-input" />
-                                                <InputError message={errors.password} />
-                                            </div>
-                                            <div>
-                                                <Label htmlFor="password_confirmation" className="survey-label">Confirm Password <span className="text-red-500">*</span></Label>
-                                                <PasswordInput id="password_confirmation" required tabIndex={6} autoComplete="new-password" name="password_confirmation" placeholder="Confirm" passwordrules={passwordRules} className="survey-input" />
-                                                <InputError message={errors.password_confirmation} />
-                                            </div>
+                                        <div className="col-12 col-md-6">
+                                            <label htmlFor="password" className="survey-label">Password <span className="text-danger">*</span></label>
+                                            <PasswordInput id="password" required tabIndex={5} autoComplete="new-password" name="password" placeholder="Password" passwordrules={passwordRules} className="form-control survey-input" />
+                                            <InputError message={errors.password} />
+                                        </div>
+                                        <div className="col-12 col-md-6">
+                                            <label htmlFor="password_confirmation" className="survey-label">Confirm Password <span className="text-danger">*</span></label>
+                                            <PasswordInput id="password_confirmation" required tabIndex={6} autoComplete="new-password" name="password_confirmation" placeholder="Confirm" passwordrules={passwordRules} className="form-control survey-input" />
+                                            <InputError message={errors.password_confirmation} />
                                         </div>
 
-                                        <div className="flex justify-center mt-4">
-                                            <Button type="submit" tabIndex={7} disabled={processing} style={{
+                                        <div className="col-12 d-flex justify-content-center mt-4">
+                                            <button type="submit" tabIndex={7} disabled={processing} className="btn w-100" style={{
                                                 display: "inline-flex", alignItems: "center", gap: "1rem",
                                                 background: processing ? "#94a3b8" : PRIMARY, color: "white", border: "none",
                                                 cursor: processing ? "not-allowed" : "pointer", borderRadius: "999px",
                                                 paddingLeft: "2rem", paddingRight: "0.35rem", height: "3.5rem",
                                                 fontFamily: "Rajdhani, sans-serif", fontSize: "0.9rem",
                                                 fontWeight: "700", letterSpacing: "0.18em", textTransform: "uppercase",
-                                                width: "100%", justifyContent: "space-between",
+                                                justifyContent: "space-between",
                                                 boxShadow: processing ? "none" : `0 8px 24px ${PRIMARY}40`, transition: "all 0.3s",
                                             }}>
                                                 <span>{processing ? "Processing..." : "Create Account"}</span>
-                                                <div style={{ width: 44, height: 44, borderRadius: "50%", border: "1.5px solid rgba(255,255,255,0.4)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                    {processing ? <Spinner className="text-white" /> : (
-                                                        <svg width="20" height="20" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" /></svg>
+                                                <div className="d-flex align-items-center justify-content-center" style={{ width: 44, height: 44, borderRadius: "50%", border: "1.5px solid rgba(255,255,255,0.4)" }}>
+                                                    {processing ? (
+                                                        <div className="spinner-border spinner-border-sm text-light" role="status">
+                                                            <span className="visually-hidden">Loading...</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="iconify" data-icon="lucide:arrow-right" style={{ fontSize: "1.25rem", color: "white" }}></span>
                                                     )}
                                                 </div>
-                                            </Button>
+                                            </button>
                                         </div>
                                     </div>
                                 </>
@@ -219,9 +231,9 @@ export default function Register({ passwordRules }: Props) {
                         </Form>
                     </div>
 
-                    <div className="text-center text-[0.95rem] font-semibold text-gray-500 mt-6 pb-6">
+                    <div className="text-center mt-4 pb-4 text-muted" style={{ fontSize: "0.95rem", fontWeight: 600 }}>
                         Already registered an agency?{' '}
-                        <TextLink href={login()} tabIndex={8} style={{ color: PRIMARY, fontWeight: "700" }} className="hover:text-amber-500 transition-colors">
+                        <TextLink href={login()} tabIndex={8} className="survey-link">
                             Log in here
                         </TextLink>
                     </div>

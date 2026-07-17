@@ -1,5 +1,20 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 
+// Declarations to ensure TypeScript compiles custom elements from Iconify CDN seamlessly
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'iconify-icon': React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & {
+          icon?: string;
+          class?: string;
+        },
+        HTMLElement
+      >;
+    }
+  }
+}
+
 const API_BASE_URL = '/api'; 
 
 interface CommissionEntryType {
@@ -55,7 +70,7 @@ function SingleCombobox({ placeholder, value, onChange, options }: { placeholder
               <iconify-icon icon="solar:close-circle-line-duotone" className="fs-5"></iconify-icon>
             </button>
           )}
-          <i className="ti ti-chevron-down fs-4"></i>
+          <iconify-icon icon="solar:alt-arrow-down-linear" className="fs-4"></iconify-icon>
         </div>
       </div>
       {isOpen && filteredOptions.length > 0 && (
@@ -123,7 +138,7 @@ function MultiSelectCombobox({ placeholder, selected, onChange, options }: { pla
               <iconify-icon icon="solar:close-circle-line-duotone" className="fs-5"></iconify-icon>
             </button>
           )}
-          <i className="ti ti-chevron-down fs-4"></i>
+          <iconify-icon icon="solar:alt-arrow-down-linear" className="fs-4"></iconify-icon>
         </div>
       </div>
 
@@ -186,6 +201,9 @@ export default function CommissionEntry() {
 
   const [editingCommissionId, setEditingCommissionId] = useState<number | null>(null);
   const [editCommissionValue, setEditCommissionValue] = useState<string>("");
+  
+  // Track image load failures per row ID
+  const [logoErrors, setLogoErrors] = useState<Record<number, boolean>>({});
 
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean; title: string; message: string; confirmText: string; confirmColor: string; onConfirm: () => void;
@@ -377,8 +395,30 @@ export default function CommissionEntry() {
     } catch (err) { showToast("Import failed. Please check file format.", "error"); } finally { setImporting(false); }
   };
 
+  // Full-page loading gate keeps layout clean until API details load
+  if (loading) {
+    return (
+      <div className="d-flex flex-column align-items-center justify-content-center text-center" style={{ minHeight: '60vh' }}>
+        <span className="spinner-border text-primary mb-4" style={{ width: '2.5rem', height: '2.5rem' }} role="status" aria-hidden="true"></span>
+        <h5 className="fw-semibold mb-1">Loading Commission Structures</h5>
+        <p className="text-body-secondary mb-0">Please wait while we fetch the latest records…</p>
+      </div>
+    );
+  }
+
   return (
-    <>
+    /*
+      Outer layout container uses flex sizing (not h-100 / height: 100%)
+      to fill its parent, matching the Commission Structure list page.
+      flex: 1 1 auto lets this grow to consume whatever space its flex
+      parent (.container-fluid in app-sidebar-layout.tsx) actually has,
+      and minHeight: 0 lets it shrink correctly so the table below is
+      the only thing that scrolls — the page itself never scrolls.
+    */
+    <div
+      className="d-flex flex-column"
+      style={{ flex: '1 1 auto', minHeight: 0, overflow: 'hidden' }}
+    >
       {/* ── Toast Notifications (Bootstrap 5 Toast) ── */}
       {toast && (
         <div className="position-fixed bottom-0 end-0 p-3" style={{ zIndex: 1050 }}>
@@ -395,7 +435,7 @@ export default function CommissionEntry() {
       )}
 
       {/* ── Page Header ── */}
-      <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-6">
+      <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-4 flex-shrink-0">
         <div className="d-flex align-items-center gap-3">
           <span className="d-none d-sm-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-3 round-48" style={{ width: 48, height: 48 }}>
             <iconify-icon icon="solar:tag-price-line-duotone" className="fs-6"></iconify-icon>
@@ -443,7 +483,7 @@ export default function CommissionEntry() {
 
       {/* ── File Import Ready Action Toolbar ── */}
       {file && (
-        <div className="alert bg-primary-subtle border-0 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-6" role="alert">
+        <div className="alert bg-primary-subtle border-0 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-4 flex-shrink-0" role="alert">
           <div className="d-flex align-items-center gap-3">
             <span className="d-flex align-items-center justify-content-center bg-primary text-white rounded-circle" style={{ width: 32, height: 32 }}>
               <iconify-icon icon="solar:file-text-line-duotone" className="fs-4"></iconify-icon>
@@ -485,7 +525,7 @@ export default function CommissionEntry() {
       )}
 
       {/* ── Add New Entry Form Card ── */}
-      <form onSubmit={handleSubmit} className="card p-4 shadow-sm mb-6 position-relative" style={{ zIndex: 10 }}>
+      <form onSubmit={handleSubmit} className="card p-4 shadow-sm mb-4 position-relative flex-shrink-0" style={{ zIndex: 10 }}>
         {fetchingExternal && (
           <div className="position-absolute top-0 end-0 mt-3 me-4 text-xs font-bold text-body-secondary d-flex align-items-center gap-1.5 uppercase tracking-wider">
             <span className="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></span>
@@ -551,7 +591,7 @@ export default function CommissionEntry() {
       </form>
 
       {/* ── Search Filter Card ── */}
-      <div className="card mb-6">
+      <div className="card mb-4 flex-shrink-0">
         <div className="card-body d-flex flex-column flex-xl-row align-items-xl-center justify-content-xl-between gap-4">
           <div className="d-flex flex-wrap align-items-center gap-3 flex-grow-1">
             <div className="position-relative flex-grow-1" style={{ minWidth: 260, maxWidth: 400 }}>
@@ -588,14 +628,9 @@ export default function CommissionEntry() {
       </div>
 
       {/* ── Table Container Card ── */}
-      <div className="card">
-        <div className="card-body p-0">
-          {loading ? (
-            <div className="text-center py-16 text-body-secondary fw-semibold">
-              <span className="spinner-border spinner-border-sm me-2 text-primary" role="status" aria-hidden="true"></span>
-              Loading records...
-            </div>
-          ) : entries.length === 0 ? (
+      <div className="card flex-grow-1 d-flex flex-column" style={{ minHeight: 0, overflow: 'hidden' }}>
+        <div className="card-body p-0 d-flex flex-column flex-grow-1" style={{ minHeight: 0, overflow: 'hidden' }}>
+          {entries.length === 0 ? (
             <div className="text-center py-16 text-body-secondary fw-semibold">
               No commission entries available.
             </div>
@@ -604,9 +639,18 @@ export default function CommissionEntry() {
               No matching entries for "{searchQuery}"
             </div>
           ) : (
+            /*
+              This is the ONLY scrollable region on the page. It fills
+              whatever space is left after the header, form, and search
+              card (via flex-grow-1 on its ancestors) and never exceeds
+              it, because every ancestor above has minHeight: 0 set —
+              that's what lets this box shrink and scroll internally
+              instead of stretching the page taller. The page itself
+              never scrolls.
+            */
             <div
-              className="table-responsive sidebar-nav-scroll"
-              style={{ maxHeight: 520, overflowY: 'auto', width: '100%' }}
+              className="table-responsive sidebar-nav-scroll flex-grow-1"
+              style={{ overflowY: 'auto', overflowX: 'auto', width: '100%', minHeight: 0 }}
             >
               <table
                 className="table mb-0 align-middle"
@@ -629,90 +673,93 @@ export default function CommissionEntry() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredEntries.map((entry) => (
-                    <tr key={entry.id}>
-                      <td className="ps-6">
-                        <div className="d-flex align-items-center">
-                          {entry.college_logo_url ? (
-                            <img
-                              src={entry.college_logo_url}
-                              alt="logo"
-                              className="rounded flex-shrink-0 border p-1"
-                              width={32}
-                              height={32}
-                              style={{ objectFit: 'contain', background: '#fff' }}
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                                const fallback = document.getElementById(`fallback-col-${entry.id}`);
-                                if (fallback) fallback.classList.remove('d-none');
+                  {filteredEntries.map((entry) => {
+                    const hasImageError = logoErrors[entry.id];
+                    const shouldShowLogo = entry.college_logo_url && !hasImageError;
+
+                    return (
+                      <tr key={entry.id}>
+                        <td className="ps-6">
+                          <div className="d-flex align-items-center">
+                            {shouldShowLogo ? (
+                              <img
+                                src={entry.college_logo_url || undefined}
+                                alt="logo"
+                                className="rounded flex-shrink-0 border p-1"
+                                width={32}
+                                height={32}
+                                style={{ objectFit: 'contain', background: '#fff' }}
+                                onError={() => {
+                                  setLogoErrors(prev => ({ ...prev, [entry.id]: true }));
+                                }}
+                              />
+                            ) : (
+                              <span 
+                                className="d-flex align-items-center justify-content-center flex-shrink-0 bg-light text-body-secondary rounded" 
+                                style={{ width: 32, height: 32 }}
+                              >
+                                <iconify-icon icon="solar:buildings-line-duotone" className="fs-5"></iconify-icon>
+                              </span>
+                            )}
+                            <span className="ms-3 fw-semibold text-dark text-truncate" title={entry.college}>
+                              {entry.college}
+                            </span>
+                          </div>
+                        </td>
+
+                        <td>
+                          <div className="d-flex align-items-center gap-2 fw-normal">
+                            <iconify-icon icon="solar:square-academic-cap-line-duotone" className="text-body-secondary fs-5 flex-shrink-0"></iconify-icon>
+                            <span className="text-dark fw-semibold text-truncate" title={entry.university}>{entry.university}</span>
+                          </div>
+                        </td>
+
+                        <td>
+                          <div className="d-flex align-items-center gap-2 fw-normal">
+                            <iconify-icon icon="solar:map-point-line-duotone" className="text-body-secondary fs-5 flex-shrink-0"></iconify-icon>
+                            <span className="text-truncate" title={entry.location}>{entry.location}</span>
+                          </div>
+                        </td>
+
+                        <td>
+                          {editingCommissionId === entry.id ? (
+                            <input 
+                              autoFocus 
+                              type="number" 
+                              step="0.01" 
+                              value={editCommissionValue}
+                              onChange={(e) => setEditCommissionValue(e.target.value)}
+                              onBlur={() => handleCommissionUpdate(entry.id, entry.commission_percentage)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') { e.preventDefault(); handleCommissionUpdate(entry.id, entry.commission_percentage); }
+                                if (e.key === 'Escape') setEditingCommissionId(null);
                               }}
+                              className="form-control form-control-sm"
+                              style={{ maxWidth: '120px' }}
                             />
-                          ) : null}
-                          <span 
-                            id={`fallback-col-${entry.id}`} 
-                            className={`align-items-center justify-content-center flex-shrink-0 bg-light text-body-secondary rounded ${entry.college_logo_url ? 'd-none' : 'd-flex'}`} 
-                            style={{ width: 32, height: 32 }}
+                          ) : (
+                            <span 
+                              onDoubleClick={() => { setEditingCommissionId(entry.id); setEditCommissionValue(Number(entry.commission_percentage).toFixed(2)); }}
+                              className="badge bg-success-subtle text-success fw-semibold fs-2 gap-1 d-inline-flex align-items-center cursor-pointer"
+                            >
+                              <iconify-icon icon="solar:tag-price-line-duotone" className="fs-3"></iconify-icon>
+                              {Number(entry.commission_percentage).toFixed(2)}%
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="text-end pe-6">
+                          <button 
+                            type="button"
+                            onClick={() => handleDelete(entry.id)} 
+                            className="btn btn-light-danger btn-sm p-1 rounded d-inline-flex align-items-center text-danger"
                           >
-                            <iconify-icon icon="solar:buildings-line-duotone" className="fs-5"></iconify-icon>
-                          </span>
-                          <span className="ms-3 fw-semibold text-dark text-truncate" title={entry.college}>
-                            {entry.college}
-                          </span>
-                        </div>
-                      </td>
-
-                      <td>
-                        <div className="d-flex align-items-center gap-2 fw-normal">
-                          <iconify-icon icon="solar:square-academic-cap-line-duotone" className="text-body-secondary fs-5 flex-shrink-0"></iconify-icon>
-                          <span className="text-dark fw-semibold text-truncate" title={entry.university}>{entry.university}</span>
-                        </div>
-                      </td>
-
-                      <td>
-                        <div className="d-flex align-items-center gap-2 fw-normal">
-                          <iconify-icon icon="solar:map-point-line-duotone" className="text-body-secondary fs-5 flex-shrink-0"></iconify-icon>
-                          <span className="text-truncate" title={entry.location}>{entry.location}</span>
-                        </div>
-                      </td>
-
-                      <td>
-                        {editingCommissionId === entry.id ? (
-                          <input 
-                            autoFocus 
-                            type="number" 
-                            step="0.01" 
-                            value={editCommissionValue}
-                            onChange={(e) => setEditCommissionValue(e.target.value)}
-                            onBlur={() => handleCommissionUpdate(entry.id, entry.commission_percentage)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') { e.preventDefault(); handleCommissionUpdate(entry.id, entry.commission_percentage); }
-                              if (e.key === 'Escape') setEditingCommissionId(null);
-                            }}
-                            className="form-control form-control-sm"
-                            style={{ maxWidth: '120px' }}
-                          />
-                        ) : (
-                          <span 
-                            onDoubleClick={() => { setEditingCommissionId(entry.id); setEditCommissionValue(Number(entry.commission_percentage).toFixed(2)); }}
-                            className="badge bg-success-subtle text-success fw-semibold fs-2 gap-1 d-inline-flex align-items-center cursor-pointer"
-                          >
-                            <iconify-icon icon="solar:tag-price-line-duotone" className="fs-3"></iconify-icon>
-                            {Number(entry.commission_percentage).toFixed(2)}%
-                          </span>
-                        )}
-                      </td>
-
-                      <td className="text-end pe-6">
-                        <button 
-                          type="button"
-                          onClick={() => handleDelete(entry.id)} 
-                          className="btn btn-light-danger btn-sm p-1 rounded d-inline-flex align-items-center text-danger"
-                        >
-                          <iconify-icon icon="solar:trash-bin-trash-line-duotone" className="fs-5"></iconify-icon>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                            <iconify-icon icon="solar:trash-bin-trash-line-duotone" className="fs-5"></iconify-icon>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -764,6 +811,6 @@ export default function CommissionEntry() {
           </div>
         </>
       )}
-    </>
+    </div>
   );
 }

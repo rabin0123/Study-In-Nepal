@@ -1,29 +1,28 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}"
       dir="ltr"
-      data-bs-theme="light"
       data-color-theme="Blue_Theme"
-      data-layout="vertical"
-      @class(['dark' => ($appearance ?? 'system') == 'dark'])>
+      data-layout="vertical">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        {{-- Inline script to detect system dark mode preference and apply it immediately --}}
+        {{-- Restore the saved MaterialM theme (data-bs-theme) before paint,
+             so refresh never flashes light-then-dark or vice versa.
+             app.init.js re-applies the same value later; this just gets
+             it on screen before the browser paints anything. --}}
         <script>
-            (function() {
-                const appearance = '{{ $appearance ?? "system" }}';
-
-                if (appearance === 'system') {
-                    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-                    if (prefersDark) {
-                        document.documentElement.classList.add('dark');
-                    }
+            (function () {
+                try {
+                    var theme = localStorage.getItem('theme') || 'light';
+                    document.documentElement.setAttribute('data-bs-theme', theme);
+                } catch (e) {
+                    document.documentElement.setAttribute('data-bs-theme', 'light');
                 }
             })();
         </script>
         <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+          <script src="https://code.iconify.design/3/3.1.1/iconify.min.js"></script>
         <script src="https://code.iconify.design/iconify-icon/2.3.0/iconify-icon.min.js"></script>
 
         {{-- Inline style to set the HTML background color based on our theme in app.css --}}
@@ -32,7 +31,7 @@
                 background-color: oklch(1 0 0);
             }
 
-            html.dark {
+            html[data-bs-theme="dark"] {
                 background-color: oklch(0.145 0 0);
             }
         </style>
@@ -79,5 +78,6 @@
         <script src="/assets/js/theme/app.min.js"></script>
         <script src="/assets/js/theme/sidebarmenu-default.js"></script>
         <script src="https://code.iconify.design/iconify-icon/2.3.0/iconify-icon.min.js"></script>
+        <script src="https://code.iconify.design/iconify-icon/2.0.0/iconify-icon.min.js"></script>
     </body>
 </html>

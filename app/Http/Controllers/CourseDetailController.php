@@ -204,68 +204,71 @@ class CourseDetailController extends Controller
         return redirect()->back()->with('success', 'Course details deleted successfully.');
     }
     
-    public function resolve(Request $request)
-    {
-        $university = $request->query('university');
-        $college = $request->query('college');
-        $course = $request->query('course');
+  public function resolve(Request $request)
+{
+    $university = $request->query('university');
+    $college = $request->query('college');
+    $course = $request->query('course');
 
-        // 1. Attempt exact database match first
-        $courseDetail = CourseDetail::where('university_name', $university)
-            ->where('college_name', $college)
-            ->where('course_name', $course)
-            ->first();
+    // 1. Attempt exact database match first
+    $courseDetail = CourseDetail::where('university_name', $university)
+        ->where('college_name', $college)
+        ->where('course_name', $course)
+        ->first();
 
-        // Helper to normalize strings
-        $normalize = function ($string) {
-            if (!$string) return '';
-            return preg_replace('/[^a-z0-9]/', '', strtolower(trim($string)));
-        };
+    // Helper to normalize strings
+    $normalize = function ($string) {
+        if (!$string) return '';
+        return preg_replace('/[^a-z0-9]/', '', strtolower(trim($string)));
+    };
 
-        $normUniReq = $normalize($university);
-        $normColReq = $normalize($college);
-        $normCourseReq = $normalize($course);
+    $normUniReq = $normalize($university);
+    $normColReq = $normalize($college);
+    $normCourseReq = $normalize($course);
 
-        // 2. Fallback: Fuzzy substring match
-        if (!$courseDetail) {
-            $courseDetail = CourseDetail::all()->first(function ($detail) use ($normalize, $normUniReq, $normColReq, $normCourseReq) {
-                $normUniDb = $normalize($detail->university_name);
-                $normColDb = $normalize($detail->college_name);
-                $normCourseDb = $normalize($detail->course_name);
+    // 2. Fallback: Fuzzy substring match
+    if (!$courseDetail) {
+        $courseDetail = CourseDetail::all()->first(function ($detail) use ($normalize, $normUniReq, $normColReq, $normCourseReq) {
+            $normUniDb = $normalize($detail->university_name);
+            $normColDb = $normalize($detail->college_name);
+            $normCourseDb = $normalize($detail->course_name);
 
-                $uniMatches = ($normUniDb === $normUniReq || str_contains($normUniDb, $normUniReq) || str_contains($normUniReq, $normUniDb));
-                $colMatches = ($normColDb === $normColReq || str_contains($normColDb, $normColReq) || str_contains($normColReq, $normColDb));
-                $courseMatches = ($normCourseDb === $normCourseReq || str_contains($normCourseDb, $normCourseReq) || str_contains($normCourseReq, $normCourseDb));
+            $uniMatches = ($normUniDb === $normUniReq || str_contains($normUniDb, $normUniReq) || str_contains($normUniReq, $normUniDb));
+            $colMatches = ($normColDb === $normColReq || str_contains($normColDb, $normColReq) || str_contains($normColReq, $normColDb));
+            $courseMatches = ($normCourseDb === $normCourseReq || str_contains($normCourseDb, $normCourseReq) || str_contains($normCourseReq, $normCourseDb));
 
-                return $uniMatches && $colMatches && $courseMatches;
-            });
-        }
-
-        // 3. If a match is found, redirect to the course show page
-        if ($courseDetail) {
-            return redirect('/course/' . $courseDetail->uuid);
-        }
-
-        // 4. Debug output when accessed directly in the browser address bar
-        if (!$request->header('X-Inertia')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No matching course detail found in your database.',
-                'your_request' => [
-                    'university' => $university,
-                    'college' => $college,
-                    'course' => $course,
-                ],
-                'normalized_request_values' => [
-                    'university' => $normUniReq,
-                    'college' => $normColReq,
-                    'course' => $normCourseReq,
-                ],
-                'available_courses_currently_in_database' => CourseDetail::select('id', 'uuid', 'university_name', 'college_name', 'course_name')->get(),
-            ], 404);
-        }
-
-        // 5. Safe fallback redirect back to explore page
-        return redirect()->route('coursesearch')->with('error', 'Matching course details not found.');
+            return $uniMatches && $colMatches && $courseMatches;
+        });
     }
+
+    // 3. If a match is found, redirect to the course show page
+    if ($courseDetail) {
+        return redirect('/course/' . $courseDetail->uuid);
+    }
+
+    // 4. Debug output when accessed directly in the browser address bar
+    if (!$request->header('X-Inertia')) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No course details found',
+            'your_request' => [
+                'university' => $university,
+                'college' => $college,
+                'course' => $course,
+            ],
+            'normalized_request_values' => [
+                'university' => $normUniReq,
+                'college' => $normColReq,
+                'course' => $normCourseReq,
+            ],
+            'available_courses_currently_in_database' => CourseDetail::select('id', 'uuid', 'university_name', 'college_name', 'course_name')->get(),
+        ], 404);
+    }
+
+    // 5. Safe fallback redirect back to explore page carrying the error and toast parameters
+    return redirect()->back()->with([
+        'error' => 'No course details found',
+        'toast' => 'No course details found'
+    ]);
+}
 }

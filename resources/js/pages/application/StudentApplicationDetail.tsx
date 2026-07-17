@@ -1087,21 +1087,22 @@ export default function StudentApplicationDetail({ application: initialApplicati
                       </span>
                     )}
                   </div>
+                   <div className="col-6">
+                    <span className="fs-2 fw-semibold text-uppercase text-body-secondary d-flex align-items-center gap-1 mb-1 justify-end">
+                      <iconify-icon icon="solar:hashtag-square-line-duotone" className="fs-4"></iconify-icon>
+                      App ID - {student?.app_id }
+                    </span>
+                    {/* <p className="sad-value fs-3 fw-semibold mb-0 text-truncate">
+                      {student?.app_id || <span className="text-body-secondary fw-normal fst-italic">Not set</span>}
+                    </p> */}
+                  </div>
                 </div>
 
                 {/* Identifier grid */}
                 <div className="row g-3 mt-4 pt-4 border-top">
-                  <div className="col-6">
-                    <span className="fs-2 fw-semibold text-uppercase text-body-secondary d-flex align-items-center gap-1 mb-1">
-                      <iconify-icon icon="solar:hashtag-square-line-duotone" className="fs-4"></iconify-icon>
-                      App ID
-                    </span>
-                    <p className="sad-value fs-3 fw-semibold mb-0 text-truncate">
-                      {student?.app_id || <span className="text-body-secondary fw-normal fst-italic">Not set</span>}
-                    </p>
-                  </div>
+                 
 
-                  {editingField === "date_of_birth" ? (
+                  {/* {editingField === "date_of_birth" ? (
                     <div ref={activeRowRef} className="col-6" onDoubleClick={(e) => e.stopPropagation()}>
                       <span className="fs-2 fw-semibold text-uppercase text-body-secondary d-block mb-1">DOB</span>
                       <input
@@ -1134,7 +1135,7 @@ export default function StudentApplicationDetail({ application: initialApplicati
                         {student?.date_of_birth ? student.date_of_birth.split("T")[0] : <span className="text-body-secondary fw-normal fst-italic">Not set</span>}
                       </p>
                     </div>
-                  )}
+                  )} */}
                 </div>
               </div>
             </div>

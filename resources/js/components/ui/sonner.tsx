@@ -3,22 +3,32 @@ import { useAppearance } from '@/hooks/use-appearance';
 import { Toaster as Sonner, type ToasterProps } from 'sonner';
 
 function Toaster({ ...props }: ToasterProps) {
-    const { appearance } = useAppearance();
+    const { resolvedAppearance } = useAppearance();
 
     useFlashToast();
 
     return (
         <Sonner
-            theme={appearance}
+            theme={resolvedAppearance}
             className="toaster group"
             position="bottom-right"
-            style={
-                {
-                    '--normal-bg': 'var(--popover)',
-                    '--normal-text': 'var(--popover-foreground)',
-                    '--normal-border': 'var(--border)',
-                } as React.CSSProperties
-            }
+            closeButton
+            icons={{
+                success: <iconify-icon icon="solar:check-circle-bold-duotone" className="fs-5 text-success" />,
+                error: <iconify-icon icon="solar:danger-triangle-bold-duotone" className="fs-5 text-danger" />,
+                warning: <iconify-icon icon="solar:danger-circle-bold-duotone" className="fs-5 text-warning" />,
+                info: <iconify-icon icon="solar:info-circle-bold-duotone" className="fs-5 text-info" />,
+                loading: <span className="spinner-border spinner-border-sm text-secondary" role="status" aria-hidden="true"></span>,
+            }}
+            toastOptions={{
+                classNames: {
+                    toast: 'bootstrap-toast',
+                    closeButton: 'bootstrap-toast-close',
+                    title: 'bootstrap-toast-title',
+                    description: 'bootstrap-toast-description',
+                    icon: 'bootstrap-toast-icon',
+                },
+            }}
             {...props}
         />
     );

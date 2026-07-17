@@ -1,5 +1,20 @@
 import React, { useState, useEffect, useMemo } from 'react';
 
+// Declarations to ensure TypeScript compiles custom elements from Iconify CDN seamlessly
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'iconify-icon': React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & {
+          icon?: string;
+          class?: string;
+        },
+        HTMLElement
+      >;
+    }
+  }
+}
+
 const API_BASE_URL = '/api'; 
 
 interface CommissionEntryType {
@@ -16,6 +31,9 @@ export default function CommissionStructureList() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState(""); 
   const [exportingPdf, setExportingPdf] = useState(false);
+  
+  // Track image load failures per row ID
+  const [logoErrors, setLogoErrors] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     fetchEntries();
@@ -47,7 +65,7 @@ export default function CommissionStructureList() {
       );
     }
 
-    return filtered.sort((a, b) => {
+    return [...filtered].sort((a, b) => {
       const collegeComparison = a.college.localeCompare(b.college);
       if (collegeComparison !== 0) return collegeComparison;
       return a.university.localeCompare(b.university);
@@ -76,7 +94,7 @@ export default function CommissionStructureList() {
     }
   };
 
-  // Full-page loading gate matching the style in the first file
+  // Full-page loading gate keeps layout clean until API details load
   if (loading) {
     return (
       <div className="d-flex flex-column align-items-center justify-content-center text-center" style={{ minHeight: '60vh' }}>
@@ -88,9 +106,24 @@ export default function CommissionStructureList() {
   }
 
   return (
-    <>
+    /*
+      Outer layout container uses flex sizing (not h-100 / height: 100%)
+      to fill its parent. Percentage heights are fragile here because
+      .container-fluid -> .body-wrapper -> .page-wrapper each rely on
+      height:100% cascading correctly, and if that chain resolves before
+      every ancestor has committed a real pixel height, the percentage
+      silently collapses to auto and this whole block shrinks to fit its
+      content instead of filling the screen. flex: 1 1 auto sidesteps
+      that entirely: since .container-fluid is already a column flexbox
+      (set in app-sidebar-layout.tsx), this element just grows to
+      consume whatever space its flex parent actually has, guaranteed.
+    */
+    <div
+      className="d-flex flex-column"
+      style={{ flex: '1 1 auto', minHeight: 0, overflow: 'hidden' }}
+    >
       {/* ── Page header ── */}
-      <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-6">
+      <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-4 flex-shrink-0">
         <div className="d-flex align-items-center gap-3">
           <span className="d-none d-sm-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-3 round-48" style={{ width: 48, height: 48 }}>
             <iconify-icon icon="solar:tag-price-line-duotone" className="fs-6"></iconify-icon>
@@ -121,7 +154,7 @@ export default function CommissionStructureList() {
       </div>
 
       {/* ── Search filter card ── */}
-      <div className="card mb-6">
+      <div className="card mb-4 flex-shrink-0">
         <div className="card-body d-flex flex-column flex-xl-row align-items-xl-center justify-content-xl-between gap-4">
           <div className="d-flex flex-wrap align-items-center gap-3 flex-grow-1">
             <div className="position-relative flex-grow-1" style={{ minWidth: 260, maxWidth: 400 }}>
@@ -158,8 +191,8 @@ export default function CommissionStructureList() {
       </div>
 
       {/* ── Table card ── */}
-      <div className="card">
-        <div className="card-body p-0">
+      <div className="card flex-grow-1 d-flex flex-column" style={{ minHeight: 0, overflow: 'hidden' }}>
+        <div className="card-body p-0 d-flex flex-column flex-grow-1" style={{ minHeight: 0, overflow: 'hidden' }}>
           {entries.length === 0 ? (
             <div className="text-center py-16 text-body-secondary fw-semibold">
               No commission entries available.
@@ -169,9 +202,17 @@ export default function CommissionStructureList() {
               No matching entries for "{searchQuery}".
             </div>
           ) : (
+            /*
+              This is the ONLY scrollable region on the page. It fills
+              whatever space is left after the header + search card
+              (via flex-grow-1 on its ancestors) and never exceeds it,
+              because every ancestor above has minHeight: 0 set — that's
+              what lets this box shrink and scroll internally instead of
+              stretching the page taller. The page itself never scrolls.
+            */
             <div
-              className="table-responsive sidebar-nav-scroll"
-              style={{ maxHeight: 520, overflowY: 'auto', width: '100%' }}
+              className="table-responsive sidebar-nav-scroll flex-grow-1"
+              style={{ overflowY: 'auto', overflowX: 'auto', width: '100%', minHeight: 0 }}
             >
               <table
                 className="table mb-0 align-middle"
@@ -192,70 +233,73 @@ export default function CommissionStructureList() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredEntries.map((entry) => (
-                    <tr key={entry.id}>
-                      <td className="ps-6">
-                        <div className="d-flex align-items-center">
-                          {entry.college_logo_url ? (
-                            <img
-                              src={entry.college_logo_url}
-                              alt="logo"
-                              className="rounded flex-shrink-0 border p-1"
-                              width={32}
-                              height={32}
-                              style={{ objectFit: 'contain', background: '#fff' }}
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                                const fallback = document.getElementById(`fallback-col-${entry.id}`);
-                                if (fallback) fallback.classList.remove('d-none');
-                              }}
-                            />
-                          ) : null}
-                          <span 
-                            id={`fallback-col-${entry.id}`} 
-                            className={`align-items-center justify-content-center flex-shrink-0 bg-light text-body-secondary rounded ${entry.college_logo_url ? 'd-none' : 'd-flex'}`} 
-                            style={{ width: 32, height: 32 }}
-                          >
-                            <iconify-icon icon="solar:buildings-line-duotone" className="fs-5"></iconify-icon>
-                          </span>
-                          <span className="ms-3 fw-semibold text-dark text-truncate" title={entry.college}>
-                            {entry.college}
-                          </span>
-                        </div>
-                      </td>
+                  {filteredEntries.map((entry) => {
+                    const hasImageError = logoErrors[entry.id];
+                    const shouldShowLogo = entry.college_logo_url && !hasImageError;
 
-                      <td>
-                        <div className="d-flex align-items-center gap-2 fw-normal">
-                          <iconify-icon icon="solar:square-academic-cap-line-duotone" className="text-body-secondary fs-5 flex-shrink-0"></iconify-icon>
-                          <span className="text-dark fw-semibold text-truncate" title={entry.university}>
-                            {entry.university}
-                          </span>
-                        </div>
-                      </td>
+                    return (
+                      <tr key={entry.id}>
+                        <td className="ps-6">
+                          <div className="d-flex align-items-center">
+                            {shouldShowLogo ? (
+                              <img
+                                src={entry.college_logo_url || undefined}
+                                alt="logo"
+                                className="rounded flex-shrink-0 border p-1"
+                                width={32}
+                                height={32}
+                                style={{ objectFit: 'contain', background: '#fff' }}
+                                onError={() => {
+                                  setLogoErrors(prev => ({ ...prev, [entry.id]: true }));
+                                }}
+                              />
+                            ) : (
+                              <span 
+                                className="d-flex align-items-center justify-content-center flex-shrink-0 bg-light text-body-secondary rounded" 
+                                style={{ width: 32, height: 32 }}
+                              >
+                                <iconify-icon icon="solar:buildings-line-duotone" className="fs-5"></iconify-icon>
+                              </span>
+                            )}
+                            <span className="ms-3 fw-semibold text-dark text-truncate" title={entry.college}>
+                              {entry.college}
+                            </span>
+                          </div>
+                        </td>
 
-                      <td>
-                        <div className="d-flex align-items-center gap-2 fw-normal">
-                          <iconify-icon icon="solar:map-point-line-duotone" className="text-body-secondary fs-5 flex-shrink-0"></iconify-icon>
-                          <span className="text-truncate" title={entry.location}>
-                            {entry.location}
-                          </span>
-                        </div>
-                      </td>
+                        <td>
+                          <div className="d-flex align-items-center gap-2 fw-normal">
+                            <iconify-icon icon="solar:square-academic-cap-line-duotone" className="text-body-secondary fs-5 flex-shrink-0"></iconify-icon>
+                            <span className="text-dark fw-semibold text-truncate" title={entry.university}>
+                              {entry.university}
+                            </span>
+                          </div>
+                        </td>
 
-                      <td>
-                        <span className="badge bg-success-subtle text-success fw-semibold fs-2 gap-1 d-inline-flex align-items-center">
-                          <iconify-icon icon="solar:tag-price-line-duotone" className="fs-3"></iconify-icon>
-                          {Number(entry.commission_percentage).toFixed(2)}%
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                        <td>
+                          <div className="d-flex align-items-center gap-2 fw-normal">
+                            <iconify-icon icon="solar:map-point-line-duotone" className="text-body-secondary fs-5 flex-shrink-0"></iconify-icon>
+                            <span className="text-truncate" title={entry.location}>
+                              {entry.location}
+                            </span>
+                          </div>
+                        </td>
+
+                        <td>
+                          <span className="badge bg-success-subtle text-success fw-semibold fs-2 gap-1 d-inline-flex align-items-center">
+                            <iconify-icon icon="solar:tag-price-line-duotone" className="fs-3"></iconify-icon>
+                            {Number(entry.commission_percentage).toFixed(2)}%
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }
