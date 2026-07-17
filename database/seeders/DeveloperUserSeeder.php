@@ -56,7 +56,7 @@ class DeveloperUserSeeder extends Seeder
                 [
                     'name' => 'Bikalp Raj Pokhrel',
                     'country' => 'Nepal',
-                    'contact_number' => '9841338194',
+                    'contact_number' => '+977 9841338194',
                     'agency_name' => $mainAgentAgencyName,
                     'password' => Hash::make($mainAgentPassword),
                     'is_protected' => true,
