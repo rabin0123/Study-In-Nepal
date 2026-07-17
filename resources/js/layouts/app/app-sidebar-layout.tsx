@@ -724,9 +724,9 @@ export default function AppSidebarLayout({ children }: Props) {
                                     {auth?.permissions?.includes('view.commissionindex') && (
                                         <li className="nav-item nav-icon-hover">
                                             <Link
-                                                href="/commissions"
+                                                href="/commission"
                                                 prefetch
-                                                className={`nav-link ${isCurrentUrl('/commissions') ? 'active' : ''}`}
+                                                className={`nav-link ${isCurrentUrl('/commission') ? 'active' : ''}`}
                                                 title="Commission"
                                             >
                                                 <iconify-icon icon="solar:dollar-line-duotone" className="fs-6" />
