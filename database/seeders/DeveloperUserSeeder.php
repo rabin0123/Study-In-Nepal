@@ -54,9 +54,9 @@ class DeveloperUserSeeder extends Seeder
             return User::updateOrCreate(
                 ['email' => $mainAgentEmail],
                 [
-                    'name' => 'Main Agent',
+                    'name' => 'Bikalp Raj Pokhrel',
                     'country' => 'Nepal',
-                    'contact_number' => '9800000001',
+                    'contact_number' => '9841338194',
                     'agency_name' => $mainAgentAgencyName,
                     'password' => Hash::make($mainAgentPassword),
                     'is_protected' => true,
