@@ -325,11 +325,3 @@ export default function Dashboard() {
     );
 }
 
-Dashboard.layout = {
-    breadcrumbs: [
-        {
-            title: 'Dashboard',
-            href: dashboard(),
-        },
-    ],
-};
