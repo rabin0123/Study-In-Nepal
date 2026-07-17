@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Head, useHttp, router } from '@inertiajs/react';
+import { Head, useHttp, usePage, router } from '@inertiajs/react';
 import { dashboard } from '@/routes';
 
 interface Application {
@@ -24,13 +24,28 @@ interface DashboardResponse {
     latestApplications: Application[];
 }
 
+interface PageProps {
+    auth: {
+        user: {
+            id: number;
+            name: string;
+        };
+    };
+    [key: string]: any;
+}
+
 export default function Dashboard() {
     const [stats, setStats] = useState<Stats | null>(null);
     const [latestApplications, setLatestApplications] = useState<Application[]>([]);
     const [isLoading, setIsLoading] = useState(true); // New state to track initial data load
-    
+    const [now, setNow] = useState(new Date());
+
     // Non-navigating HTTP client hook
     const http = useHttp();
+
+    // Grab the logged-in user from Inertia shared props
+    const { auth } = usePage<PageProps>().props;
+    const userName = auth?.user?.name ?? 'there';
 
     useEffect(() => {
         async function loadDashboardData() {
@@ -44,9 +59,37 @@ export default function Dashboard() {
                 setIsLoading(false); // Done loading (stops spinner even on error)
             }
         }
-        
+
         loadDashboardData();
     }, []);
+
+    // Live clock — updates every second
+    useEffect(() => {
+        const timer = setInterval(() => setNow(new Date()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    // Determine greeting based on current hour
+    const getGreeting = (date: Date) => {
+        const hour = date.getHours();
+        if (hour < 12) return 'Good Morning';
+        if (hour < 17) return 'Good Afternoon';
+        if (hour < 21) return 'Good Evening';
+        return 'Welcome Back';
+    };
+
+    const formattedDate = now.toLocaleDateString(undefined, {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+    });
+
+    const formattedTime = now.toLocaleTimeString(undefined, {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+    });
 
     // Utility to map statuses to modern Bootstrap 5 contextual colors
     const getStatusStyles = (status: string) => {
@@ -83,7 +126,21 @@ export default function Dashboard() {
         <>
             <Head title="Dashboard" />
             <div className="container-fluid p-4">
-                
+
+                {/* Greeting + Date/Time Header */}
+                <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-2">
+                    <div>
+                        <h3 className="fw-bold mb-1 text-primary">
+                            {getGreeting(now)}, {userName}
+                        </h3>
+                        <p className="text-muted mb-0">Here's what's happening with your applications today.</p>
+                    </div>
+                    <div className="text-md-end">
+                        <div className="fw-semibold text-primary">{formattedDate}</div>
+                        <div className="text-muted small font-monospace">{formattedTime}</div>
+                    </div>
+                </div>
+
                 {/* Statistics Cards Section */}
                 <div className="row g-4 mb-4">
                     
