@@ -923,13 +923,13 @@ export default function AppSidebarLayout({ children }: Props) {
                                                         </Link>
                                                     )}
 
-                                                    {auth?.permissions?.includes('view.commissionindex') && (
-                                                        <Link href="/commission" className="py-8 px-7 d-flex align-items-center">
+                                                    {auth?.permissions?.includes('view.commission') && (
+                                                        <Link href="/commissions" className="py-8 px-7 d-flex align-items-center">
                                                             <span className="d-flex align-items-center justify-content-center bg-warning-subtle text-warning rounded round">
                                                                 <iconify-icon icon="solar:dollar-line-duotone" className="fs-7" />
                                                             </span>
                                                             <div className="w-75 v-middle ps-3">
-                                                                <h5 className="mb-1 fs-3 fw-medium">Commission</h5>
+                                                                <h5 className="mb-1 fs-3 fw-medium">Commissions</h5>
                                                                 <span className="fs-2 d-block text-body-secondary">Payouts & earnings</span>
                                                             </div>
                                                         </Link>
