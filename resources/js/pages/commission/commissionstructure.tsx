@@ -106,9 +106,16 @@ export default function CommissionStructureList() {
   }
 
   return (
-    <>
-      {/* ── Page header ── */}
-      <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-6">
+    /* Outer layout container to fix the viewport height and stop window/body scrolling */
+    <div 
+      className="d-flex flex-column overflow-hidden" 
+      style={{ 
+        height: 'calc(100vh - 120px)', // Adjust 120px as needed depending on your top navbar height
+        minHeight: '500px'
+      }}
+    >
+      {/* ── Page header (Fixed Height) ── */}
+      <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-6 flex-shrink-0">
         <div className="d-flex align-items-center gap-3">
           <span className="d-none d-sm-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-3 round-48" style={{ width: 48, height: 48 }}>
             <iconify-icon icon="solar:tag-price-line-duotone" className="fs-6"></iconify-icon>
@@ -138,8 +145,8 @@ export default function CommissionStructureList() {
         </div>
       </div>
 
-      {/* ── Search filter card ── */}
-      <div className="card mb-6">
+      {/* ── Search filter card (Fixed Height) ── */}
+      <div className="card mb-6 flex-shrink-0">
         <div className="card-body d-flex flex-column flex-xl-row align-items-xl-center justify-content-xl-between gap-4">
           <div className="d-flex flex-wrap align-items-center gap-3 flex-grow-1">
             <div className="position-relative flex-grow-1" style={{ minWidth: 260, maxWidth: 400 }}>
@@ -175,9 +182,9 @@ export default function CommissionStructureList() {
         </div>
       </div>
 
-      {/* ── Table card ── */}
-      <div className="card">
-        <div className="card-body p-0">
+      {/* ── Table card (Flex Grow - Fills the exact remaining space dynamically) ── */}
+      <div className="card flex-grow-1 overflow-hidden d-flex flex-column">
+        <div className="card-body p-0 d-flex flex-column flex-grow-1 overflow-hidden">
           {entries.length === 0 ? (
             <div className="text-center py-16 text-body-secondary fw-semibold">
               No commission entries available.
@@ -187,14 +194,10 @@ export default function CommissionStructureList() {
               No matching entries for "{searchQuery}".
             </div>
           ) : (
+            /* Inside table wrapper becomes scrollable internally */
             <div
-              className="table-responsive sidebar-nav-scroll"
-              style={{ 
-                height: 'calc(100vh - 310px)', // Dynamically fills the remaining viewport space
-                minHeight: '400px', 
-                overflowY: 'auto', 
-                width: '100%' 
-              }}
+              className="table-responsive sidebar-nav-scroll flex-grow-1"
+              style={{ overflowY: 'auto', width: '100%' }}
             >
               <table
                 className="table mb-0 align-middle"
@@ -282,6 +285,6 @@ export default function CommissionStructureList() {
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }
