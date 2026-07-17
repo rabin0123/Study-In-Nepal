@@ -34,6 +34,7 @@ class DashboardController extends Controller
         ->map(fn ($app) => [
             'id' => $app->id,
             'app_id' => $app->app_id,
+            'avatar_url' => $app->avatar_url,
             'student_name' => $app->student_name,
             'university_name' => $app->university_name,
             'college_name' => $app->college_name,
