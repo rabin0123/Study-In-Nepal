@@ -344,9 +344,22 @@ export default function StudentApplicationsIndex() {
   }
 
   return (
-    <>
+    /*
+      Outer layout container uses flex sizing (not h-100 / height: 100%)
+      to fill its parent, matching the Commission pages. flex: 1 1 auto
+      lets this grow to consume whatever space its flex parent
+      (.container-fluid in app-sidebar-layout.tsx) actually has, and
+      minHeight: 0 lets it shrink correctly so the table below is the
+      only thing that scrolls — the page itself never scrolls. The
+      pagination footer stays pinned below the table via flex-shrink-0
+      on the table card's children, same pattern as the header/filters.
+    */
+    <div
+      className="d-flex flex-column"
+      style={{ flex: '1 1 auto', minHeight: 0, overflow: 'hidden' }}
+    >
       {/* ── Page header ── */}
-      <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-6">
+      <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-4 flex-shrink-0">
         <div className="d-flex align-items-center gap-3">
           <span className="d-none d-sm-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-3 round-48">
             <iconify-icon icon="solar:square-academic-cap-line-duotone" className="fs-6"></iconify-icon>
@@ -381,7 +394,7 @@ export default function StudentApplicationsIndex() {
       </div>
 
       {error && (
-        <div className="alert alert-danger d-flex align-items-center gap-2 mb-6" role="alert">
+        <div className="alert alert-danger d-flex align-items-center gap-2 mb-4 flex-shrink-0" role="alert">
           <iconify-icon icon="solar:danger-triangle-line-duotone" className="fs-5"></iconify-icon>
           <span>{error}</span>
         </div>
@@ -389,7 +402,7 @@ export default function StudentApplicationsIndex() {
 
       {/* ── Bulk selection toolbar ── */}
       {selectedIds.length > 0 && (
-        <div className="alert bg-primary-subtle border-0 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-6">
+        <div className="alert bg-primary-subtle border-0 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-4 flex-shrink-0">
           <div className="d-flex align-items-center gap-2">
             <span className="d-flex align-items-center justify-content-center bg-primary text-white rounded-circle round-32">
               <iconify-icon icon="solar:square-academic-cap-line-duotone" className="fs-4"></iconify-icon>
@@ -435,7 +448,7 @@ export default function StudentApplicationsIndex() {
       )}
 
       {/* ── Filters card ── */}
-      <div className="card mb-6">
+      <div className="card mb-4 flex-shrink-0">
         <div className="card-body d-flex flex-column flex-xl-row align-items-xl-center justify-content-xl-between gap-4">
           <div className="d-flex flex-wrap align-items-center gap-3 flex-grow-1">
             <div className="position-relative flex-grow-1" style={{ minWidth: 260 }}>
@@ -495,21 +508,25 @@ export default function StudentApplicationsIndex() {
       </div>
 
       {/* ── Applications table (MaterialM card + table markup) ── */}
-      <div className="card">
-        <div className="card-body p-0">
+      <div className="card flex-grow-1 d-flex flex-column" style={{ minHeight: 0, overflow: 'hidden' }}>
+        <div className="card-body p-0 d-flex flex-column flex-grow-1" style={{ minHeight: 0, overflow: 'hidden' }}>
           {filtered.length === 0 ? (
             <div className="text-center py-16 text-body-secondary fw-semibold">
               No applications match your active filters.
             </div>
           ) : (
             <>
-              {/* Scrollable table body, capped at a max height so many
-                  rows never push pagination off-screen — but with no
-                  forced min-height, so a short result set (like a single
-                  row) doesn't leave a big empty gap underneath it. */}
+              {/*
+                This is the ONLY scrollable region on the page. It fills
+                whatever space is left after the header, filters card,
+                and (below) the pagination footer — all of which are
+                flex-shrink-0 — and never exceeds it, because every
+                ancestor above has minHeight: 0 set. The page itself
+                never scrolls; only this table body does.
+              */}
               <div
-                className="table-responsive sidebar-nav-scroll"
-                style={{ maxHeight: 520, overflowY: 'auto', width: '100%' }}
+                className="table-responsive sidebar-nav-scroll flex-grow-1"
+                style={{ overflowY: 'auto', overflowX: 'auto', width: '100%', minHeight: 0 }}
               >
                 <table
                   className="table mb-0 align-middle"
@@ -632,8 +649,10 @@ export default function StudentApplicationsIndex() {
                 </table>
               </div>
 
-              {/* ── Pagination footer ── */}
-              <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between gap-3 border-top px-6 py-4">
+              {/* ── Pagination footer ── pinned below the scrollable
+                  table via flex-shrink-0, so it never scrolls out of
+                  view along with the table rows. */}
+              <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between gap-3 border-top px-6 py-4 flex-shrink-0">
                 <div className="d-flex align-items-center gap-2 text-body-secondary fs-3">
                   <span>Rows per page</span>
                   <select
@@ -701,6 +720,6 @@ export default function StudentApplicationsIndex() {
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }
