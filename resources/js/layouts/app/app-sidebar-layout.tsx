@@ -919,6 +919,17 @@ export default function AppSidebarLayout({ children }: Props) {
                                                             </div>
                                                         </Link>
                                                     )}
+                                                    {auth?.permissions?.includes('view.roles') && (
+                                                        <Link href="/roles" className="py-8 px-7 d-flex align-items-center">
+                                                            <span className="d-flex align-items-center justify-content-center bg-danger-subtle text-danger rounded round">
+                                                                <iconify-icon icon="solar:course-up-line-duotone" className="fs-7" />
+                                                            </span>
+                                                            <div className="w-75 v-middle ps-3">
+                                                                <h5 className="mb-1 fs-3 fw-medium">Manage Agency</h5>
+                                                                <span className="fs-2 d-block text-body-secondary">Partner agencies</span>
+                                                            </div>
+                                                        </Link>
+                                                    )}
                                                 </div>
                                                 <div className="d-grid py-4 px-7 pt-8">
                                                     <Link href="/logout" method="post" as="button" className="btn btn-primary">
