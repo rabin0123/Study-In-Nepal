@@ -722,6 +722,18 @@ export default function AppSidebarLayout({ children }: Props) {
 
                                     {/* Dark / light toggle */}
                                     <li className="nav-item nav-icon-hover">
+                                        
+                                        <a
+                                             href="/commission"
+                                             >
+                                            <iconify-icon
+                                                icon="solar:dollar"
+                                                className="dollar fs-6"
+                                              
+                                            />
+                                        </a>
+                                    </li>
+                                    <li className="nav-item nav-icon-hover">
                                         <a
                                             className="nav-link moon dark-layout"
                                             href="#"
