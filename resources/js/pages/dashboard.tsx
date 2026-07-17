@@ -24,26 +24,12 @@ interface DashboardResponse {
     latestApplications: Application[];
 }
 
-// Loads the Iconify web-component runtime once, on demand.
-function useIconify() {
-    useEffect(() => {
-        if (document.querySelector('script[data-iconify]')) return;
-        const script = document.createElement('script');
-        script.src = 'https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js';
-        script.async = true;
-        script.dataset.iconify = 'true';
-        document.head.appendChild(script);
-    }, []);
-}
-
 export default function Dashboard() {
     const [stats, setStats] = useState<Stats | null>(null);
     const [latestApplications, setLatestApplications] = useState<Application[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [query, setQuery] = useState('');
 
     const http = useHttp();
-    useIconify();
 
     useEffect(() => {
         async function loadDashboardData() {
@@ -61,16 +47,17 @@ export default function Dashboard() {
         loadDashboardData();
     }, []);
 
-    const getStatusBadge = (status: string) => {
+    // Maps a status string to an icon + semantic color token used across the page
+    const getStatusMeta = (status: string) => {
         switch (status?.toUpperCase()) {
             case 'APPROVED':
-                return 'badge rounded-pill bg-success-subtle text-success-emphasis border border-success-subtle px-3 py-2';
+                return { icon: 'mdi:check-circle', className: 'status-pill status-approved' };
             case 'REJECTED':
-                return 'badge rounded-pill bg-danger-subtle text-danger-emphasis border border-danger-subtle px-3 py-2';
+                return { icon: 'mdi:close-circle', className: 'status-pill status-rejected' };
             case 'PENDING REVIEW':
             case 'PENDING':
             default:
-                return 'badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-2';
+                return { icon: 'mdi:clock-outline', className: 'status-pill status-pending' };
         }
     };
 
@@ -78,253 +65,392 @@ export default function Dashboard() {
         router.visit(`/applications/${appId}`);
     };
 
-    const processedRate = stats && stats.totalApplications > 0
-        ? Math.round((stats.processedApplications / stats.totalApplications) * 100)
-        : 0;
-
-    const filteredApplications = query
-        ? latestApplications.filter((app) =>
-              [app.app_id, app.student_name, app.course_name, app.university_name, app.college_name]
-                  .filter(Boolean)
-                  .some((field) => field.toLowerCase().includes(query.toLowerCase())),
-          )
-        : latestApplications;
-
-    const rootStyle = {
-        '--bs-primary': '#0866C6',
-        '--bs-primary-rgb': '8,102,198',
-        '--bs-primary-bg-subtle': '#E8F1FC',
-        '--bs-primary-border-subtle': '#C3DDF7',
-        '--bs-primary-text-emphasis': '#0A529E',
-        '--bs-link-color': '#0866C6',
-        '--bs-link-hover-color': '#0A529E',
-        backgroundColor: '#F5F8FB',
-        minHeight: '100vh',
-    } as React.CSSProperties;
-
     if (isLoading) {
         return (
-            <div style={rootStyle} className="d-flex flex-column align-items-center justify-content-center" >
-                <div className="spinner-border text-primary" style={{ width: '3rem', height: '3rem' }} role="status">
+            <div className="dash-loading d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '75vh' }}>
+                <div className="spinner-border" role="status" style={{ width: '3rem', height: '3rem', color: '#1E5FCC' }}>
                     <span className="visually-hidden">Loading Dashboard...</span>
                 </div>
-                <h6 className="mt-3 text-muted fw-semibold">Loading dashboard data...</h6>
+                <p className="mt-3 fw-medium" style={{ color: '#5B6B85' }}>Loading dashboard&hellip;</p>
             </div>
         );
     }
 
+    const statCards = [
+        {
+            label: 'Total Applications',
+            value: stats?.totalApplications ?? 0,
+            helper: 'Submitted across all agencies',
+            icon: 'mdi:file-document-multiple-outline',
+        },
+        {
+            label: 'Applications Processed',
+            value: stats?.processedApplications ?? 0,
+            helper: 'Approved or rejected to date',
+            icon: 'mdi:progress-check',
+        },
+        {
+            label: 'Case Closed',
+            value: stats?.closedApplications ?? 0,
+            helper: 'Completed enrollments',
+            icon: 'mdi:archive-check-outline',
+        },
+    ];
+
     return (
         <>
             <Head title="Dashboard" />
-            <div style={rootStyle} className="pb-5">
-                <div className="container-fluid px-4 px-lg-5 py-4">
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" />
+            <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+            <style>{`
+                :root {
+                    --brand-900: #0B2559;
+                    --brand-700: #1E4FCC;
+                    --brand-600: #1E5FCC;
+                    --brand-500: #3B7CF6;
+                    --brand-100: #EAF1FF;
+                    --brand-50: #F5F8FF;
+                    --ink-900: #101828;
+                    --ink-600: #475467;
+                    --ink-400: #98A2B3;
+                    --line: #E6EAF2;
+                }
 
-                    {/* Header */}
-                    <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-                        <div>
-                            <div className="d-flex align-items-center gap-2 text-primary fw-bold text-uppercase small mb-1" style={{ letterSpacing: '0.08em' }}>
-                                <iconify-icon icon="solar:widget-5-bold-duotone" width="16" />
-                                Admin Dashboard
-                            </div>
-                            <h2 className="fw-bold text-dark mb-1">Welcome back 👋</h2>
-                            <p className="text-muted mb-0">Here's what's happening with student applications today.</p>
-                        </div>
+                .dash-page {
+                    background: linear-gradient(180deg, var(--brand-50) 0%, #FFFFFF 340px);
+                    min-height: 100vh;
+                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                }
 
-                        <div className="d-flex flex-wrap gap-2">
-                            <div className="input-group shadow-sm" style={{ width: 240 }}>
-                                <span className="input-group-text bg-white border-end-0 text-muted">
-                                    <iconify-icon icon="solar:magnifer-linear" width="16" />
-                                </span>
-                                <input
-                                    type="text"
-                                    className="form-control border-start-0 ps-0"
-                                    placeholder="Search applications..."
-                                    value={query}
-                                    onChange={(e) => setQuery(e.target.value)}
-                                />
-                            </div>
-                            <button
-                                type="button"
-                                className="btn btn-primary d-flex align-items-center gap-2 px-3 shadow-sm"
-                                onClick={() => router.visit('/applications/create')}
-                            >
-                                <iconify-icon icon="solar:add-circle-bold" width="18" />
-                                New Application
-                            </button>
-                        </div>
+                .dash-header-eyebrow {
+                    letter-spacing: 0.08em;
+                    text-transform: uppercase;
+                    font-size: 0.72rem;
+                    font-weight: 700;
+                    color: var(--brand-600);
+                }
+
+                .dash-header-title {
+                    color: var(--ink-900);
+                    font-weight: 800;
+                    letter-spacing: -0.02em;
+                }
+
+                .stat-card {
+                    background: #fff;
+                    border: 1px solid var(--line);
+                    border-radius: 16px;
+                    padding: 1.75rem;
+                    position: relative;
+                    overflow: hidden;
+                    transition: transform 0.18s ease, box-shadow 0.18s ease;
+                    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+                }
+
+                .stat-card:hover {
+                    transform: translateY(-3px);
+                    box-shadow: 0 12px 24px -8px rgba(30, 79, 204, 0.18);
+                }
+
+                .stat-card::before {
+                    content: '';
+                    position: absolute;
+                    top: 0; left: 0;
+                    width: 100%;
+                    height: 3px;
+                    background: linear-gradient(90deg, var(--brand-600), var(--brand-500));
+                }
+
+                .stat-icon-wrap {
+                    width: 44px;
+                    height: 44px;
+                    border-radius: 12px;
+                    background: var(--brand-100);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: var(--brand-700);
+                    font-size: 22px;
+                    flex-shrink: 0;
+                }
+
+                .stat-value {
+                    font-size: 2.35rem;
+                    font-weight: 800;
+                    color: var(--ink-900);
+                    letter-spacing: -0.02em;
+                    line-height: 1.1;
+                }
+
+                .stat-label {
+                    color: var(--ink-600);
+                    font-weight: 600;
+                    font-size: 0.85rem;
+                }
+
+                .stat-helper {
+                    color: var(--ink-400);
+                    font-size: 0.8rem;
+                }
+
+                .panel-card {
+                    background: #fff;
+                    border: 1px solid var(--line);
+                    border-radius: 16px;
+                    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+                }
+
+                .panel-header {
+                    padding: 1.5rem 1.75rem 1.25rem;
+                    border-bottom: 1px solid var(--line);
+                }
+
+                .panel-title {
+                    color: var(--ink-900);
+                    font-weight: 700;
+                    font-size: 1.05rem;
+                    margin-bottom: 0.15rem;
+                }
+
+                .panel-subtitle {
+                    color: var(--ink-600);
+                    font-size: 0.85rem;
+                }
+
+                .live-badge {
+                    background: var(--brand-50);
+                    color: var(--brand-700);
+                    font-weight: 600;
+                    font-size: 0.78rem;
+                    padding: 0.35rem 0.75rem;
+                    border-radius: 999px;
+                    border: 1px solid var(--brand-100);
+                }
+
+                .live-dot {
+                    width: 6px;
+                    height: 6px;
+                    border-radius: 50%;
+                    background: #17B26A;
+                    display: inline-block;
+                    box-shadow: 0 0 0 3px rgba(23, 178, 106, 0.18);
+                }
+
+                .app-table thead th {
+                    background: var(--brand-900);
+                    color: #fff;
+                    font-size: 0.72rem;
+                    letter-spacing: 0.06em;
+                    text-transform: uppercase;
+                    font-weight: 600;
+                    border: none;
+                    padding: 0.9rem 1.25rem;
+                    white-space: nowrap;
+                }
+
+                .app-table thead th:first-child { border-top-left-radius: 0; }
+
+                .app-table tbody td {
+                    padding: 1rem 1.25rem;
+                    border-bottom: 1px solid var(--line);
+                    vertical-align: middle;
+                }
+
+                .app-table tbody tr {
+                    cursor: pointer;
+                    transition: background 0.12s ease;
+                }
+
+                .app-table tbody tr:hover {
+                    background: var(--brand-50);
+                }
+
+                .app-table tbody tr:last-child td {
+                    border-bottom: none;
+                }
+
+                .app-id-chip {
+                    font-family: 'SFMono-Regular', Consolas, Menlo, monospace;
+                    font-size: 0.8rem;
+                    font-weight: 700;
+                    color: var(--brand-700);
+                    background: var(--brand-100);
+                    padding: 0.2rem 0.55rem;
+                    border-radius: 6px;
+                }
+
+                .student-name {
+                    color: var(--ink-900);
+                    font-weight: 600;
+                }
+
+                .course-name {
+                    color: var(--ink-900);
+                    font-weight: 600;
+                    font-size: 0.9rem;
+                }
+
+                .uni-name {
+                    color: var(--ink-400);
+                    font-size: 0.8rem;
+                }
+
+                .submitted-date {
+                    color: var(--ink-400);
+                    font-size: 0.82rem;
+                }
+
+                .status-pill {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.35rem;
+                    font-size: 0.78rem;
+                    font-weight: 600;
+                    padding: 0.32rem 0.7rem;
+                    border-radius: 999px;
+                    border: 1px solid transparent;
+                }
+
+                .status-approved {
+                    background: #ECFDF3;
+                    color: #067647;
+                    border-color: #ABEFC6;
+                }
+
+                .status-rejected {
+                    background: #FEF3F2;
+                    color: #B42318;
+                    border-color: #FECDCA;
+                }
+
+                .status-pending {
+                    background: #FFFAEB;
+                    color: #B54708;
+                    border-color: #FEDF89;
+                }
+
+                .empty-state {
+                    padding: 4rem 1rem;
+                    text-align: center;
+                }
+
+                .empty-state .icon-wrap {
+                    width: 64px;
+                    height: 64px;
+                    border-radius: 16px;
+                    background: var(--brand-50);
+                    color: var(--brand-500);
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 32px;
+                    margin-bottom: 1rem;
+                }
+            `}</style>
+
+            <div className="dash-page">
+                <div className="container-fluid px-4 py-4" style={{ maxWidth: '1320px' }}>
+
+                    {/* Page heading */}
+                    <div className="mb-4">
+                        <div className="dash-header-eyebrow mb-1">Overview</div>
+                        <h2 className="dash-header-title mb-0">Applications Dashboard</h2>
                     </div>
 
                     {/* Stat cards */}
                     <div className="row g-3 mb-4">
-                        <div className="col-12 col-md-4">
-                            <div className="card border-0 shadow-sm rounded-4 h-100 dashboard-stat-card">
-                                <div className="card-body p-4">
-                                    <div className="d-flex justify-content-between align-items-start mb-3">
-                                        <div className="bg-primary-subtle text-primary rounded-3 d-flex align-items-center justify-content-center" style={{ width: 48, height: 48 }}>
-                                            <iconify-icon icon="solar:documents-bold-duotone" width="24" />
+                        {statCards.map((card) => (
+                            <div className="col-12 col-md-4" key={card.label}>
+                                <div className="stat-card h-100">
+                                    <div className="d-flex align-items-start justify-content-between mb-4">
+                                        <span className="stat-label">{card.label}</span>
+                                        <div className="stat-icon-wrap">
+                                            <iconify-icon icon={card.icon}></iconify-icon>
                                         </div>
                                     </div>
-                                    <p className="text-muted small fw-semibold text-uppercase mb-1" style={{ letterSpacing: '0.05em' }}>
-                                        Total Applications
-                                    </p>
-                                    <h2 className="fw-bold text-dark mb-2">{stats?.totalApplications ?? 0}</h2>
-                                    <p className="text-muted small mb-0 d-flex align-items-center gap-1">
-                                        <iconify-icon icon="solar:point-on-map-linear" width="14" />
-                                        Submitted across all agencies
-                                    </p>
+                                    <div className="stat-value mb-1">{card.value.toLocaleString()}</div>
+                                    <div className="stat-helper">{card.helper}</div>
                                 </div>
                             </div>
-                        </div>
-
-                        <div className="col-12 col-md-4">
-                            <div className="card border-0 shadow-sm rounded-4 h-100 dashboard-stat-card">
-                                <div className="card-body p-4">
-                                    <div className="d-flex justify-content-between align-items-start mb-3">
-                                        <div className="bg-primary-subtle text-primary rounded-3 d-flex align-items-center justify-content-center" style={{ width: 48, height: 48 }}>
-                                            <iconify-icon icon="solar:check-circle-bold-duotone" width="24" />
-                                        </div>
-                                        <span className="badge bg-primary-subtle text-primary-emphasis rounded-pill small">{processedRate}%</span>
-                                    </div>
-                                    <p className="text-muted small fw-semibold text-uppercase mb-1" style={{ letterSpacing: '0.05em' }}>
-                                        Applications Processed
-                                    </p>
-                                    <h2 className="fw-bold text-dark mb-2">{stats?.processedApplications ?? 0}</h2>
-                                    <div className="progress" style={{ height: 6 }}>
-                                        <div
-                                            className="progress-bar bg-primary"
-                                            role="progressbar"
-                                            style={{ width: `${processedRate}%` }}
-                                            aria-valuenow={processedRate}
-                                            aria-valuemin={0}
-                                            aria-valuemax={100}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="col-12 col-md-4">
-                            <div className="card border-0 shadow-sm rounded-4 h-100 text-white dashboard-stat-card dashboard-stat-card--accent">
-                                <div className="card-body p-4">
-                                    <div className="d-flex justify-content-between align-items-start mb-3">
-                                        <div className="bg-white bg-opacity-25 rounded-3 d-flex align-items-center justify-content-center" style={{ width: 48, height: 48 }}>
-                                            <iconify-icon icon="solar:folder-check-bold-duotone" width="24" />
-                                        </div>
-                                    </div>
-                                    <p className="text-white-50 small fw-semibold text-uppercase mb-1" style={{ letterSpacing: '0.05em' }}>
-                                        Case Closed
-                                    </p>
-                                    <h2 className="fw-bold mb-2">{stats?.closedApplications ?? 0}</h2>
-                                    <p className="text-white-50 small mb-0 d-flex align-items-center gap-1">
-                                        <iconify-icon icon="solar:medal-ribbons-star-bold" width="14" />
-                                        Completed / approved enrollments
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+                        ))}
                     </div>
 
                     {/* Latest applications */}
-                    <div className="card border-0 shadow-sm rounded-4">
-                        <div className="card-header bg-white border-0 pt-4 px-4 pb-3 d-flex flex-wrap justify-content-between align-items-center gap-2 rounded-top-4">
+                    <div className="panel-card">
+                        <div className="panel-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                             <div>
-                                <h5 className="fw-bold text-dark mb-1">Latest Applications</h5>
-                                <p className="text-muted small mb-0">Recently submitted student entries</p>
+                                <div className="panel-title">Latest Applications</div>
+                                <div className="panel-subtitle">Recently submitted student entries</div>
                             </div>
-                            <span className="badge bg-primary-subtle text-primary-emphasis rounded-pill px-3 py-2 d-flex align-items-center gap-2">
-                                <span className="dashboard-live-dot" />
+                            <span className="live-badge d-inline-flex align-items-center gap-2">
+                                <span className="live-dot"></span>
                                 Real-time updates
                             </span>
                         </div>
 
-                        <div className="card-body p-0">
-                            {filteredApplications.length === 0 ? (
-                                <div className="text-center py-5 text-muted">
-                                    <iconify-icon icon="solar:inbox-line-bold-duotone" width="48" style={{ color: 'var(--bs-primary)', opacity: 0.5 }} />
-                                    <p className="mb-0 mt-2">
-                                        {query ? 'No applications match your search.' : 'No applications found.'}
-                                    </p>
+                        {latestApplications.length === 0 ? (
+                            <div className="empty-state">
+                                <div className="icon-wrap">
+                                    <iconify-icon icon="mdi:account-search-outline"></iconify-icon>
                                 </div>
-                            ) : (
-                                <div className="table-responsive">
-                                    <table className="table table-hover align-middle mb-0">
-                                        <thead>
-                                            <tr className="text-uppercase text-muted small" style={{ letterSpacing: '0.05em' }}>
-                                                <th className="px-4 py-3 bg-light border-0 fw-semibold">App ID</th>
-                                                <th className="px-4 py-3 bg-light border-0 fw-semibold">Student Name</th>
-                                                <th className="px-4 py-3 bg-light border-0 fw-semibold">Course / University</th>
-                                                <th className="px-4 py-3 bg-light border-0 fw-semibold">Status</th>
-                                                <th className="px-4 py-3 bg-light border-0 fw-semibold text-end">Submitted</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {filteredApplications.map((app) => (
+                                <p className="mb-0 fw-medium" style={{ color: 'var(--ink-600)' }}>No applications found.</p>
+                                <p className="mb-0" style={{ color: 'var(--ink-400)', fontSize: '0.85rem' }}>
+                                    New submissions will appear here as they come in.
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="table-responsive">
+                                <table className="table app-table mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>App ID</th>
+                                            <th>Student</th>
+                                            <th>Course / University</th>
+                                            <th>Status</th>
+                                            <th className="text-end">Submitted</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {latestApplications.map((app) => {
+                                            const meta = getStatusMeta(app.status);
+                                            return (
                                                 <tr
                                                     key={app.id}
                                                     onClick={() => viewApplicationRecord(app.id)}
-                                                    style={{ cursor: 'pointer' }}
                                                     title="Click to view full application record"
                                                 >
-                                                    <td className="px-4 py-3">
-                                                        <span className="font-monospace text-primary small fw-bold">{app.app_id}</span>
+                                                    <td>
+                                                        <span className="app-id-chip">{app.app_id}</span>
                                                     </td>
-                                                    <td className="px-4 py-3">
-                                                        <div className="d-flex align-items-center gap-2">
-                                                            <div
-                                                                className="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold small"
-                                                                style={{ width: 34, height: 34, flexShrink: 0 }}
-                                                            >
-                                                                {app.student_name?.charAt(0)?.toUpperCase() || '?'}
-                                                            </div>
-                                                            <span className="fw-semibold text-dark">{app.student_name}</span>
-                                                        </div>
+                                                    <td>
+                                                        <span className="student-name">{app.student_name}</span>
                                                     </td>
-                                                    <td className="px-4 py-3">
+                                                    <td>
                                                         <div className="d-flex flex-column">
-                                                            <span className="fw-semibold text-dark">{app.course_name}</span>
-                                                            <span className="text-muted small">
+                                                            <span className="course-name">{app.course_name}</span>
+                                                            <span className="uni-name">
                                                                 {app.college_name || app.university_name}
                                                             </span>
                                                         </div>
                                                     </td>
-                                                    <td className="px-4 py-3">
-                                                        <span className={getStatusBadge(app.status)}>{app.status}</span>
+                                                    <td>
+                                                        <span className={meta.className}>
+                                                            <iconify-icon icon={meta.icon} style={{ fontSize: '14px' }}></iconify-icon>
+                                                            {app.status}
+                                                        </span>
                                                     </td>
-                                                    <td className="px-4 py-3 text-end text-muted small">{app.created_at}</td>
+                                                    <td className="text-end submitted-date">{app.created_at}</td>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                        </div>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
                     </div>
+
                 </div>
             </div>
-
-            <style>{`
-                .dashboard-stat-card {
-                    transition: transform 0.2s ease, box-shadow 0.2s ease;
-                }
-                .dashboard-stat-card:hover {
-                    transform: translateY(-3px);
-                    box-shadow: 0 0.75rem 1.75rem rgba(8, 102, 198, 0.12) !important;
-                }
-                .dashboard-stat-card--accent {
-                    background: linear-gradient(135deg, #0866C6 0%, #0A529E 100%);
-                }
-                .dashboard-live-dot {
-                    width: 7px;
-                    height: 7px;
-                    border-radius: 50%;
-                    background: var(--bs-primary);
-                    box-shadow: 0 0 0 4px rgba(8, 102, 198, 0.15);
-                    display: inline-block;
-                }
-                .table > :not(caption) > * > * {
-                    box-shadow: none;
-                }
-            `}</style>
         </>
     );
 }
