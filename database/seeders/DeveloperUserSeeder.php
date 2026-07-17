@@ -20,7 +20,7 @@ class DeveloperUserSeeder extends Seeder
             return User::updateOrCreate(
                 ['email' => $email],
                 [
-                    'name' => 'Developer',
+                    'name' => 'Developer User',
                     'country'=> 'Nepal',
                     'contact_number'=> '9800000000',
                     'agency_name' => 'Study In Nepal',
