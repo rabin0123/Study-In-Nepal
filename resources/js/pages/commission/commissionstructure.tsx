@@ -107,15 +107,20 @@ export default function CommissionStructureList() {
 
   return (
     /*
-      Outer layout container fills 100% of its parent, which is now
-      .container-fluid inside .body-wrapper (constrained to viewport
-      height by app-sidebar-layout.tsx's global CSS). minHeight: 0 lets
-      this shrink correctly inside that flex parent instead of forcing
-      it to grow, so the table below is the only thing that scrolls.
+      Outer layout container uses flex sizing (not h-100 / height: 100%)
+      to fill its parent. Percentage heights are fragile here because
+      .container-fluid -> .body-wrapper -> .page-wrapper each rely on
+      height:100% cascading correctly, and if that chain resolves before
+      every ancestor has committed a real pixel height, the percentage
+      silently collapses to auto and this whole block shrinks to fit its
+      content instead of filling the screen. flex: 1 1 auto sidesteps
+      that entirely: since .container-fluid is already a column flexbox
+      (set in app-sidebar-layout.tsx), this element just grows to
+      consume whatever space its flex parent actually has, guaranteed.
     */
     <div
-      className="d-flex flex-column h-100"
-      style={{ minHeight: 0, overflow: 'hidden' }}
+      className="d-flex flex-column"
+      style={{ flex: '1 1 auto', minHeight: 0, overflow: 'hidden' }}
     >
       {/* ── Page header ── */}
       <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-4 flex-shrink-0">
