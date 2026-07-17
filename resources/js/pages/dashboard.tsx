@@ -271,7 +271,27 @@ export default function Dashboard() {
                                                             {app.app_id}
                                                         </td>
                                                         <td className="px-4 py-3 fw-bold">
-                                                            {app.student_name}
+                                                           <div className="d-flex align-items-center">
+                                                                                         {app?.avatar_url ? (
+                                                                                           <img
+                                                                                             src={app.avatar_url}
+                                                                                             alt={app?.student_name}
+                                                                                             className="rounded-circle flex-shrink-0"
+                                                                                             width={40}
+                                                                                             height={40}
+                                                                                             style={{ objectFit: 'cover' }}
+                                                                                             onError={(e) => {
+                                                                                               (e.target as HTMLImageElement).style.display = 'none';
+                                                                                             }}
+                                                                                           />
+                                                                                         ) : (
+                                                                                           <span className="flex-shrink-0"></span>
+                                                                                         )}
+                                                                                         <div className="ms-3 text-truncate">
+                                                                                           <h6 className="fs-4 fw-semibold mb-0 text-truncate">{app.student_name}</h6>
+                                                                                          
+                                                                                         </div>
+                                                                                       </div>
                                                         </td>
                                                         <td className="px-4 py-3">
                                                             <div className="d-flex flex-column">
