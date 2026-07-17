@@ -190,7 +190,7 @@ export default function CommissionStructureList() {
             <div
               className="table-responsive sidebar-nav-scroll"
               style={{ 
-                height: 'calc(100vh - 310px)', // Dynamically fills the remaining viewport space
+                height: 'calc(100vh - 300px)', // Dynamically fills the remaining viewport space
                 minHeight: '400px', 
                 overflowY: 'auto', 
                 width: '100%' 
