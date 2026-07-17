@@ -1,18 +1,13 @@
 <?php
 
 use App\Http\Controllers\AgencyApiController;
-use App\Http\Controllers\AgencySurveyApiController;
 use App\Http\Controllers\CommissionListController;
 use App\Http\Controllers\CourseDetailController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\InstitutionalSurveyController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\StudentApplicationApiController;
-use App\Http\Controllers\SurveyApiController;
-use App\Http\Controllers\UniversityApiControler; // Note: verify spelling (Controler vs Controller)
-use App\Http\Controllers\UserController; // Added missing import
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\UserApiController;
 use App\Http\Controllers\Settings\UserVerificationController;
@@ -50,11 +45,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('/universities/{id}', 'university/universityedit')->name('universityedit');
     Route::inertia('/university', 'university/universitylist')->name('universitylist');
 
-    // Surveys
-    Route::inertia('/online/survey', 'survey/survey')->name('survey');
-    Route::inertia('/survey', 'survey/surveyindex')->name('surveyindex');
-    Route::inertia('/agency/survey', 'survey/agent/agencysurveyindex')->name('agencysurveyindex');
-    Route::inertia('/institutional-survey', 'survey/institutional/InstitutionalSurveyIndex');
+   
 
     // Student Applications
     Route::inertia('/applications', 'application/Studentapplicationsindex')->name('Studentapplicationsindex');
@@ -125,24 +116,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/universities/{id}', [UniversityApiControler::class, 'destroy']);
         Route::get('/university/export', [UniversityApiControler::class, 'export']);
         Route::post('/university/import', [UniversityApiControler::class, 'import']);
-
-        // Survey API
-        Route::get('/survey', [SurveyApiController::class, 'index']);
-        Route::get('/survey/stats', [SurveyApiController::class, 'stats']);
-        Route::get('/survey/{id}', [SurveyApiController::class, 'show'])->where('id', '[0-9]+');
-        Route::delete('/survey/{id}', [SurveyApiController::class, 'destroy'])->where('id', '[0-9]+');
-
-        // Institutional Surveys API
-        Route::get('/institutional-surveys', [InstitutionalSurveyController::class, 'index']);
-        Route::post('/institutional-surveys', [InstitutionalSurveyController::class, 'store']);
-        Route::delete('/institutional-surveys/{id}', [InstitutionalSurveyController::class, 'destroy']);
-
-        // Agency Survey API
-        Route::get('/agency/survey', [AgencySurveyApiController::class, 'index']);
-        Route::post('/agency/survey', [AgencySurveyApiController::class, 'store']);
-        Route::get('/agency/survey/stats', [AgencySurveyApiController::class, 'stats']);
-        Route::get('/agency/survey/{survey}', [AgencySurveyApiController::class, 'show']);
-        Route::delete('/agency/survey/{survey}', [AgencySurveyApiController::class, 'destroy']);
 
         // Student Applications API
         Route::get('/agent/applications', [StudentApplicationApiController::class, 'index']);
