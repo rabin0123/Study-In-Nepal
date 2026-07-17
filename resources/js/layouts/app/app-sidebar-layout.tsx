@@ -5,13 +5,20 @@ import { useInitials } from '@/hooks/use-initials';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem as BreadcrumbItemType } from '@/types';
 
-type NavLeaf = { title: string; href: string; icon: string };
+// Updated NavLeaf type to include an optional permission check
+type NavLeaf = { title: string; href: string; icon: string; permission?: string };
 type NavGroup = { id: string; label: string; icon: string; items: NavLeaf[] };
 
 const flatTopItems: NavLeaf[] = [
     { title: 'Dashboard', href: '/dashboard', icon: 'solar:widget-add-line-duotone' },
     { title: 'Applications', href: '/applications', icon: 'solar:layers-line-duotone' },
     { title: 'Search Courses', href: '/courses', icon: 'solar:layers-line-duotone' },
+    { 
+        title: 'Commissions', 
+        href: '/commission', 
+        icon: 'solar:dollar-line-duotone', 
+        permission: 'view.commission' 
+    },
 ];
 
 const navGroups: NavGroup[] = [
@@ -256,6 +263,14 @@ export default function AppSidebarLayout({ children }: Props) {
     const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [showResults, setShowResults] = useState(false);
+
+    // Dynamically filter flatTopItems based on authorization permissions
+    const visibleFlatTopItems = useMemo(() => {
+        return flatTopItems.filter((item) => {
+            if (!item.permission) return true;
+            return auth?.permissions?.includes(item.permission);
+        });
+    }, [auth?.permissions]);
 
     // Debounced search logic for querying applications
     useEffect(() => {
@@ -566,10 +581,9 @@ export default function AppSidebarLayout({ children }: Props) {
                             <ul className="sidebar-menu" id="sidebarnav">
                                 <li className="nav-small-cap">
                                     <iconify-icon icon="solar:menu-dots-linear" className="mini-icon" />
-                                    {/* <span className="hide-menu">Partner Portal</span> */}
                                 </li>
 
-                                {flatTopItems.map((item) => (
+                                {visibleFlatTopItems.map((item) => (
                                     <li key={item.title} className={`sidebar-item ${isCurrentUrl(item.href) ? 'selected' : ''}`}>
                                         <Link href={item.href} prefetch className={`sidebar-link ${isCurrentUrl(item.href) ? 'active' : ''}`}>
                                             <iconify-icon icon={item.icon} />
@@ -577,18 +591,6 @@ export default function AppSidebarLayout({ children }: Props) {
                                         </Link>
                                     </li>
                                 ))}
-
-                            {/* <li>
-                                <span className="sidebar-divider lg"></span>
-                            </li>
-                            <li className="nav-small-cap">
-                                <iconify-icon icon="solar:menu-dots-linear" className="mini-icon" />
-                                <span className="hide-menu">Application</span>
-                            </li>
-
-                            {navGroups.map((group) => (
-                                <NavGroupSection key={group.id} group={group} />
-                            ))} */}
                             </ul>
                         </nav>
                     </div>
@@ -836,11 +838,6 @@ export default function AppSidebarLayout({ children }: Props) {
                                                     </div>
                                                 )}
                                             </div>
-                                            {/* <div className="py-6 px-7 mb-1">
-                                                <Link href="/notifications" className="btn btn-outline-primary w-100">
-                                                    Notification history
-                                                </Link>
-                                            </div> */}
                                         </div>
                                     </li>
 
@@ -922,8 +919,6 @@ export default function AppSidebarLayout({ children }: Props) {
                                                             </div>
                                                         </Link>
                                                     )}
-
-                                                   
                                                 </div>
                                                 <div className="d-grid py-4 px-7 pt-8">
                                                     <Link href="/logout" method="post" as="button" className="btn btn-primary">
