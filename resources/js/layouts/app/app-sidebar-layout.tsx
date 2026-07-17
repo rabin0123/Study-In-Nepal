@@ -317,51 +317,6 @@ export default function AppSidebarLayout({ children }: Props) {
                     border-radius: 999px;
                 }
 
-                /* ── Viewport-height containment for the dashboard shell ──
-                   #main-wrapper / .page-wrapper / .body-wrapper are plain
-                   block elements by default with no height limit, so they
-                   grow to fit whatever a page renders and the browser ends
-                   up scrolling <html>/<body> instead of the page's own
-                   internal scroll area. This locks the shell to the
-                   viewport and makes .body-wrapper (and anything inside it
-                   with its own overflow, like a data table) the thing that
-                   actually scrolls. */
-                html, body {
-                    height: 100%;
-                }
-
-                #main-wrapper {
-                    height: 100vh;
-                    overflow: hidden;
-                }
-
-                #main-wrapper .page-wrapper {
-                    height: 100vh;
-                    display: flex;
-                    flex-direction: column;
-                    overflow: hidden;
-                    min-width: 0;
-                }
-
-                #main-wrapper .page-wrapper .topbar {
-                    flex-shrink: 0;
-                }
-
-                #main-wrapper .page-wrapper .body-wrapper {
-                    flex: 1 1 auto;
-                    overflow-y: auto;
-                    display: flex;
-                    flex-direction: column;
-                    padding-bottom: 0;
-                }
-
-                #main-wrapper .page-wrapper .body-wrapper .container-fluid {
-                    flex: 1 1 auto;
-                    min-height: 0;
-                    display: flex;
-                    flex-direction: column;
-                }
-
                 .notif-message {
                     display: -webkit-box;
                     -webkit-line-clamp: 3;
@@ -442,7 +397,7 @@ export default function AppSidebarLayout({ children }: Props) {
                     border-color: var(--bs-primary, #5d87ff);
                     box-shadow: 0 0 0 3px rgba(93, 135, 255, 0.15);
                 }
-
+                
                 /* Support for Dark Mode */
                 html[data-bs-theme="dark"] .nav-search-bar,
                 html[data-theme="dark"] .nav-search-bar,
@@ -549,7 +504,7 @@ export default function AppSidebarLayout({ children }: Props) {
             {/* ── Vertical sidebar ── */}
             <aside className="left-sidebar with-vertical" data-sidebar-theme="light">
                 <div className="d-flex flex-column h-100 justify-content-between">
-
+                    
                     {/* Top menu section */}
                     <div className="d-flex flex-column flex-grow-1" style={{ minHeight: 0 }}>
                         <div className="brand-logo d-flex align-items-center justify-content-between">
@@ -562,7 +517,7 @@ export default function AppSidebarLayout({ children }: Props) {
                         </div>
 
                         <nav className="sidebar-nav scroll-sidebar sidebar-nav-scroll flex-grow-1">
-
+                            
                             <ul className="sidebar-menu" id="sidebarnav">
                                 <li className="nav-small-cap">
                                     <iconify-icon icon="solar:menu-dots-linear" className="mini-icon" />
@@ -577,8 +532,7 @@ export default function AppSidebarLayout({ children }: Props) {
                                         </Link>
                                     </li>
                                 ))}
-
-                            {/* <li>
+                             {/* <li>
                                 <span className="sidebar-divider lg"></span>
                             </li>
                             <li className="nav-small-cap">
@@ -588,7 +542,7 @@ export default function AppSidebarLayout({ children }: Props) {
 
                             {navGroups.map((group) => (
                                 <NavGroupSection key={group.id} group={group} />
-                            ))} */}
+                            ))}  */}
                             </ul>
                         </nav>
                     </div>
@@ -655,11 +609,11 @@ export default function AppSidebarLayout({ children }: Props) {
                                 <div className="d-flex align-items-center justify-content-center mx-lg-auto my-3 my-lg-0 w-100" style={{ maxWidth: '400px' }}>
                                     <div className="position-relative w-100 px-3 px-lg-0">
                                         <div className="nav-search-bar d-flex align-items-center w-100 px-3 py-1" style={{ minHeight: '42px' }}>
-                                            <iconify-icon
-                                                icon="solar:magnifer-line-duotone"
-                                                width="22"
-                                                height="22"
-                                                className="text-muted flex-shrink-0"
+                                            <iconify-icon 
+                                                icon="solar:magnifer-line-duotone" 
+                                                width="22" 
+                                                height="22" 
+                                                className="text-muted flex-shrink-0" 
                                             />
                                             <input
                                                 type="search"
@@ -675,8 +629,8 @@ export default function AppSidebarLayout({ children }: Props) {
 
                                         {/* Results Dropdown Overlay */}
                                         {showResults && searchQuery.trim().length >= 2 && (
-                                            <div
-                                                className="dropdown-menu show position-absolute w-100 shadow mt-2 p-0 overflow-hidden"
+                                            <div 
+                                                className="dropdown-menu show position-absolute w-100 shadow mt-2 p-0 overflow-hidden" 
                                                 style={{ zIndex: 1050, maxHeight: '280px', overflowY: 'auto', top: '100%', left: 0 }}
                                             >
                                                 {isSearching ? (
@@ -719,21 +673,7 @@ export default function AppSidebarLayout({ children }: Props) {
 
                                 {/* Right Area: Icons and User Profile */}
                                 <ul className="navbar-nav flex-row ms-lg-auto align-items-center justify-content-center pb-3 pb-lg-0">
-
-                                    {/* Commission */}
-                                    {auth?.permissions?.includes('view.commissionindex') && (
-                                        <li className="nav-item nav-icon-hover">
-                                            <Link
-                                                href="/commission"
-                                                prefetch
-                                                className={`nav-link ${isCurrentUrl('/commission') ? 'active' : ''}`}
-                                                title="Commission"
-                                            >
-                                                <iconify-icon icon="solar:dollar-line-duotone" className="fs-6" />
-                                            </Link>
-                                        </li>
-                                    )}
-
+                                    
                                     {/* Dark / light toggle */}
                                     <li className="nav-item nav-icon-hover">
                                         <a
@@ -923,8 +863,8 @@ export default function AppSidebarLayout({ children }: Props) {
                                                         </Link>
                                                     )}
 
-                                                    {auth?.permissions?.includes('view.commission') && (
-                                                        <Link href="/commissions" className="py-8 px-7 d-flex align-items-center">
+                                                    {auth?.permissions?.includes('view.commissionindex') && (
+                                                        <Link href="/commission" className="py-8 px-7 d-flex align-items-center">
                                                             <span className="d-flex align-items-center justify-content-center bg-warning-subtle text-warning rounded round">
                                                                 <iconify-icon icon="solar:dollar-line-duotone" className="fs-7" />
                                                             </span>
