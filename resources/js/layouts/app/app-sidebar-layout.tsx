@@ -719,7 +719,18 @@ export default function AppSidebarLayout({ children }: Props) {
 
                                 {/* Right Area: Icons and User Profile */}
                                 <ul className="navbar-nav flex-row ms-lg-auto align-items-center justify-content-center pb-3 pb-lg-0">
-
+                                         <li className="nav-item nav-icon-hover dropdown">
+                                        <a
+                                            className="nav-link position-relative"
+                                            href="/commission"
+                                            onClick={(e) => e.preventDefault()}
+                                           
+                                        >
+                                            <iconify-icon icon="solar:dollar-bing-line-duotone" className="fs-6" />
+                                            
+                                        </a>
+                                        
+                                    </li>
                                     {/* Dark / light toggle */}
                                     <li className="nav-item nav-icon-hover">
                                         <a
