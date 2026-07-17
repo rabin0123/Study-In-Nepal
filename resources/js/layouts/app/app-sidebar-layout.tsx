@@ -349,7 +349,6 @@ export default function AppSidebarLayout({ children }: Props) {
 
                 #main-wrapper .page-wrapper .body-wrapper {
                     flex: 1 1 auto;
-                    min-height: 0;
                     overflow-y: auto;
                     display: flex;
                     flex-direction: column;
