@@ -921,12 +921,20 @@ export default function AppSidebarLayout({ children }: Props) {
                                                     )}
                                                    {auth?.permissions?.includes('view.role') && (
     <Link href="/roles" className="py-8 px-7 d-flex align-items-center">
-        <span className="d-flex align-items-center justify-content-center bg-danger-subtle text-danger rounded round">
-            <iconify-icon
-                icon="solar:shield-user-line-duotone"
-                className="fs-7"
-            />
-        </span>
+        <span
+    className="d-flex align-items-center justify-content-center rounded round"
+    style={{
+        backgroundColor: "#EEF2FF",
+        color: "#4F46E5",
+        width: "42px",
+        height: "42px"
+    }}
+>
+    <iconify-icon
+        icon="solar:shield-user-line-duotone"
+        className="fs-7"
+    />
+</span>
 
         <div className="w-75 v-middle ps-3">
             <h5 className="mb-1 fs-3 fw-medium">Roles</h5>
