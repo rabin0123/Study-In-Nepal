@@ -352,7 +352,7 @@ export default function AppSidebarLayout({ children }: Props) {
                     overflow-y: auto;
                     display: flex;
                     flex-direction: column;
-                    padding-bottom: 10px;
+                    padding-bottom: 0;
                 }
 
                 #main-wrapper .page-wrapper .body-wrapper .container-fluid {
