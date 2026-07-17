@@ -147,7 +147,7 @@ export default function StudyInNepalSection() {
             Sample data shown above — connect your own university and course
             list to populate this section.
           </p>
-          <button className="sin-body bg-[#B9812A] text-[#FAF8F3] font-medium text-sm px-6 py-3 rounded-md hover:bg-[#CE9646] transition-colors whitespace-nowrap">
+          <button className="sin-body bg-[#e3dfd9] text-[#FAF8F3] font-medium text-sm px-6 py-3 rounded-md hover:bg-[#CE9646] transition-colors whitespace-nowrap">
             Start your application
           </button>
         </div>
