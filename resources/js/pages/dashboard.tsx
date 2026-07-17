@@ -27,8 +27,9 @@ interface DashboardResponse {
 export default function Dashboard() {
     const [stats, setStats] = useState<Stats | null>(null);
     const [latestApplications, setLatestApplications] = useState<Application[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-
+    const [isLoading, setIsLoading] = useState(true); // New state to track initial data load
+    
+    // Non-navigating HTTP client hook
     const http = useHttp();
 
     useEffect(() => {
@@ -38,418 +39,209 @@ export default function Dashboard() {
                 setStats(response.stats);
                 setLatestApplications(response.latestApplications);
             } catch (error) {
-                console.error('Error loading dashboard data:', error);
+                console.error("Error loading dashboard data:", error);
             } finally {
-                setIsLoading(false);
+                setIsLoading(false); // Done loading (stops spinner even on error)
             }
         }
-
+        
         loadDashboardData();
     }, []);
 
-    // Maps a status string to an icon + semantic color token used across the page
-    const getStatusMeta = (status: string) => {
+    // Utility to map statuses to modern Bootstrap 5 contextual colors
+    const getStatusStyles = (status: string) => {
         switch (status?.toUpperCase()) {
             case 'APPROVED':
-                return { icon: 'mdi:check-circle', className: 'status-pill status-approved' };
+                return 'bg-success-subtle text-success border border-success-subtle';
             case 'REJECTED':
-                return { icon: 'mdi:close-circle', className: 'status-pill status-rejected' };
+                return 'bg-danger-subtle text-danger border border-danger-subtle';
             case 'PENDING REVIEW':
             case 'PENDING':
             default:
-                return { icon: 'mdi:clock-outline', className: 'status-pill status-pending' };
+                return 'bg-warning-subtle text-warning border border-warning-subtle';
         }
     };
 
+    // Handler to navigate to the student application record
     const viewApplicationRecord = (appId: number) => {
         router.visit(`/applications/${appId}`);
     };
 
+    // Full-screen / container-centered loading spinner before page is loaded
     if (isLoading) {
         return (
-            <div className="dash-loading d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '75vh' }}>
-                <div className="spinner-border" role="status" style={{ width: '3rem', height: '3rem', color: '#1E5FCC' }}>
+            <div className="d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '75vh' }}>
+                <div className="spinner-border text-primary" role="status" style={{ width: '3.5rem', height: '3.5rem' }}>
                     <span className="visually-hidden">Loading Dashboard...</span>
                 </div>
-                <p className="mt-3 fw-medium" style={{ color: '#5B6B85' }}>Loading dashboard&hellip;</p>
+                <h6 className="mt-3 text-muted fw-semibold">Loading dashboard data...</h6>
             </div>
         );
     }
 
-    const statCards = [
-        {
-            label: 'Total Applications',
-            value: stats?.totalApplications ?? 0,
-            helper: 'Submitted across all agencies',
-            icon: 'mdi:file-document-multiple-outline',
-        },
-        {
-            label: 'Applications Processed',
-            value: stats?.processedApplications ?? 0,
-            helper: 'Approved or rejected to date',
-            icon: 'mdi:progress-check',
-        },
-        {
-            label: 'Case Closed',
-            value: stats?.closedApplications ?? 0,
-            helper: 'Completed enrollments',
-            icon: 'mdi:archive-check-outline',
-        },
-    ];
-
     return (
         <>
             <Head title="Dashboard" />
-            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" />
-            <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
-            <style>{`
-                :root {
-                    --brand-900: #0B2559;
-                    --brand-700: #1E4FCC;
-                    --brand-600: #1E5FCC;
-                    --brand-500: #3B7CF6;
-                    --brand-100: #EAF1FF;
-                    --brand-50: #F5F8FF;
-                    --ink-900: #101828;
-                    --ink-600: #475467;
-                    --ink-400: #98A2B3;
-                    --line: #E6EAF2;
-                }
-
-                .dash-page {
-                    background: linear-gradient(180deg, var(--brand-50) 0%, #FFFFFF 340px);
-                    min-height: 100vh;
-                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                }
-
-                .dash-header-eyebrow {
-                    letter-spacing: 0.08em;
-                    text-transform: uppercase;
-                    font-size: 0.72rem;
-                    font-weight: 700;
-                    color: var(--brand-600);
-                }
-
-                .dash-header-title {
-                    color: var(--ink-900);
-                    font-weight: 800;
-                    letter-spacing: -0.02em;
-                }
-
-                .stat-card {
-                    background: #fff;
-                    border: 1px solid var(--line);
-                    border-radius: 16px;
-                    padding: 1.75rem;
-                    position: relative;
-                    overflow: hidden;
-                    transition: transform 0.18s ease, box-shadow 0.18s ease;
-                    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
-                }
-
-                .stat-card:hover {
-                    transform: translateY(-3px);
-                    box-shadow: 0 12px 24px -8px rgba(30, 79, 204, 0.18);
-                }
-
-                .stat-card::before {
-                    content: '';
-                    position: absolute;
-                    top: 0; left: 0;
-                    width: 100%;
-                    height: 3px;
-                    background: linear-gradient(90deg, var(--brand-600), var(--brand-500));
-                }
-
-                .stat-icon-wrap {
-                    width: 44px;
-                    height: 44px;
-                    border-radius: 12px;
-                    background: var(--brand-100);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: var(--brand-700);
-                    font-size: 22px;
-                    flex-shrink: 0;
-                }
-
-                .stat-value {
-                    font-size: 2.35rem;
-                    font-weight: 800;
-                    color: var(--ink-900);
-                    letter-spacing: -0.02em;
-                    line-height: 1.1;
-                }
-
-                .stat-label {
-                    color: var(--ink-600);
-                    font-weight: 600;
-                    font-size: 0.85rem;
-                }
-
-                .stat-helper {
-                    color: var(--ink-400);
-                    font-size: 0.8rem;
-                }
-
-                .panel-card {
-                    background: #fff;
-                    border: 1px solid var(--line);
-                    border-radius: 16px;
-                    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
-                }
-
-                .panel-header {
-                    padding: 1.5rem 1.75rem 1.25rem;
-                    border-bottom: 1px solid var(--line);
-                }
-
-                .panel-title {
-                    color: var(--ink-900);
-                    font-weight: 700;
-                    font-size: 1.05rem;
-                    margin-bottom: 0.15rem;
-                }
-
-                .panel-subtitle {
-                    color: var(--ink-600);
-                    font-size: 0.85rem;
-                }
-
-                .live-badge {
-                    background: var(--brand-50);
-                    color: var(--brand-700);
-                    font-weight: 600;
-                    font-size: 0.78rem;
-                    padding: 0.35rem 0.75rem;
-                    border-radius: 999px;
-                    border: 1px solid var(--brand-100);
-                }
-
-                .live-dot {
-                    width: 6px;
-                    height: 6px;
-                    border-radius: 50%;
-                    background: #17B26A;
-                    display: inline-block;
-                    box-shadow: 0 0 0 3px rgba(23, 178, 106, 0.18);
-                }
-
-                .app-table thead th {
-                    background: var(--brand-900);
-                    color: #fff;
-                    font-size: 0.72rem;
-                    letter-spacing: 0.06em;
-                    text-transform: uppercase;
-                    font-weight: 600;
-                    border: none;
-                    padding: 0.9rem 1.25rem;
-                    white-space: nowrap;
-                }
-
-                .app-table thead th:first-child { border-top-left-radius: 0; }
-
-                .app-table tbody td {
-                    padding: 1rem 1.25rem;
-                    border-bottom: 1px solid var(--line);
-                    vertical-align: middle;
-                }
-
-                .app-table tbody tr {
-                    cursor: pointer;
-                    transition: background 0.12s ease;
-                }
-
-                .app-table tbody tr:hover {
-                    background: var(--brand-50);
-                }
-
-                .app-table tbody tr:last-child td {
-                    border-bottom: none;
-                }
-
-                .app-id-chip {
-                    font-family: 'SFMono-Regular', Consolas, Menlo, monospace;
-                    font-size: 0.8rem;
-                    font-weight: 700;
-                    color: var(--brand-700);
-                    background: var(--brand-100);
-                    padding: 0.2rem 0.55rem;
-                    border-radius: 6px;
-                }
-
-                .student-name {
-                    color: var(--ink-900);
-                    font-weight: 600;
-                }
-
-                .course-name {
-                    color: var(--ink-900);
-                    font-weight: 600;
-                    font-size: 0.9rem;
-                }
-
-                .uni-name {
-                    color: var(--ink-400);
-                    font-size: 0.8rem;
-                }
-
-                .submitted-date {
-                    color: var(--ink-400);
-                    font-size: 0.82rem;
-                }
-
-                .status-pill {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 0.35rem;
-                    font-size: 0.78rem;
-                    font-weight: 600;
-                    padding: 0.32rem 0.7rem;
-                    border-radius: 999px;
-                    border: 1px solid transparent;
-                }
-
-                .status-approved {
-                    background: #ECFDF3;
-                    color: #067647;
-                    border-color: #ABEFC6;
-                }
-
-                .status-rejected {
-                    background: #FEF3F2;
-                    color: #B42318;
-                    border-color: #FECDCA;
-                }
-
-                .status-pending {
-                    background: #FFFAEB;
-                    color: #B54708;
-                    border-color: #FEDF89;
-                }
-
-                .empty-state {
-                    padding: 4rem 1rem;
-                    text-align: center;
-                }
-
-                .empty-state .icon-wrap {
-                    width: 64px;
-                    height: 64px;
-                    border-radius: 16px;
-                    background: var(--brand-50);
-                    color: var(--brand-500);
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 32px;
-                    margin-bottom: 1rem;
-                }
-            `}</style>
-
-            <div className="dash-page">
-                <div className="container-fluid px-4 py-4" style={{ maxWidth: '1320px' }}>
-
-                    {/* Page heading */}
-                    <div className="mb-4">
-                        <div className="dash-header-eyebrow mb-1">Overview</div>
-                        <h2 className="dash-header-title mb-0">Applications Dashboard</h2>
-                    </div>
-
-                    {/* Stat cards */}
-                    <div className="row g-3 mb-4">
-                        {statCards.map((card) => (
-                            <div className="col-12 col-md-4" key={card.label}>
-                                <div className="stat-card h-100">
-                                    <div className="d-flex align-items-start justify-content-between mb-4">
-                                        <span className="stat-label">{card.label}</span>
-                                        <div className="stat-icon-wrap">
-                                            <iconify-icon icon={card.icon}></iconify-icon>
-                                        </div>
+            <div className="container-fluid p-4">
+                
+                {/* Statistics Cards Section */}
+                <div className="row g-4 mb-4">
+                    
+                    {/* Card 1: Total Applications */}
+                    <div className="col-12 col-md-4">
+                        <div className="card border-0 shadow-sm h-100 border-top border-primary border-3">
+                            <div className="card-body p-4">
+                                <div className="d-flex align-items-center justify-content-between">
+                                    <span className="text-muted fw-medium small">Total Applications</span>
+                                    <div className="bg-primary rounded p-2 d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                                            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+                                            <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+                                            <path d="M10 9H8"/>
+                                            <path d="M16 13H8"/>
+                                            <path d="M16 17H8"/>
+                                        </svg>
                                     </div>
-                                    <div className="stat-value mb-1">{card.value.toLocaleString()}</div>
-                                    <div className="stat-helper">{card.helper}</div>
+                                </div>
+                                <div className="mt-3">
+                                    <h3 className="display-6 fw-bold mb-1 text-primary">
+                                        {stats?.totalApplications ?? 0}
+                                    </h3>
+                                    <p className="text-muted small mb-0">Submitted applications across agencies</p>
                                 </div>
                             </div>
-                        ))}
+                        </div>
                     </div>
 
-                    {/* Latest applications */}
-                    <div className="panel-card">
-                        <div className="panel-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-                            <div>
-                                <div className="panel-title">Latest Applications</div>
-                                <div className="panel-subtitle">Recently submitted student entries</div>
-                            </div>
-                            <span className="live-badge d-inline-flex align-items-center gap-2">
-                                <span className="live-dot"></span>
-                                Real-time updates
-                            </span>
-                        </div>
-
-                        {latestApplications.length === 0 ? (
-                            <div className="empty-state">
-                                <div className="icon-wrap">
-                                    <iconify-icon icon="mdi:account-search-outline"></iconify-icon>
+                    {/* Card 2: Applications Processed */}
+                    <div className="col-12 col-md-4">
+                        <div className="card border-0 shadow-sm h-100 border-top border-primary border-3">
+                            <div className="card-body p-4">
+                                <div className="d-flex align-items-center justify-content-between">
+                                    <span className="text-muted fw-medium small">Applications Processed</span>
+                                    <div className="bg-primary-subtle rounded p-2 d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <path d="m9 12 2 2 4-4"/>
+                                        </svg>
+                                    </div>
                                 </div>
-                                <p className="mb-0 fw-medium" style={{ color: 'var(--ink-600)' }}>No applications found.</p>
-                                <p className="mb-0" style={{ color: 'var(--ink-400)', fontSize: '0.85rem' }}>
-                                    New submissions will appear here as they come in.
-                                </p>
+                                <div className="mt-3">
+                                    <h3 className="display-6 fw-bold mb-1 text-primary">
+                                        {stats?.processedApplications ?? 0}
+                                    </h3>
+                                    <p className="text-muted small mb-0">Approved or rejected applications</p>
+                                </div>
                             </div>
-                        ) : (
-                            <div className="table-responsive">
-                                <table className="table app-table mb-0">
-                                    <thead>
-                                        <tr>
-                                            <th>App ID</th>
-                                            <th>Student</th>
-                                            <th>Course / University</th>
-                                            <th>Status</th>
-                                            <th className="text-end">Submitted</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {latestApplications.map((app) => {
-                                            const meta = getStatusMeta(app.status);
-                                            return (
-                                                <tr
-                                                    key={app.id}
-                                                    onClick={() => viewApplicationRecord(app.id)}
-                                                    title="Click to view full application record"
-                                                >
-                                                    <td>
-                                                        <span className="app-id-chip">{app.app_id}</span>
-                                                    </td>
-                                                    <td>
-                                                        <span className="student-name">{app.student_name}</span>
-                                                    </td>
-                                                    <td>
-                                                        <div className="d-flex flex-column">
-                                                            <span className="course-name">{app.course_name}</span>
-                                                            <span className="uni-name">
-                                                                {app.college_name || app.university_name}
-                                                            </span>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        <span className={meta.className}>
-                                                            <iconify-icon icon={meta.icon} style={{ fontSize: '14px' }}></iconify-icon>
-                                                            {app.status}
-                                                        </span>
-                                                    </td>
-                                                    <td className="text-end submitted-date">{app.created_at}</td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
+                        </div>
+                    </div>
+
+                    {/* Card 3: Case Closed */}
+                    <div className="col-12 col-md-4">
+                        <div className="card border-0 shadow-sm h-100 border-top border-primary border-3">
+                            <div className="card-body p-4">
+                                <div className="d-flex align-items-center justify-content-between">
+                                    <span className="text-muted fw-medium small">Case Closed</span>
+                                    <div className="bg-info-subtle rounded p-2 d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-info">
+                                            <rect width="20" height="5" x="2" y="3" rx="1"/>
+                                            <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/>
+                                            <line x1="10" x2="14" y1="12" y2="12"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div className="mt-3">
+                                    <h3 className="display-6 fw-bold mb-1 text-primary">
+                                        {stats?.closedApplications ?? 0}
+                                    </h3>
+                                    <p className="text-muted small mb-0">Completed / approved enrollments</p>
+                                </div>
                             </div>
-                        )}
+                        </div>
                     </div>
 
                 </div>
+
+                {/* Latest Applications Table Section */}
+                <div className="row">
+                    <div className="col-12">
+                        <div className="card border-0 shadow-sm">
+                            <div className="card-header bg-transparent border-bottom border-primary-subtle pt-4 px-4 pb-3 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 className="card-title fw-bold mb-1 text-primary">Latest Applications</h5>
+                                    <p className="card-subtitle text-muted small">Recently submitted student entries</p>
+                                </div>
+                                <div className="text-primary small d-flex align-items-center gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <polyline points="12 6 12 12 16 14"/>
+                                    </svg>
+                                    <span className="fw-semibold">Real-time updates</span>
+                                </div>
+                            </div>
+
+                            <div className="card-body px-0 pb-0">
+                                {latestApplications.length === 0 ? (
+                                    <div className="text-center py-5 text-muted">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2 opacity-50 text-primary">
+                                            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                                            <circle cx="12" cy="7" r="4"/>
+                                        </svg>
+                                        <p className="mb-0">No applications found.</p>
+                                    </div>
+                                ) : (
+                                    <div className="table-responsive">
+                                        <table className="table table-hover align-middle mb-0">
+                                            <thead className="bg-primary text-white">
+                                                <tr className="text-uppercase" style={{ fontSize: '0.75rem', letterSpacing: '0.05em' }}>
+                                                    <th className="px-4 py-3 bg-primary text-white border-0">App ID</th>
+                                                    <th className="px-4 py-3 bg-primary text-white border-0">Student Name</th>
+                                                    <th className="px-4 py-3 bg-primary text-white border-0">Course / University</th>
+                                                    <th className="px-4 py-3 bg-primary text-white border-0">Status</th>
+                                                    <th className="px-4 py-3 bg-primary text-white border-0 text-end">Submitted</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {latestApplications.map((app) => (
+                                                    <tr 
+                                                        key={app.id} 
+                                                        onClick={() => viewApplicationRecord(app.id)}
+                                                        style={{ cursor: 'pointer' }}
+                                                        title="Click to view full application record"
+                                                    >
+                                                        <td className="px-4 py-3 font-monospace text-primary small fw-bold">
+                                                            {app.app_id}
+                                                        </td>
+                                                        <td className="px-4 py-3 fw-bold">
+                                                            {app.student_name}
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <div className="d-flex flex-column">
+                                                                <span className="fw-semibold">{app.course_name}</span>
+                                                                <span className="text-muted small">
+                                                                    {app.college_name || app.university_name}
+                                                                </span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <span className={`badge rounded-pill px-3 py-1.5 ${getStatusStyles(app.status)}`}>
+                                                                {app.status}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-end text-muted small">
+                                                            {app.created_at}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </>
     );
