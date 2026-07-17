@@ -925,8 +925,8 @@ export default function AppSidebarLayout({ children }: Props) {
                                                                 <iconify-icon icon="solar:course-up-line-duotone" className="fs-7" />
                                                             </span>
                                                             <div className="w-75 v-middle ps-3">
-                                                                <h5 className="mb-1 fs-3 fw-medium">Manage Agency</h5>
-                                                                <span className="fs-2 d-block text-body-secondary">Partner agencies</span>
+                                                                <h5 className="mb-1 fs-3 fw-medium">Roles</h5>
+                                                                <span className="fs-2 d-block text-body-secondary">Roles Information</span>
                                                             </div>
                                                         </Link>
                                                     )}
