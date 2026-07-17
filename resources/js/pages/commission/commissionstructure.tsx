@@ -106,15 +106,14 @@ export default function CommissionStructureList() {
   }
 
   return (
-    /* Outer layout container to fix the viewport height and stop window/body scrolling */
-    <div 
-      className="d-flex flex-column overflow-hidden" 
-      style={{ 
-        height: 'calc(100vh - 120px)', // Adjust 120px as needed depending on your top navbar height
-        minHeight: '500px'
-      }}
-    >
-      {/* ── Page header (Fixed Height) ── */}
+    /*
+      Outer layout container: NOT fixed-height and NOT the scroll owner.
+      It just participates in normal document flow. The table area below
+      is the only element allowed to scroll, and it does so via its own
+      max-height, not via constraining this wrapper's height.
+    */
+    <div className="d-flex flex-column">
+      {/* ── Page header ── */}
       <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-6 flex-shrink-0">
         <div className="d-flex align-items-center gap-3">
           <span className="d-none d-sm-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-3 round-48" style={{ width: 48, height: 48 }}>
@@ -145,7 +144,7 @@ export default function CommissionStructureList() {
         </div>
       </div>
 
-      {/* ── Search filter card (Fixed Height) ── */}
+      {/* ── Search filter card ── */}
       <div className="card mb-6 flex-shrink-0">
         <div className="card-body d-flex flex-column flex-xl-row align-items-xl-center justify-content-xl-between gap-4">
           <div className="d-flex flex-wrap align-items-center gap-3 flex-grow-1">
@@ -182,9 +181,9 @@ export default function CommissionStructureList() {
         </div>
       </div>
 
-      {/* ── Table card (Flex Grow - Fills the exact remaining space dynamically) ── */}
-      <div className="card flex-grow-1 overflow-hidden d-flex flex-column">
-        <div className="card-body p-0 d-flex flex-column flex-grow-1 overflow-hidden">
+      {/* ── Table card ── */}
+      <div className="card flex-shrink-0">
+        <div className="card-body p-0">
           {entries.length === 0 ? (
             <div className="text-center py-16 text-body-secondary fw-semibold">
               No commission entries available.
@@ -194,10 +193,16 @@ export default function CommissionStructureList() {
               No matching entries for "{searchQuery}".
             </div>
           ) : (
-            /* Inside table wrapper becomes scrollable internally */
+            /*
+              This is the ONLY scrollable region. It has its own bounded
+              max-height (independent of viewport math on the outer
+              wrapper) and scrolls internally once content exceeds it.
+              The rest of the page/component scrolls normally if needed,
+              but this box will show its own scrollbar first.
+            */
             <div
-              className="table-responsive sidebar-nav-scroll flex-grow-1"
-              style={{ overflowY: 'auto', width: '100%' }}
+              className="table-responsive sidebar-nav-scroll"
+              style={{ overflowY: 'auto', overflowX: 'auto', width: '100%', maxHeight: '65vh' }}
             >
               <table
                 className="table mb-0 align-middle"
