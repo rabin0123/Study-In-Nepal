@@ -720,6 +720,20 @@ export default function AppSidebarLayout({ children }: Props) {
                                 {/* Right Area: Icons and User Profile */}
                                 <ul className="navbar-nav flex-row ms-lg-auto align-items-center justify-content-center pb-3 pb-lg-0">
 
+                                    {/* Commission */}
+                                    {auth?.permissions?.includes('view.commissionindex') && (
+                                        <li className="nav-item nav-icon-hover">
+                                            <Link
+                                                href="/commissions"
+                                                prefetch
+                                                className={`nav-link ${isCurrentUrl('/commissions') ? 'active' : ''}`}
+                                                title="Commission"
+                                            >
+                                                <iconify-icon icon="solar:dollar-line-duotone" className="fs-6" />
+                                            </Link>
+                                        </li>
+                                    )}
+
                                     {/* Dark / light toggle */}
                                     <li className="nav-item nav-icon-hover">
                                         <a
