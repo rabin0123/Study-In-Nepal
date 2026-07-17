@@ -202,7 +202,7 @@ export default function CommissionStructureList() {
             */
             <div
               className="table-responsive sidebar-nav-scroll"
-              style={{ overflowY: 'auto', overflowX: 'auto', width: '100%', maxHeight: '80vh' }}
+              style={{ overflowY: 'auto', overflowX: 'auto', width: '100%', maxHeight: 700 }}
             >
               <table
                 className="table mb-0 align-middle"
