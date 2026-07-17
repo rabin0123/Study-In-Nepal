@@ -919,7 +919,7 @@ export default function AppSidebarLayout({ children }: Props) {
                                                             </div>
                                                         </Link>
                                                     )}
-                                                    {auth?.permissions?.includes('view.roles') && (
+                                                    {auth?.permissions?.includes('view.role') && (
                                                         <Link href="/roles" className="py-8 px-7 d-flex align-items-center">
                                                             <span className="d-flex align-items-center justify-content-center bg-danger-subtle text-danger rounded round">
                                                                 <iconify-icon icon="solar:course-up-line-duotone" className="fs-7" />
