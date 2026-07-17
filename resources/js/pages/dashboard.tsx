@@ -4,6 +4,7 @@ import { dashboard } from '@/routes';
 
 interface Application {
     id: number;
+    avatar_url?: string;
     app_id: string;
     student_name: string;
     university_name: string;
