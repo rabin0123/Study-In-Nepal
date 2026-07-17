@@ -1,5 +1,20 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 
+// Declarations to ensure TypeScript compiles custom elements from Iconify CDN seamlessly
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'iconify-icon': React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & {
+          icon?: string;
+          class?: string;
+        },
+        HTMLElement
+      >;
+    }
+  }
+}
+
 const API_BASE_URL = '/api'; 
 
 interface CommissionEntryType {
@@ -55,7 +70,7 @@ function SingleCombobox({ placeholder, value, onChange, options }: { placeholder
               <iconify-icon icon="solar:close-circle-line-duotone" className="fs-5"></iconify-icon>
             </button>
           )}
-          <i className="ti ti-chevron-down fs-4"></i>
+          <iconify-icon icon="solar:alt-arrow-down-linear" className="fs-4"></iconify-icon>
         </div>
       </div>
       {isOpen && filteredOptions.length > 0 && (
@@ -123,7 +138,7 @@ function MultiSelectCombobox({ placeholder, selected, onChange, options }: { pla
               <iconify-icon icon="solar:close-circle-line-duotone" className="fs-5"></iconify-icon>
             </button>
           )}
-          <i className="ti ti-chevron-down fs-4"></i>
+          <iconify-icon icon="solar:alt-arrow-down-linear" className="fs-4"></iconify-icon>
         </div>
       </div>
 
@@ -186,6 +201,9 @@ export default function CommissionEntry() {
 
   const [editingCommissionId, setEditingCommissionId] = useState<number | null>(null);
   const [editCommissionValue, setEditCommissionValue] = useState<string>("");
+  
+  // Track image load failures per row ID
+  const [logoErrors, setLogoErrors] = useState<Record<number, boolean>>({});
 
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean; title: string; message: string; confirmText: string; confirmColor: string; onConfirm: () => void;
@@ -376,6 +394,17 @@ export default function CommissionEntry() {
       showToast("Data imported successfully!", "success");
     } catch (err) { showToast("Import failed. Please check file format.", "error"); } finally { setImporting(false); }
   };
+
+  // Full-page loading gate keeps layout clean until API details load
+  if (loading) {
+    return (
+      <div className="d-flex flex-column align-items-center justify-content-center text-center" style={{ minHeight: '60vh' }}>
+        <span className="spinner-border text-primary mb-4" style={{ width: '2.5rem', height: '2.5rem' }} role="status" aria-hidden="true"></span>
+        <h5 className="fw-semibold mb-1">Loading Commission Structures</h5>
+        <p className="text-body-secondary mb-0">Please wait while we fetch the latest records…</p>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -590,12 +619,7 @@ export default function CommissionEntry() {
       {/* ── Table Container Card ── */}
       <div className="card">
         <div className="card-body p-0">
-          {loading ? (
-            <div className="text-center py-16 text-body-secondary fw-semibold">
-              <span className="spinner-border spinner-border-sm me-2 text-primary" role="status" aria-hidden="true"></span>
-              Loading records...
-            </div>
-          ) : entries.length === 0 ? (
+          {entries.length === 0 ? (
             <div className="text-center py-16 text-body-secondary fw-semibold">
               No commission entries available.
             </div>
@@ -629,90 +653,93 @@ export default function CommissionEntry() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredEntries.map((entry) => (
-                    <tr key={entry.id}>
-                      <td className="ps-6">
-                        <div className="d-flex align-items-center">
-                          {entry.college_logo_url ? (
-                            <img
-                              src={entry.college_logo_url}
-                              alt="logo"
-                              className="rounded flex-shrink-0 border p-1"
-                              width={32}
-                              height={32}
-                              style={{ objectFit: 'contain', background: '#fff' }}
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                                const fallback = document.getElementById(`fallback-col-${entry.id}`);
-                                if (fallback) fallback.classList.remove('d-none');
+                  {filteredEntries.map((entry) => {
+                    const hasImageError = logoErrors[entry.id];
+                    const shouldShowLogo = entry.college_logo_url && !hasImageError;
+
+                    return (
+                      <tr key={entry.id}>
+                        <td className="ps-6">
+                          <div className="d-flex align-items-center">
+                            {shouldShowLogo ? (
+                              <img
+                                src={entry.college_logo_url || undefined}
+                                alt="logo"
+                                className="rounded flex-shrink-0 border p-1"
+                                width={32}
+                                height={32}
+                                style={{ objectFit: 'contain', background: '#fff' }}
+                                onError={() => {
+                                  setLogoErrors(prev => ({ ...prev, [entry.id]: true }));
+                                }}
+                              />
+                            ) : (
+                              <span 
+                                className="d-flex align-items-center justify-content-center flex-shrink-0 bg-light text-body-secondary rounded" 
+                                style={{ width: 32, height: 32 }}
+                              >
+                                <iconify-icon icon="solar:buildings-line-duotone" className="fs-5"></iconify-icon>
+                              </span>
+                            )}
+                            <span className="ms-3 fw-semibold text-dark text-truncate" title={entry.college}>
+                              {entry.college}
+                            </span>
+                          </div>
+                        </td>
+
+                        <td>
+                          <div className="d-flex align-items-center gap-2 fw-normal">
+                            <iconify-icon icon="solar:square-academic-cap-line-duotone" className="text-body-secondary fs-5 flex-shrink-0"></iconify-icon>
+                            <span className="text-dark fw-semibold text-truncate" title={entry.university}>{entry.university}</span>
+                          </div>
+                        </td>
+
+                        <td>
+                          <div className="d-flex align-items-center gap-2 fw-normal">
+                            <iconify-icon icon="solar:map-point-line-duotone" className="text-body-secondary fs-5 flex-shrink-0"></iconify-icon>
+                            <span className="text-truncate" title={entry.location}>{entry.location}</span>
+                          </div>
+                        </td>
+
+                        <td>
+                          {editingCommissionId === entry.id ? (
+                            <input 
+                              autoFocus 
+                              type="number" 
+                              step="0.01" 
+                              value={editCommissionValue}
+                              onChange={(e) => setEditCommissionValue(e.target.value)}
+                              onBlur={() => handleCommissionUpdate(entry.id, entry.commission_percentage)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') { e.preventDefault(); handleCommissionUpdate(entry.id, entry.commission_percentage); }
+                                if (e.key === 'Escape') setEditingCommissionId(null);
                               }}
+                              className="form-control form-control-sm"
+                              style={{ maxWidth: '120px' }}
                             />
-                          ) : null}
-                          <span 
-                            id={`fallback-col-${entry.id}`} 
-                            className={`align-items-center justify-content-center flex-shrink-0 bg-light text-body-secondary rounded ${entry.college_logo_url ? 'd-none' : 'd-flex'}`} 
-                            style={{ width: 32, height: 32 }}
+                          ) : (
+                            <span 
+                              onDoubleClick={() => { setEditingCommissionId(entry.id); setEditCommissionValue(Number(entry.commission_percentage).toFixed(2)); }}
+                              className="badge bg-success-subtle text-success fw-semibold fs-2 gap-1 d-inline-flex align-items-center cursor-pointer"
+                            >
+                              <iconify-icon icon="solar:tag-price-line-duotone" className="fs-3"></iconify-icon>
+                              {Number(entry.commission_percentage).toFixed(2)}%
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="text-end pe-6">
+                          <button 
+                            type="button"
+                            onClick={() => handleDelete(entry.id)} 
+                            className="btn btn-light-danger btn-sm p-1 rounded d-inline-flex align-items-center text-danger"
                           >
-                            <iconify-icon icon="solar:buildings-line-duotone" className="fs-5"></iconify-icon>
-                          </span>
-                          <span className="ms-3 fw-semibold text-dark text-truncate" title={entry.college}>
-                            {entry.college}
-                          </span>
-                        </div>
-                      </td>
-
-                      <td>
-                        <div className="d-flex align-items-center gap-2 fw-normal">
-                          <iconify-icon icon="solar:square-academic-cap-line-duotone" className="text-body-secondary fs-5 flex-shrink-0"></iconify-icon>
-                          <span className="text-dark fw-semibold text-truncate" title={entry.university}>{entry.university}</span>
-                        </div>
-                      </td>
-
-                      <td>
-                        <div className="d-flex align-items-center gap-2 fw-normal">
-                          <iconify-icon icon="solar:map-point-line-duotone" className="text-body-secondary fs-5 flex-shrink-0"></iconify-icon>
-                          <span className="text-truncate" title={entry.location}>{entry.location}</span>
-                        </div>
-                      </td>
-
-                      <td>
-                        {editingCommissionId === entry.id ? (
-                          <input 
-                            autoFocus 
-                            type="number" 
-                            step="0.01" 
-                            value={editCommissionValue}
-                            onChange={(e) => setEditCommissionValue(e.target.value)}
-                            onBlur={() => handleCommissionUpdate(entry.id, entry.commission_percentage)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') { e.preventDefault(); handleCommissionUpdate(entry.id, entry.commission_percentage); }
-                              if (e.key === 'Escape') setEditingCommissionId(null);
-                            }}
-                            className="form-control form-control-sm"
-                            style={{ maxWidth: '120px' }}
-                          />
-                        ) : (
-                          <span 
-                            onDoubleClick={() => { setEditingCommissionId(entry.id); setEditCommissionValue(Number(entry.commission_percentage).toFixed(2)); }}
-                            className="badge bg-success-subtle text-success fw-semibold fs-2 gap-1 d-inline-flex align-items-center cursor-pointer"
-                          >
-                            <iconify-icon icon="solar:tag-price-line-duotone" className="fs-3"></iconify-icon>
-                            {Number(entry.commission_percentage).toFixed(2)}%
-                          </span>
-                        )}
-                      </td>
-
-                      <td className="text-end pe-6">
-                        <button 
-                          type="button"
-                          onClick={() => handleDelete(entry.id)} 
-                          className="btn btn-light-danger btn-sm p-1 rounded d-inline-flex align-items-center text-danger"
-                        >
-                          <iconify-icon icon="solar:trash-bin-trash-line-duotone" className="fs-5"></iconify-icon>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                            <iconify-icon icon="solar:trash-bin-trash-line-duotone" className="fs-5"></iconify-icon>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
