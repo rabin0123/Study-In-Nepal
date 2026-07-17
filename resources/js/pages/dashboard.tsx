@@ -325,4 +325,11 @@ export default function Dashboard() {
     );
 }
 
-Dashboard.layout = { title: "Application Administration Detail", description: "In-Context Profile Administration" };
+Dashboard.layout = {
+    breadcrumbs: [
+        {
+            title: 'Dashboard',
+            href: dashboard(),
+        },
+    ],
+};

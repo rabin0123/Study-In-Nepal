@@ -13,11 +13,11 @@ const flatTopItems: NavLeaf[] = [
     { title: 'Dashboard', href: '/dashboard', icon: 'solar:widget-5-line-duotone' },
     { title: 'Applications', href: '/applications', icon: 'solar:document-text-line-duotone' },
     { title: 'Search Courses', href: '/courses', icon: 'solar:book-2-line-duotone' },
-    {
-        title: 'Commissions',
-        href: '/commission',
-        icon: 'solar:dollar-line-duotone',
-        permission: 'view.commission',
+    { 
+        title: 'Commissions', 
+        href: '/commission', 
+        icon: 'solar:dollar-line-duotone', 
+        permission: 'view.commission' 
     },
 ];
 
@@ -210,10 +210,24 @@ function NavGroupSection({ group }: { group: NavGroup }) {
                 <span className="hide-menu">{group.label}</span>
             </a>
 
-            <ul aria-expanded={isOpen} className={`collapse first-level ${isOpen ? 'show in' : ''}`}>
+            <ul
+                aria-expanded={isOpen}
+                className={`collapse first-level ${isOpen ? 'show in' : ''}`}
+            >
                 {group.items.map((item) => (
-                    <li key={item.title} className={`sidebar-item ${isCurrentUrl(item.href) ? 'selected' : ''}`}>
-                        <Link href={item.href} prefetch className={`sidebar-link ${isCurrentUrl(item.href) ? 'active' : ''}`}>
+                    <li
+                        key={item.title}
+                        className={`sidebar-item ${
+                            isCurrentUrl(item.href) ? 'selected' : ''
+                        }`}
+                    >
+                        <Link
+                            href={item.href}
+                            prefetch
+                            className={`sidebar-link ${
+                                isCurrentUrl(item.href) ? 'active' : ''
+                            }`}
+                        >
                             <span className="icon-small"></span>
                             <span className="hide-menu">{item.title}</span>
                         </Link>
@@ -222,79 +236,6 @@ function NavGroupSection({ group }: { group: NavGroup }) {
             </ul>
         </li>
     );
-}
-
-/**
- * ── Theme (light / dark) ──────────────────────────────────────────────
- * Previously this was handled entirely by theme.js / user-appearance.js,
- * which are loaded globally in admin.blade.php and try to find and bind
- * click listeners to `.dark-layout` / `.light-layout` elements on the
- * page. Because those elements are rendered by React, they get
- * created/replaced on every re-render — so any listener those scripts
- * attached via plain DOM APIs (querySelector + addEventListener) gets
- * silently detached the moment React re-renders this component. In dev,
- * Fast Refresh re-runs things often enough (and re-mounts less
- * aggressively) that this is easy to miss; in a production build it
- * shows up consistently because the script only runs once on initial
- * load.
- *
- * Fix: React now owns the toggle and writes the SAME attribute
- * (`data-bs-theme` on <html>) that theme.js / your CSS already expects,
- * so nothing else needs to change on the CSS/template side. We also
- * persist to localStorage under the same-ish key your template likely
- * already uses ("theme") so a page refresh doesn't flash the wrong
- * theme. If your theme.js does extra work (e.g. syncing a toggle
- * switch UI, syncing to a cookie for SSR), keep theme.js loaded for
- * that — just make sure nothing in it re-adds a competing click
- * listener to these same anchors, or you'll get double-toggling.
- */
-function useTheme() {
-    const [theme, setThemeState] = useState<'light' | 'dark'>(() => {
-        if (typeof window === 'undefined') return 'light';
-        const stored = window.localStorage.getItem('theme');
-        if (stored === 'dark' || stored === 'light') return stored;
-        return document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'dark' : 'light';
-    });
-
-    useEffect(() => {
-        document.documentElement.setAttribute('data-bs-theme', theme);
-        document.body.setAttribute('data-bs-theme', theme);
-        window.localStorage.setItem('theme', theme);
-    }, [theme]);
-
-    const setTheme = (value: 'light' | 'dark') => setThemeState(value);
-    const toggleTheme = () => setThemeState((prev) => (prev === 'dark' ? 'light' : 'dark'));
-
-    return { theme, setTheme, toggleTheme };
-}
-
-/**
- * ── Sidebar collapse / mobile toggler ─────────────────────────────────
- * Same root cause as the theme toggle: the hamburger icon is a React
- * element (`#headerCollapse` / `.sidebartoggler`), so any external
- * script binding to it via the DOM is at the mercy of React's render
- * cycle. React now owns the collapsed state directly and toggles the
- * `mini-sidebar` class on #main-wrapper, which is the convention this
- * admin template (MaterialM-style) normally relies on for its CSS to
- * collapse the sidebar. Adjust CLASS_NAME below if your template's
- * SCSS/CSS actually keys off a different class (check
- * resources/css or the vendor template's docs if collapse still
- * doesn't visually apply after this change).
- */
-const SIDEBAR_COLLAPSED_CLASS = 'mini-sidebar';
-
-function useSidebarCollapse() {
-    const [collapsed, setCollapsed] = useState(false);
-
-    useEffect(() => {
-        const el = document.getElementById('main-wrapper');
-        if (!el) return;
-        el.classList.toggle(SIDEBAR_COLLAPSED_CLASS, collapsed);
-    }, [collapsed]);
-
-    const toggle = () => setCollapsed((v) => !v);
-
-    return { collapsed, toggle };
 }
 
 export default function AppSidebarLayout({ children }: Props) {
@@ -316,10 +257,6 @@ export default function AppSidebarLayout({ children }: Props) {
     const userInitials = useMemo(() => getInitials(auth?.user?.name ?? 'User'), [auth?.user?.name, getInitials]);
 
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
-
-    // Theme + sidebar collapse, now driven fully by React (see hooks above)
-    const { theme, setTheme } = useTheme();
-    const { collapsed: sidebarCollapsed, toggle: toggleSidebar } = useSidebarCollapse();
 
     // Dynamic Search States
     const [searchQuery, setSearchQuery] = useState('');
@@ -486,12 +423,6 @@ export default function AppSidebarLayout({ children }: Props) {
                     visibility: hidden !important;
                 }
 
-                /*
-                  Theme toggle icons: previously relied on
-                  html[data-bs-theme="dark"] attribute selectors to flip
-                  visibility, which still works fine since React now sets
-                  that same attribute. Kept as-is below.
-                */
                 .dark-layout {
                     display: flex !important;
                     align-items: center;
@@ -633,6 +564,7 @@ export default function AppSidebarLayout({ children }: Props) {
             {/* ── Vertical sidebar ── */}
             <aside className="left-sidebar with-vertical" data-sidebar-theme="light">
                 <div className="d-flex flex-column h-100 justify-content-between">
+
                     {/* Top menu section */}
                     <div className="d-flex flex-column flex-grow-1" style={{ minHeight: 0 }}>
                         <div className="brand-logo d-flex align-items-center justify-content-between">
@@ -645,6 +577,7 @@ export default function AppSidebarLayout({ children }: Props) {
                         </div>
 
                         <nav className="sidebar-nav scroll-sidebar sidebar-nav-scroll flex-grow-1">
+
                             <ul className="sidebar-menu" id="sidebarnav">
                                 <li className="nav-small-cap">
                                     <iconify-icon icon="solar:menu-dots-linear" className="mini-icon" />
@@ -679,6 +612,7 @@ export default function AppSidebarLayout({ children }: Props) {
                             <iconify-icon icon="solar:logout-line-duotone" width="24" height="24" />
                         </Link>
                     </div>
+
                 </div>
             </aside>
 
@@ -689,16 +623,7 @@ export default function AppSidebarLayout({ children }: Props) {
                         <nav className="navbar navbar-expand-lg p-0">
                             <ul className="navbar-nav">
                                 <li className="nav-item nav-icon-hover ms-n3">
-                                    <a
-                                        className="nav-link sidebartoggler"
-                                        id="headerCollapse"
-                                        href="#"
-                                        aria-pressed={sidebarCollapsed}
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            toggleSidebar();
-                                        }}
-                                    >
+                                    <a className="nav-link sidebartoggler" id="headerCollapse" href="#" onClick={(e) => e.preventDefault()}>
                                         <iconify-icon icon="solar:hamburger-menu-line-duotone" className="fs-7" />
                                     </a>
                                 </li>
@@ -796,6 +721,7 @@ export default function AppSidebarLayout({ children }: Props) {
 
                                 {/* Right Area: Icons and User Profile */}
                                 <ul className="navbar-nav flex-row ms-lg-auto align-items-center justify-content-center pb-3 pb-lg-0">
+
                                     {/* Commission */}
                                     {auth?.permissions?.includes('view.commissionindex') && (
                                         <li className="nav-item nav-icon-hover">
@@ -810,29 +736,31 @@ export default function AppSidebarLayout({ children }: Props) {
                                         </li>
                                     )}
 
-                                    {/* Dark / light toggle — now driven by React state (see useTheme above) */}
+                                    {/* Dark / light toggle */}
                                     <li className="nav-item nav-icon-hover">
                                         <a
                                             className="nav-link moon dark-layout"
                                             href="#"
-                                            title="Switch to dark mode"
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                setTheme('dark');
-                                            }}
+                                            onClick={(e) => e.preventDefault()}
+                                            suppressHydrationWarning={true}
                                         >
-                                            <iconify-icon icon="solar:moon-line-duotone" className="moon fs-6" />
+                                            <iconify-icon
+                                                icon="solar:moon-line-duotone"
+                                                className="moon fs-6"
+                                                suppressHydrationWarning={true}
+                                            />
                                         </a>
                                         <a
                                             className="nav-link sun light-layout"
                                             href="#"
-                                            title="Switch to light mode"
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                setTheme('light');
-                                            }}
+                                            onClick={(e) => e.preventDefault()}
+                                            suppressHydrationWarning={true}
                                         >
-                                            <iconify-icon icon="solar:sun-2-line-duotone" className="sun fs-6" />
+                                            <iconify-icon
+                                                icon="solar:sun-2-line-duotone"
+                                                className="sun fs-6"
+                                                suppressHydrationWarning={true}
+                                            />
                                         </a>
                                     </li>
 
@@ -946,9 +874,15 @@ export default function AppSidebarLayout({ children }: Props) {
                                                         </span>
                                                     )}
                                                     <div className="ms-3 d-flex flex-column">
-                                                        <h5 className="mb-1 fs-4">{auth?.user?.name || 'User'}</h5>
-                                                        <span className="text-muted small">{auth?.user?.email || 'user@email.com'}</span>
-                                                        <span className="text-muted small">{auth?.user?.role || 'User Account'}</span>
+                                                        <h5 className="mb-1 fs-4">
+                                                            {auth?.user?.name || 'User'}
+                                                        </h5>
+                                                        <span className="text-muted small">
+                                                            {auth?.user?.email || 'user@email.com'}
+                                                        </span>
+                                                        <span className="text-muted small">
+                                                            {auth?.user?.role || 'User Account'}
+                                                        </span>
                                                     </div>
                                                 </div>
                                                 <div className="message-body">
@@ -985,26 +919,31 @@ export default function AppSidebarLayout({ children }: Props) {
                                                             </div>
                                                         </Link>
                                                     )}
-                                                    {auth?.permissions?.includes('view.role') && (
-                                                        <Link href="/roles" className="py-8 px-7 d-flex align-items-center">
-                                                            <span
-                                                                className="d-flex align-items-center justify-content-center rounded round"
-                                                                style={{
-                                                                    backgroundColor: '#EEF2FF',
-                                                                    color: '#4F46E5',
-                                                                    width: '42px',
-                                                                    height: '42px',
-                                                                }}
-                                                            >
-                                                                <iconify-icon icon="solar:shield-user-line-duotone" className="fs-7" />
-                                                            </span>
+                                                   {auth?.permissions?.includes('view.role') && (
+    <Link href="/roles" className="py-8 px-7 d-flex align-items-center">
+        <span
+    className="d-flex align-items-center justify-content-center rounded round"
+    style={{
+        backgroundColor: "#EEF2FF",
+        color: "#4F46E5",
+        width: "42px",
+        height: "42px"
+    }}
+>
+    <iconify-icon
+        icon="solar:shield-user-line-duotone"
+        className="fs-7"
+    />
+</span>
 
-                                                            <div className="w-75 v-middle ps-3">
-                                                                <h5 className="mb-1 fs-3 fw-medium">Roles</h5>
-                                                                <span className="fs-2 d-block text-body-secondary">Roles Information</span>
-                                                            </div>
-                                                        </Link>
-                                                    )}
+        <div className="w-75 v-middle ps-3">
+            <h5 className="mb-1 fs-3 fw-medium">Roles</h5>
+            <span className="fs-2 d-block text-body-secondary">
+                Roles Information
+            </span>
+        </div>
+    </Link>
+)}
                                                 </div>
                                                 <div className="d-grid py-4 px-7 pt-8">
                                                     <Link href="/logout" method="post" as="button" className="btn btn-primary">
@@ -1026,7 +965,7 @@ export default function AppSidebarLayout({ children }: Props) {
                 </div>
             </div>
 
-            <div className="dark-transparent sidebartoggler" onClick={toggleSidebar}></div>
+            <div className="dark-transparent sidebartoggler"></div>
         </div>
     );
 }
