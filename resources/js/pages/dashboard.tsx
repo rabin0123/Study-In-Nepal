@@ -37,12 +37,15 @@ interface PageProps {
 export default function Dashboard() {
     const [stats, setStats] = useState<Stats | null>(null);
     const [latestApplications, setLatestApplications] = useState<Application[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(true); // New state to track initial data load
     const [now, setNow] = useState(new Date());
 
+    // Non-navigating HTTP client hook
     const http = useHttp();
+
+    // Grab the logged-in user from Inertia shared props
     const { auth } = usePage<PageProps>().props;
-    const firstName = auth?.user?.name?.split(' ')[0] ?? '';
+    const userName = auth?.user?.name ?? 'there';
 
     useEffect(() => {
         async function loadDashboardData() {
@@ -53,35 +56,42 @@ export default function Dashboard() {
             } catch (error) {
                 console.error("Error loading dashboard data:", error);
             } finally {
-                setIsLoading(false);
+                setIsLoading(false); // Done loading (stops spinner even on error)
             }
         }
+
         loadDashboardData();
     }, []);
 
+    // Live clock — updates every second
     useEffect(() => {
         const timer = setInterval(() => setNow(new Date()), 1000);
         return () => clearInterval(timer);
     }, []);
 
+    // Determine greeting based on current hour
     const getGreeting = (date: Date) => {
         const hour = date.getHours();
-        if (hour < 12) return 'Good morning';
-        if (hour < 18) return 'Good afternoon';
-        return 'Good evening';
+        if (hour < 12) return 'Good Morning';
+        if (hour < 17) return 'Good Afternoon';
+        if (hour < 21) return 'Good Evening';
+        return 'Welcome Back';
     };
 
     const formattedDate = now.toLocaleDateString(undefined, {
         weekday: 'long',
+        year: 'numeric',
         month: 'long',
         day: 'numeric',
     });
 
     const formattedTime = now.toLocaleTimeString(undefined, {
-        hour: 'numeric',
+        hour: '2-digit',
         minute: '2-digit',
+        second: '2-digit',
     });
 
+    // Utility to map statuses to modern Bootstrap 5 contextual colors
     const getStatusStyles = (status: string) => {
         switch (status?.toUpperCase()) {
             case 'APPROVED':
@@ -95,10 +105,12 @@ export default function Dashboard() {
         }
     };
 
+    // Handler to navigate to the student application record
     const viewApplicationRecord = (appId: number) => {
         router.visit(`/applications/${appId}`);
     };
 
+    // Full-screen / container-centered loading spinner before page is loaded
     if (isLoading) {
         return (
             <div className="d-flex flex-column align-items-center justify-content-center" style={{ minHeight: '75vh' }}>
@@ -115,14 +127,18 @@ export default function Dashboard() {
             <Head title="Dashboard" />
             <div className="container-fluid p-4">
 
-                {/* Claude-style greeting */}
-                <div className="text-center mb-5 mt-3">
-                    <div className="text-muted small mb-2">
-                        {formattedDate} · {formattedTime}
+                {/* Greeting + Date/Time Header */}
+                <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-4 gap-2">
+                    <div>
+                        <h3 className="fw-bold mb-1 text-primary">
+                            {getGreeting(now)}, {userName}
+                        </h3>
+                        <p className="text-muted mb-0">Here's what's happening with your applications today.</p>
                     </div>
-                    <h1 className="fw-normal" style={{ fontSize: '2.25rem', letterSpacing: '-0.02em' }}>
-                        {getGreeting(now)}{firstName ? `, ${firstName}` : ''}
-                    </h1>
+                    <div className="text-md-end">
+                        <div className="fw-semibold text-primary">{formattedDate}</div>
+                        <div className="text-muted small font-monospace">{formattedTime}</div>
+                    </div>
                 </div>
 
                 {/* Statistics Cards Section */}
