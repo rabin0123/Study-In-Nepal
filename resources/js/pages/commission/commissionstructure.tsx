@@ -11,27 +11,11 @@ interface CommissionEntryType {
   commission_percentage: number | string;
 }
 
-// Extend JSX Intrinsic Elements to prevent TypeScript from throwing warnings about custom element <iconify-icon>
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'iconify-icon': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement> & {
-        icon?: string;
-        class?: string;
-        style?: React.CSSProperties;
-      }, HTMLElement>;
-    }
-  }
-}
-
 export default function CommissionStructureList() {
   const [entries, setEntries] = useState<CommissionEntryType[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState(""); 
   const [exportingPdf, setExportingPdf] = useState(false);
-  
-  // Track broken logo images via React state instead of manual DOM queries
-  const [failedLogos, setFailedLogos] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     fetchEntries();
@@ -92,15 +76,7 @@ export default function CommissionStructureList() {
     }
   };
 
-  const formatCommission = (value: number | string) => {
-    const num = Number(value);
-    return isNaN(num) ? '0.00' : num.toFixed(2);
-  };
-
-  const handleLogoError = (id: number) => {
-    setFailedLogos(prev => ({ ...prev, [id]: true }));
-  };
-
+  // Full-page loading gate matching the style in the first file
   if (loading) {
     return (
       <div className="d-flex flex-column align-items-center justify-content-center text-center" style={{ minHeight: '60vh' }}>
@@ -116,8 +92,8 @@ export default function CommissionStructureList() {
       {/* ── Page header ── */}
       <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-6">
         <div className="d-flex align-items-center gap-3">
-          <span className="d-none d-sm-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-3" style={{ width: 48, height: 48 }}>
-            <iconify-icon icon="solar:tag-price-line-duotone" class="fs-6"></iconify-icon>
+          <span className="d-none d-sm-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-3 round-48" style={{ width: 48, height: 48 }}>
+            <iconify-icon icon="solar:tag-price-line-duotone" className="fs-6"></iconify-icon>
           </span>
           <div>
             <h3 className="mb-0 fw-semibold">Commission Structure</h3>
@@ -137,7 +113,7 @@ export default function CommissionStructureList() {
             {exportingPdf ? (
               <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
             ) : (
-              <iconify-icon icon="solar:file-download-line-duotone" class="fs-5"></iconify-icon>
+              <iconify-icon icon="solar:file-download-line-duotone" className="fs-5"></iconify-icon>
             )}
             <span>Download PDF</span>
           </button>
@@ -151,7 +127,7 @@ export default function CommissionStructureList() {
             <div className="position-relative flex-grow-1" style={{ minWidth: 260, maxWidth: 400 }}>
               <iconify-icon
                 icon="solar:magnifer-line-duotone"
-                class="position-absolute top-50 translate-middle-y text-body-secondary fs-5"
+                className="position-absolute top-50 translate-middle-y text-body-secondary fs-5"
                 style={{ left: '0.9rem' }}
               ></iconify-icon>
               <input
@@ -169,7 +145,7 @@ export default function CommissionStructureList() {
                 onClick={() => setSearchQuery("")}
                 className="btn btn-link text-primary d-inline-flex align-items-center gap-1 fw-semibold text-decoration-none px-0"
               >
-                <iconify-icon icon="solar:filter-remove-line-duotone" class="fs-5"></iconify-icon>
+                <iconify-icon icon="solar:filter-remove-line-duotone" className="fs-5"></iconify-icon>
                 <span>Clear Filter</span>
               </button>
             )}
@@ -216,63 +192,64 @@ export default function CommissionStructureList() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredEntries.map((entry) => {
-                    const hasValidLogo = entry.college_logo_url && !failedLogos[entry.id];
-                    return (
-                      <tr key={entry.id}>
-                        <td className="ps-6">
-                          <div className="d-flex align-items-center">
-                            {hasValidLogo ? (
-                              <img
-                                src={entry.college_logo_url!}
-                                alt={`${entry.college} logo`}
-                                className="rounded flex-shrink-0 border p-1"
-                                width={32}
-                                height={32}
-                                style={{ objectFit: 'contain', background: '#fff' }}
-                                onError={() => handleLogoError(entry.id)}
-                              />
-                            ) : (
-                              <span 
-                                className="d-flex align-items-center justify-content-center flex-shrink-0 bg-light text-body-secondary rounded" 
-                                style={{ width: 32, height: 32 }}
-                              >
-                                <iconify-icon icon="solar:buildings-line-duotone" class="fs-5"></iconify-icon>
-                              </span>
-                            )}
-                            <span className="ms-3 fw-semibold text-dark text-truncate" title={entry.college}>
-                              {entry.college}
-                            </span>
-                          </div>
-                        </td>
-
-                        <td>
-                          <div className="d-flex align-items-center gap-2 fw-normal">
-                            <iconify-icon icon="solar:square-academic-cap-line-duotone" class="text-body-secondary fs-5 flex-shrink-0"></iconify-icon>
-                            <span className="text-dark fw-semibold text-truncate" title={entry.university}>
-                              {entry.university}
-                            </span>
-                          </div>
-                        </td>
-
-                        <td>
-                          <div className="d-flex align-items-center gap-2 fw-normal">
-                            <iconify-icon icon="solar:map-point-line-duotone" class="text-body-secondary fs-5 flex-shrink-0"></iconify-icon>
-                            <span className="text-truncate" title={entry.location}>
-                              {entry.location}
-                            </span>
-                          </div>
-                        </td>
-
-                        <td>
-                          <span className="badge bg-success-subtle text-success fw-semibold fs-2 gap-1 d-inline-flex align-items-center">
-                            <iconify-icon icon="solar:tag-price-line-duotone" class="fs-3"></iconify-icon>
-                            {formatCommission(entry.commission_percentage)}%
+                  {filteredEntries.map((entry) => (
+                    <tr key={entry.id}>
+                      <td className="ps-6">
+                        <div className="d-flex align-items-center">
+                          {entry.college_logo_url ? (
+                            <img
+                              src={entry.college_logo_url}
+                              alt="logo"
+                              className="rounded flex-shrink-0 border p-1"
+                              width={32}
+                              height={32}
+                              style={{ objectFit: 'contain', background: '#fff' }}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                                const fallback = document.getElementById(`fallback-col-${entry.id}`);
+                                if (fallback) fallback.classList.remove('d-none');
+                              }}
+                            />
+                          ) : null}
+                          <span 
+                            id={`fallback-col-${entry.id}`} 
+                            className={`align-items-center justify-content-center flex-shrink-0 bg-light text-body-secondary rounded ${entry.college_logo_url ? 'd-none' : 'd-flex'}`} 
+                            style={{ width: 32, height: 32 }}
+                          >
+                            <iconify-icon icon="solar:buildings-line-duotone" className="fs-5"></iconify-icon>
                           </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                          <span className="ms-3 fw-semibold text-dark text-truncate" title={entry.college}>
+                            {entry.college}
+                          </span>
+                        </div>
+                      </td>
+
+                      <td>
+                        <div className="d-flex align-items-center gap-2 fw-normal">
+                          <iconify-icon icon="solar:square-academic-cap-line-duotone" className="text-body-secondary fs-5 flex-shrink-0"></iconify-icon>
+                          <span className="text-dark fw-semibold text-truncate" title={entry.university}>
+                            {entry.university}
+                          </span>
+                        </div>
+                      </td>
+
+                      <td>
+                        <div className="d-flex align-items-center gap-2 fw-normal">
+                          <iconify-icon icon="solar:map-point-line-duotone" className="text-body-secondary fs-5 flex-shrink-0"></iconify-icon>
+                          <span className="text-truncate" title={entry.location}>
+                            {entry.location}
+                          </span>
+                        </div>
+                      </td>
+
+                      <td>
+                        <span className="badge bg-success-subtle text-success fw-semibold fs-2 gap-1 d-inline-flex align-items-center">
+                          <iconify-icon icon="solar:tag-price-line-duotone" className="fs-3"></iconify-icon>
+                          {Number(entry.commission_percentage).toFixed(2)}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
