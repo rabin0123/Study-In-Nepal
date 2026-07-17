@@ -118,7 +118,7 @@ export default function CommissionStructureList() {
       style={{ minHeight: 0, overflow: 'hidden' }}
     >
       {/* ── Page header ── */}
-      <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-6 flex-shrink-0">
+      <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-4 flex-shrink-0">
         <div className="d-flex align-items-center gap-3">
           <span className="d-none d-sm-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-3 round-48" style={{ width: 48, height: 48 }}>
             <iconify-icon icon="solar:tag-price-line-duotone" className="fs-6"></iconify-icon>
@@ -149,7 +149,7 @@ export default function CommissionStructureList() {
       </div>
 
       {/* ── Search filter card ── */}
-      <div className="card mb-6 flex-shrink-0">
+      <div className="card mb-4 flex-shrink-0">
         <div className="card-body d-flex flex-column flex-xl-row align-items-xl-center justify-content-xl-between gap-4">
           <div className="d-flex flex-wrap align-items-center gap-3 flex-grow-1">
             <div className="position-relative flex-grow-1" style={{ minWidth: 260, maxWidth: 400 }}>
