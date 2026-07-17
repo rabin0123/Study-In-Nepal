@@ -351,11 +351,13 @@ export default function AppSidebarLayout({ children }: Props) {
                     flex: 1 1 auto;
                     min-height: 0;
                     overflow-y: auto;
+                    display: flex;
+                    flex-direction: column;
                 }
 
                 #main-wrapper .page-wrapper .body-wrapper .container-fluid {
+                    flex: 1 1 auto;
                     min-height: 0;
-                    height: 100%;
                     display: flex;
                     flex-direction: column;
                 }
