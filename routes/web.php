@@ -46,11 +46,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('/dashboard', 'dashboard')->name('dashboard');
 
 
-    //home small content 
- Route::inertia('/homecontent', 'users/homeprofile')->name('homeprofile');
-
-
-
     // Universities
     Route::inertia('/universities', 'university/universityentryform')->name('universityentryform');
     Route::inertia('/universities/{id}', 'university/universityedit')->name('universityedit');
