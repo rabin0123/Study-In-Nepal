@@ -46,8 +46,8 @@ class DeveloperUserSeeder extends Seeder
         // with nobody yet holding can_verify_users would fall back to
         // notifying developers instead of their own agency's Main Agent.
         // CHANGE THESE before running in production, or better, pull from env().
-        $mainAgentEmail = env('MAIN_AGENT_EMAIL', 'bikalp@gmail.com');
-        $mainAgentPassword = env('MAIN_AGENT_PASSWORD', 'Kathmandu@2026=');
+        $mainAgentEmail = env('MAIN_AGENT_EMAIL', 'ajaythakurniit1@gmail.com');
+        $mainAgentPassword = env('MAIN_AGENT_PASSWORD', 'Ajay123!');
         $mainAgentAgencyName = env('MAIN_AGENT_AGENCY_NAME', 'Study In Nepal');
 
         $mainAgent = User::withoutEvents(function () use ($mainAgentEmail, $mainAgentPassword, $mainAgentAgencyName) {
