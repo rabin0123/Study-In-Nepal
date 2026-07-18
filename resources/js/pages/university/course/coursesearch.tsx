@@ -443,8 +443,8 @@ export default function CourseSearch() {
               const universityLogo = validUrl(item.university_logo_url);
               const fallbackImage = getStreamImage(item.stream, item.id);
 
-              // ── THE ROUTE FOR THE CARD CLIcks (auto-encodes spaces etc.) ──
-              const uniRoute = `/courses/${item.course_detail_uuid}`;
+              const uuid = item.course_detail_uuid;
+const uniRoute = uuid ? `/courses/${uuid}` : "#";
 
               return (
                 <div
