@@ -71,7 +71,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])->name('roles.edit');
 
     // Courses
-    Route::inertia('/courses', 'courses/coursesearch')->name('courses');
+    Route::inertia('/courses', 'university/course/coursesearch')->name('courses');
     Route::get('/courses/{university}', [CourseDetailController::class, 'show'])->name('courses.show');
     Route::get('/course/create', [CourseDetailController::class, 'create'])->name('create');
     Route::get('/course-details', [CourseDetailController::class, 'index'])->name('index');
