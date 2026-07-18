@@ -1,6 +1,15 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Link } from '@inertiajs/react';
-import { Search, MapPin, Building, Filter, ChevronDown, ChevronRight } from 'lucide-react';
+import type { CSSProperties } from "react";
+
+// ── Design Tokens (Matching Homepage Aesthetic) ───────────────────────────
+const P = "#008ce3";         // Bright Sky Blue (Primary)
+const AMBER = "#fbbf24";     // Warm Gold
+const BG = "#F8FAFB";        // Light Neutral Background
+const SURFACE = "#ffffff";   // Pure White
+const BORDER = "#e5e7eb";    // Light border
+const TEXT_MAIN = "#111827"; // Dark Charcoal
+const TEXT_MUTED = "#4b5563"; // Muted Slate
+const TEXT_LIGHT = "#9ca3af"; // Light Gray
 
 // ── Helper to dynamically map stream to actual homepage assets ─────────────
 const getStreamImage = (stream: string, id: number): string => {
@@ -25,6 +34,7 @@ const getStreamImage = (stream: string, id: number): string => {
 };
 
 // ── Data Standardization & Sanitization Helpers ────────────────────────────
+// The \uFFFD detects the  symbol. \u2013 and \u2014 detect special copy-pasted dashes.
 const standardizeLevel = (level: string | null | undefined): string => {
   if (!level) return "";
   let l = level.trim();
@@ -41,8 +51,8 @@ const standardizeLevel = (level: string | null | undefined): string => {
 const standardizeName = (name: string | null | undefined): string => {
   if (!name) return "";
   let n = name.trim();
-  n = n.replace(/[\uFFFD\u2013\u2014]/g, '-');
-  n = n.replace(/\s*-\s*/g, ' - ');
+  n = n.replace(/[\uFFFD\u2013\u2014]/g, '-'); // Fix  character
+  n = n.replace(/\s*-\s*/g, ' - '); // Clean spacing around hyphen
   n = n.replace(/,\s*U\.?S\.?A\.?/gi, ' (USA)');
   n = n.replace(/,\s*U\.?K\.?/gi, ' (UK)');
   n = n.replace(/,\s*Australia/gi, ' (Australia)');
@@ -53,10 +63,40 @@ const standardizeName = (name: string | null | undefined): string => {
 const standardizeCourse = (course: string | null | undefined): string => {
   if (!course) return "";
   let c = course.trim();
-  c = c.replace(/[\uFFFD\u2013\u2014]/g, '-');
-  c = c.replace(/\s*-\s*/g, ' - ');
+  c = c.replace(/[\uFFFD\u2013\u2014]/g, '-'); // Fix  character
+  c = c.replace(/\s*-\s*/g, ' - '); // Ensure nice spacing around the hyphen
   return c.replace(/\s+/g, ' ').trim();
 };
+
+// ── Icons ──────────────────────────────────────────────────────────────────
+const SearchLargeIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={P} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 24, top: "50%", transform: "translateY(-50%)" }}>
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
+
+const LocationIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 4 }}>
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+    <circle cx="12" cy="10" r="3" />
+  </svg>
+);
+
+const BuildingIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 4 }}>
+    <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
+    <line x1="7" y1="2" x2="7" y2="22" />
+    <line x1="17" y1="2" x2="17" y2="22" />
+    <line x1="2" y1="12" x2="22" y2="12" />
+  </svg>
+);
+
+const FilterIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}>
+    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+  </svg>
+);
 
 // ── Shared Types ───────────────────────────────────────────────────────────
 interface UniversityEntry {
@@ -100,40 +140,85 @@ function DropdownFilter({ label, options, selected, toggleOption }: { label: str
   const hasSelected = selected.length > 0;
 
   return (
-    <div ref={containerRef} className="relative text-left">
+    <div ref={containerRef} style={{ position: "relative", textAlign: "left" }}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-[13px] font-semibold text-white font-['Manrope',sans-serif] cursor-pointer transition-all duration-200 whitespace-nowrap backdrop-blur-md border ${
-          hasSelected 
-            ? "bg-[#008ce3] border-[#008ce3]" 
-            : "bg-white/10 border-white/25 hover:bg-white/20 hover:border-white/40"
-        }`}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "10px 18px",
+          background: hasSelected ? P : "rgba(255, 255, 255, 0.1)",
+          backdropFilter: "blur(8px)",
+          border: `1px solid ${hasSelected ? P : "rgba(255, 255, 255, 0.25)"}`,
+          borderRadius: 999,
+          fontSize: 13,
+          fontWeight: 600,
+          color: "#ffffff",
+          fontFamily: "'Manrope', sans-serif",
+          cursor: "pointer",
+          transition: "all 0.2s ease",
+          whiteSpace: "nowrap"
+        }}
+        onMouseEnter={(e) => {
+          if (!hasSelected) {
+            e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)";
+            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.4)";
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!hasSelected) {
+            e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
+            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.25)";
+          }
+        }}
       >
         {label} {hasSelected && `(${selected.length})`}
-        <ChevronDown 
-          size={14} 
-          strokeWidth={2.5} 
-          className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} 
-        />
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
       </button>
 
       {isOpen && (
-        <div className="absolute top-[calc(100%+12px)] left-0 w-[280px] max-h-[300px] overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-[0_12px_40px_rgba(0,0,0,0.2)] z-50 p-2 custom-scroll">
+        <div style={{
+          position: "absolute",
+          top: "calc(100% + 12px)",
+          left: 0,
+          width: 280,
+          maxHeight: 300,
+          overflowY: "auto",
+          background: SURFACE,
+          border: `1px solid ${BORDER}`,
+          borderRadius: 12,
+          boxShadow: "0 12px 40px rgba(0,0,0,0.2)",
+          zIndex: 50,
+          padding: "8px"
+        }} className="custom-scroll">
           {options.length === 0 ? (
-            <div className="p-3 text-[13px] text-gray-500">No options available</div>
+            <div style={{ padding: "12px", fontSize: 13, color: TEXT_MUTED }}>No options available</div>
           ) : (
             options.map(opt => (
-              <label 
-                key={opt} 
-                className="flex items-center gap-3 px-3 py-2.5 cursor-pointer text-[13px] text-gray-900 rounded-lg transition-colors hover:bg-gray-100"
+              <label key={opt} style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                padding: "10px 12px",
+                cursor: "pointer",
+                fontSize: 13,
+                color: TEXT_MAIN,
+                borderRadius: 8,
+                transition: "background 0.2s",
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = "#F3F4F6"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
               >
                 <input
                   type="checkbox"
                   checked={selected.includes(opt)}
                   onChange={() => toggleOption(opt)}
-                  className="accent-[#008ce3] w-4 h-4 cursor-pointer shrink-0"
+                  style={{ accentColor: P, width: 16, height: 16, cursor: "pointer", flexShrink: 0 }}
                 />
-                <span className="block leading-[1.4]">{opt}</span>
+                <span style={{ display: "block", lineHeight: 1.4 }}>{opt}</span>
               </label>
             ))
           )}
@@ -203,6 +288,7 @@ export default function CourseSearch() {
     const resultData: UniversityEntry[] = [];
 
     data.forEach(item => {
+      // Data is sanitized here to remove broken  symbols before being used
       const stdLevel = standardizeLevel(item.level);
       const stdStream = standardizeName(item.stream);
       const stdCourse = standardizeCourse(item.Course);
@@ -273,39 +359,52 @@ export default function CourseSearch() {
   const hasActiveFilters = selectedLevels.length > 0 || selectedStreams.length > 0 || selectedCourses.length > 0 || selectedUniversities.length > 0 || selectedColleges.length > 0 || selectedLocations.length > 0;
 
   return (
-    <div className="bg-[#F8FAFB] min-h-screen text-gray-900 font-['Manrope',sans-serif]">
+    <div style={{ background: BG, minHeight: "100vh", color: TEXT_MAIN, fontFamily: "'Manrope', sans-serif" }}>
       <link href="https://fonts.googleapis.com/css2?family=Castoro+Titling&family=Rajdhani:wght@600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-      {/* ── VISUAL HERO BANNER ─────────────────────── */}
-      <div className="pt-[110px] px-6 pb-20 text-center relative">
-        {/* Background Layer */}
-        <div className="absolute inset-0 overflow-hidden z-0">
-          <video autoPlay muted loop playsInline poster="/students_hero.jpg" className="absolute inset-0 w-full h-full object-cover">
+      {/* ── VISUAL HERO BANNER (With embedded filters) ─────────────────────── */}
+      <div style={{
+        padding: "110px 24px 80px",
+        textAlign: "center",
+        position: "relative",
+      }}>
+        {/* Background Layer (Strictly Contained) */}
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, overflow: "hidden", zIndex: 0 }}>
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            poster="/students_hero.jpg"
+            style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover" }}
+          >
             <source src="https://admin.studyinnepal.com/storage/videos/d47e6ef1-9380-4968-b9b3-5b0b3a9a6e81.mp4" type="video/mp4" />
           </video>
-          <div className="absolute inset-0 bg-gradient-to-b from-black/70 to-black/50" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_20%,rgba(0,0,0,0.15)_0%,transparent_40%)] pointer-events-none" />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(rgba(0, 0, 0, 0.7), rgba(0,0,0,0.5))" }} />
+          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 10% 20%, rgba(0, 0, 0, 0.15) 0%, transparent 40%)", pointerEvents: "none" }} />
         </div>
 
         {/* Hero Content Layer */}
-        <div className="max-w-[1040px] mx-auto relative z-10">
-          <p className="font-['Rajdhani',sans-serif] text-amber-400 text-[11px] font-bold tracking-[0.28em] uppercase mb-4 drop-shadow-md">
+        <div style={{ maxWidth: 1040, margin: "0 auto", position: "relative", zIndex: 5 }}>
+          <p style={{
+            fontFamily: "'Rajdhani', sans-serif", color: AMBER, fontSize: 11, fontWeight: 700, letterSpacing: "0.28em", textTransform: "uppercase", margin: "0 0 16px", textShadow: "0 2px 4px rgba(0,0,0,0.4)"
+          }}>
             Explore Academic Fields
           </p>
-          <h1 className="font-['Castoro_Titling',serif] text-white text-[calc(26px+2.2vw)] font-normal uppercase tracking-[0.06em] mb-6 leading-[1.15] drop-shadow-xl">
-            Discover <span className="text-[#008ce3]">Your Pathway</span> in Nepal
+          <h1 style={{
+            fontFamily: "'Castoro Titling', serif", color: SURFACE, fontSize: "calc(26px + 2.2vw)", fontWeight: 400, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 24px", lineHeight: 1.15, textShadow: "0 4px 12px rgba(0,0,0,0.5)"
+          }}>
+            Discover <span style={{ color: P }}>Your Pathway</span> in Nepal
           </h1>
-          <p className="text-white/85 text-[14px] leading-relaxed max-w-[620px] mx-auto mb-8 drop-shadow-md">
+          <p style={{
+            color: "rgba(255,255,255,0.85)", fontSize: 14, lineHeight: 1.7, maxWidth: 620, margin: "0 auto 32px", textShadow: "0 2px 4px rgba(0,0,0,0.3)"
+          }}>
             Search registered universities, streams, specialized colleges, and find the perfect program that meets your academic goals.
           </p>
 
           {/* Search Bar */}
-          <div className="relative max-w-[640px] mx-auto mb-6">
-            <Search 
-              size={20} 
-              className="absolute left-6 top-1/2 -translate-y-1/2 text-[#008ce3]" 
-              strokeWidth={2.5} 
-            />
+          <div style={{ position: "relative", maxWidth: 640, margin: "0 auto 24px" }}>
+            <SearchLargeIcon />
             <input
               type="text"
               placeholder="Search by course, stream, college, or keyword..."
@@ -313,16 +412,25 @@ export default function CourseSearch() {
               onChange={(e) => setSearch(e.target.value)}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
-              className={`w-full bg-white rounded-full py-4 pr-6 pl-[54px] text-[15px] text-gray-900 font-['Manrope',sans-serif] outline-none transition-all duration-300 border-[1.5px] shadow-lg ${
-                searchFocused ? 'border-[#008ce3] shadow-[0_12px_30px_rgba(0,140,227,0.2)]' : 'border-transparent shadow-[0_8px_30px_rgba(0,0,0,0.2)]'
-              }`}
+              style={{
+                width: "100%", boxSizing: "border-box", background: SURFACE, border: `1.5px solid ${searchFocused ? P : "transparent"}`, borderRadius: 999, padding: "16px 24px 16px 54px", fontSize: 15, color: TEXT_MAIN, fontFamily: "'Manrope', sans-serif", outline: "none", boxShadow: searchFocused ? `0 12px 30px rgba(0, 140, 227, 0.2)` : "0 8px 30px rgba(0,0,0,0.2)", transition: "all 0.3s ease",
+              }}
             />
           </div>
 
-          {/* Horizontal Filters Section */}
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-3">
-            <div className="flex items-center text-[13px] font-extrabold text-white/85 font-['Rajdhani',sans-serif] uppercase tracking-widest mr-1 drop-shadow-md">
-              <Filter size={16} className="mr-1.5" /> Filters
+          {/* Horizontal Filters Section directly in Hero */}
+          <div style={{ 
+            display: "flex", 
+            flexWrap: "wrap", 
+            alignItems: "center", 
+            justifyContent: "center",
+            gap: 12, 
+            paddingTop: 12
+          }}>
+            <div style={{
+              display: "flex", alignItems: "center", fontSize: 13, fontWeight: 800, color: "rgba(255,255,255,0.85)", fontFamily: "'Rajdhani', sans-serif", textTransform: "uppercase", letterSpacing: "0.1em", marginRight: 4, textShadow: "0 2px 4px rgba(0,0,0,0.5)"
+            }}>
+              <FilterIcon /> Filters
             </div>
 
             <DropdownFilter label="Academic Level" options={filterOptions.levels} selected={selectedLevels} toggleOption={(v) => toggleFilter(selectedLevels, setSelectedLevels, v)} />
@@ -335,7 +443,17 @@ export default function CourseSearch() {
             {hasActiveFilters && (
               <button
                 onClick={handleClearFilters}
-                className="bg-red-500/15 border border-red-500/30 text-red-400 backdrop-blur-sm text-[12px] font-bold font-['Rajdhani',sans-serif] cursor-pointer uppercase tracking-[0.05em] px-[18px] py-2.5 rounded-full transition-all duration-200 hover:bg-red-500/25 hover:border-red-500/50"
+                style={{
+                  background: "rgba(239, 68, 68, 0.15)", border: "1px solid rgba(239, 68, 68, 0.3)", color: "#fca5a5", backdropFilter: "blur(4px)", fontSize: 12, fontWeight: 700, fontFamily: "'Rajdhani', sans-serif", cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.05em", padding: "10px 18px", borderRadius: 999, transition: "all 0.2s"
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = "rgba(239, 68, 68, 0.25)";
+                  e.currentTarget.style.borderColor = "rgba(239, 68, 68, 0.5)";
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = "rgba(239, 68, 68, 0.15)";
+                  e.currentTarget.style.borderColor = "rgba(239, 68, 68, 0.3)";
+                }}
               >
                 Clear Filters
               </button>
@@ -345,33 +463,34 @@ export default function CourseSearch() {
       </div>
 
       {/* ── MAIN CONTENT AREA ──────────────────────────────────────────────── */}
-      <div className="max-w-[1040px] mx-auto px-6 py-10 pb-24">
+      <div style={{ maxWidth: 1040, margin: "0 auto", padding: "40px 24px 96px" }}>
 
         {/* Results Info Bar */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="text-[15px] text-gray-600">
-            Showing <strong className="text-gray-900">{filteredData.length}</strong> programs available
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <div style={{ fontSize: 15, color: TEXT_MUTED }}>
+            Showing <strong style={{ color: TEXT_MAIN }}>{filteredData.length}</strong> programs available
           </div>
         </div>
 
-        {/* ── COURSE CARDS ── */}
+        {/* ── COURSE CARDS (SINGLE COLUMN) ── */}
         {loading ? (
-          <div className="bg-white border border-gray-200 rounded-2xl p-16 text-center text-gray-500 shadow-sm">
+          <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 64, textAlign: "center", color: TEXT_MUTED }}>
             Searching directory listings...
           </div>
         ) : filteredData.length === 0 ? (
-          <div className="bg-white border border-gray-200 rounded-2xl p-16 text-center text-gray-500 shadow-sm">
+          <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 64, textAlign: "center", color: TEXT_MUTED }}>
             No matches found. Try adjusting your filter terms or keywords.
           </div>
         ) : (
-          <div className="flex flex-col gap-6">
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             {filteredData.map(item => {
+              // Ensure sanitized output renders inside the cards as well!
               const stdLevel = standardizeLevel(item.level);
               const stdUni = standardizeName(item.University);
               const stdCol = standardizeName(item.College);
               const stdLoc = standardizeName(item.Location);
               const stdStream = standardizeName(item.stream);
-              const stdCourse = standardizeCourse(item.Course); 
+              const stdCourse = standardizeCourse(item.Course); // Sanitized
 
               const collegeLogo = validUrl(item.college_logo_url);
               const universityLogo = validUrl(item.university_logo_url);
@@ -380,41 +499,84 @@ export default function CourseSearch() {
               return (
                 <div
                   key={item.id}
-                  className="bg-white border-[1.5px] border-gray-200 rounded-2xl flex flex-col md:flex-row overflow-hidden transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.02)] hover:border-[#008ce3] hover:-translate-y-[2px] hover:shadow-[0_14px_30px_rgba(0,0,0,0.06)] group"
+                  className="course-card-element"
+                  style={{
+                    background: SURFACE,
+                    border: `1.5px solid ${BORDER}`,
+                    borderRadius: 16,
+                    display: "flex",
+                    overflow: "hidden",
+                    transition: "all 0.3s ease",
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.02)"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = P;
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow = "0 14px 30px rgba(0,0,0,0.06)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = BORDER;
+                    e.currentTarget.style.transform = "none";
+                    e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.02)";
+                  }}
                 >
-                  {/* Left Column: Image (CLICKABLE - Goes to Details) */}
-                  <Link 
-                    href={`/courses/${item.id}`}
-                    className={`w-full md:w-[240px] h-[200px] md:h-auto relative overflow-hidden shrink-0 flex items-center justify-center border-b md:border-b-0 md:border-r border-gray-200 group/img ${collegeLogo ? 'bg-white' : 'bg-[#E5E7EB]'}`}
-                  >
+                  {/* Left Column: Image */}
+                  <div className="card-image-col" style={{
+                    width: 240,
+                    position: "relative",
+                    overflow: "hidden",
+                    flexShrink: 0,
+                    background: collegeLogo ? "#ffffff" : "#E5E7EB",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRight: `1px solid ${BORDER}`
+                  }}>
                     <img
                       src={collegeLogo ?? fallbackImage}
                       alt={stdCol}
-                      className={`w-full h-full transition-transform duration-500 ease-in-out ${collegeLogo ? 'object-contain p-6' : 'object-cover group-hover/img:scale-105'}`}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: collegeLogo ? "contain" : "cover",
+                        padding: collegeLogo ? "24px" : "0",
+                        transition: "transform 0.5s ease",
+                        boxSizing: "border-box",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!collegeLogo) e.currentTarget.style.transform = "scale(1.05)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = "scale(1.0)";
+                      }}
                       onError={(e) => {
                         e.currentTarget.src = fallbackImage;
-                        e.currentTarget.className = "w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-105";
-                        e.currentTarget.parentElement!.classList.add("bg-[#E5E7EB]");
+                        e.currentTarget.style.objectFit = "cover";
+                        e.currentTarget.style.padding = "0";
+                        e.currentTarget.parentElement!.style.background = "#E5E7EB";
                       }}
                     />
-                    <div className="absolute bottom-3 left-3 bg-black/65 backdrop-blur-sm text-white text-[10px] font-bold font-['Rajdhani',sans-serif] px-2 py-1 rounded tracking-[0.08em] uppercase">
+                    <div style={{
+                      position: "absolute", bottom: 12, left: 12, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)", color: "#ffffff", fontSize: 10, fontWeight: 700, fontFamily: "'Rajdhani', sans-serif", padding: "4px 8px", borderRadius: 4, letterSpacing: "0.08em", textTransform: "uppercase"
+                    }}>
                       {stdStream}
                     </div>
-                  </Link>
+                  </div>
 
                   {/* Right Column: Content */}
-                  <div className="p-6 md:px-6 md:py-7 flex-1 flex flex-col justify-between min-w-0">
-                    
-                    {/* Top Content (CLICKABLE - Goes to Details) */}
-                    <Link href={`/courses/${item.id}`} className="flex flex-col gap-3 group/link cursor-pointer block">
-                      
+                  <div style={{ padding: "28px 24px", flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between", minWidth: 0 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                       {/* Tags */}
-                      <div className="flex gap-2 flex-wrap">
-                        <span className="bg-amber-400/10 text-amber-500 border border-amber-400/20 text-[9px] font-['Rajdhani',sans-serif] font-bold tracking-[0.12em] px-2.5 py-1 rounded-full uppercase">
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <span style={{
+                          background: `${AMBER}12`, color: AMBER, border: `1px solid ${AMBER}33`, fontSize: 9, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, letterSpacing: "0.12em", padding: "4px 10px", borderRadius: 999, textTransform: "uppercase"
+                        }}>
                           {stdLevel}
                         </span>
                         {item.Intake && (
-                          <span className="bg-gray-100 text-gray-500 border border-gray-200 text-[9px] font-['Rajdhani',sans-serif] font-bold tracking-[0.12em] px-2.5 py-1 rounded-full uppercase">
+                          <span style={{
+                            background: "#F3F4F6", color: TEXT_MUTED, border: `1px solid #E5E7EB`, fontSize: 9, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, letterSpacing: "0.12em", padding: "4px 10px", borderRadius: 999, textTransform: "uppercase"
+                          }}>
                             Intake: {item.Intake}
                           </span>
                         )}
@@ -422,58 +584,73 @@ export default function CourseSearch() {
 
                       {/* Title & Meta */}
                       <div>
-                        <h2 className="text-[18px] font-bold text-gray-900 m-0 mb-1.5 font-['Manrope',sans-serif] transition-colors group-hover/link:text-[#008ce3]">
+                        <h2 style={{ fontSize: 18, fontWeight: 700, color: TEXT_MAIN, margin: "0 0 6px", fontFamily: "'Manrope', sans-serif" }}>
                           {stdCourse}
                         </h2>
-                        <div className="flex flex-wrap items-center gap-4 text-[13px] text-gray-500">
-                          <span className="flex items-center gap-1.5">
-                            <Building size={14} />
+                        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, fontSize: 13, color: TEXT_MUTED }}>
+                          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                            <BuildingIcon />
                             {stdCol}
                           </span>
-                          <span className="flex items-center gap-1.5">
-                            <MapPin size={14} />
+                          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                            <LocationIcon />
                             {stdLoc}
                           </span>
                         </div>
                       </div>
-                    </Link>
+                    </div>
 
-                    {/* Footer Row: Uni & Inquire Button (NOT CLICKABLE for Details) */}
-                    <div className="border-t border-gray-200 pt-3.5 mt-4 flex items-center justify-between gap-2.5">
-                      
-                      {/* Affiliated University */}
-                      <div className="flex items-center gap-2.5 min-w-0">
+                    {/* Footer Row: Uni & Button */}
+                    <div style={{
+                      borderTop: `1px solid ${BORDER}`, paddingTop: 14, marginTop: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
                         {universityLogo ? (
                           <img
                             src={universityLogo}
                             alt={stdUni}
-                            className="w-8 h-8 object-contain rounded-md border border-gray-200 bg-white p-[3px] shrink-0 shadow-[0_1px_4px_rgba(0,0,0,0.06)]"
+                            style={{ width: 32, height: 32, objectFit: "contain", borderRadius: 6, border: `1px solid ${BORDER}`, background: "#ffffff", padding: 3, flexShrink: 0, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}
                             onError={(e) => { e.currentTarget.style.display = "none"; }}
                           />
                         ) : (
-                          <div className="w-8 h-8 rounded-md border border-gray-200 bg-[#008ce3]/10 shrink-0 flex items-center justify-center text-[11px] font-extrabold text-[#008ce3] font-['Rajdhani',sans-serif]">
+                          <div style={{
+                            width: 32, height: 32, borderRadius: 6, border: `1px solid ${BORDER}`, background: `${P}12`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: P, fontFamily: "'Rajdhani', sans-serif",
+                          }}>
                             {stdUni.charAt(0).toUpperCase()}
                           </div>
                         )}
-                        <div className="flex flex-col gap-[1px] min-w-0">
-                          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.06em]">
+                        <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
+                          <span style={{ fontSize: 10, fontWeight: 600, color: TEXT_LIGHT, textTransform: "uppercase", letterSpacing: "0.06em" }}>
                             Affiliated University
                           </span>
-                          <span className="text-[13px] font-bold text-gray-900 truncate" title={stdUni}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: TEXT_MAIN, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={stdUni}>
                             {stdUni}
                           </span>
                         </div>
                       </div>
 
-                      {/* Inquire Button */}
-                      <Link href="/student-inquiry" className="shrink-0 outline-none">
-                        <button className="bg-[#008ce3] hover:bg-[#0072b8] hover:scale-[1.02] text-white border-none py-2 px-4 rounded-lg text-[12px] font-bold font-['Rajdhani',sans-serif] uppercase tracking-[0.05em] cursor-pointer transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap shadow-sm">
+                      <a href={`/student-inquiry`} style={{ textDecoration: 'none' }}>
+                        <button
+                          style={{
+                            background: P, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8, fontSize: 12, fontWeight: 700, fontFamily: "'Rajdhani', sans-serif", textTransform: "uppercase", letterSpacing: "0.05em", cursor: "pointer", transition: "all 0.2s ease", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap"
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "#0072b8";
+                            e.currentTarget.style.transform = "scale(1.02)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = P;
+                            e.currentTarget.style.transform = "scale(1)";
+                          }}
+                        >
                           Inquire Now
-                          <ChevronRight size={14} strokeWidth={2.5} />
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                          </svg>
                         </button>
-                      </Link>
+                      </a>
                     </div>
-
                   </div>
                 </div>
               );
@@ -482,7 +659,7 @@ export default function CourseSearch() {
         )}
       </div>
 
-      {/* Global CSS Overrides */}
+      {/* CSS Rules */}
       <style>{`
         /* Custom scrollbars for inner filter dropdowns */
         .custom-scroll::-webkit-scrollbar {
@@ -497,6 +674,19 @@ export default function CourseSearch() {
         }
         .custom-scroll::-webkit-scrollbar-thumb:hover {
           background: #9ca3af;
+        }
+
+        /* Mobile View Adjustments */
+        @media (max-width: 768px) {
+          .course-card-element {
+            flex-direction: column !important;
+          }
+          .card-image-col {
+            width: 100% !important;
+            height: 200px !important;
+            border-right: none !important;
+            border-bottom: 1px solid #e5e7eb;
+          }
         }
       `}</style>
     </div>
