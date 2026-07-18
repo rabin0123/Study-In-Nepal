@@ -384,7 +384,7 @@ export default function CourseSearch() {
                 >
                   {/* Left Column: Image (CLICKABLE - Goes to Details) */}
                   <Link 
-                    href={`/course-details/${item.id}`}
+                    href={`/courses/${item.id}`}
                     className={`w-full md:w-[240px] h-[200px] md:h-auto relative overflow-hidden shrink-0 flex items-center justify-center border-b md:border-b-0 md:border-r border-gray-200 group/img ${collegeLogo ? 'bg-white' : 'bg-[#E5E7EB]'}`}
                   >
                     <img
@@ -406,7 +406,7 @@ export default function CourseSearch() {
                   <div className="p-6 md:px-6 md:py-7 flex-1 flex flex-col justify-between min-w-0">
                     
                     {/* Top Content (CLICKABLE - Goes to Details) */}
-                    <Link href={`/course-details/${item.id}`} className="flex flex-col gap-3 group/link cursor-pointer block">
+                    <Link href={`/courses/${item.id}`} className="flex flex-col gap-3 group/link cursor-pointer block">
                       
                       {/* Tags */}
                       <div className="flex gap-2 flex-wrap">
