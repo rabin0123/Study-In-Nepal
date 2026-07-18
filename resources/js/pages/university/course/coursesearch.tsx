@@ -444,7 +444,7 @@ export default function CourseSearch() {
               const fallbackImage = getStreamImage(item.stream, item.id);
 
               // ── THE ROUTE FOR THE CARD CLIcks (auto-encodes spaces etc.) ──
-              const uniRoute = `/courses/${item.id}`;
+              const uniRoute = `/courses/${item.course_detail_uuid}`;
 
               return (
                 <div
