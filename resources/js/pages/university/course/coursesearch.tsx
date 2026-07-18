@@ -34,7 +34,6 @@ const getStreamImage = (stream: string, id: number): string => {
 };
 
 // ── Data Standardization & Sanitization Helpers ────────────────────────────
-// The \uFFFD detects the  symbol. \u2013 and \u2014 detect special copy-pasted dashes.
 const standardizeLevel = (level: string | null | undefined): string => {
   if (!level) return "";
   let l = level.trim();
@@ -51,8 +50,8 @@ const standardizeLevel = (level: string | null | undefined): string => {
 const standardizeName = (name: string | null | undefined): string => {
   if (!name) return "";
   let n = name.trim();
-  n = n.replace(/[\uFFFD\u2013\u2014]/g, '-'); // Fix  character
-  n = n.replace(/\s*-\s*/g, ' - '); // Clean spacing around hyphen
+  n = n.replace(/[\uFFFD\u2013\u2014]/g, '-');
+  n = n.replace(/\s*-\s*/g, ' - ');
   n = n.replace(/,\s*U\.?S\.?A\.?/gi, ' (USA)');
   n = n.replace(/,\s*U\.?K\.?/gi, ' (UK)');
   n = n.replace(/,\s*Australia/gi, ' (Australia)');
@@ -63,8 +62,8 @@ const standardizeName = (name: string | null | undefined): string => {
 const standardizeCourse = (course: string | null | undefined): string => {
   if (!course) return "";
   let c = course.trim();
-  c = c.replace(/[\uFFFD\u2013\u2014]/g, '-'); // Fix  character
-  c = c.replace(/\s*-\s*/g, ' - '); // Ensure nice spacing around the hyphen
+  c = c.replace(/[\uFFFD\u2013\u2014]/g, '-');
+  c = c.replace(/\s*-\s*/g, ' - ');
   return c.replace(/\s+/g, ' ').trim();
 };
 
@@ -122,7 +121,7 @@ const validUrl = (url: string | null | undefined): string | null => {
   return trimmed;
 };
 
-// ── Reusable Dropdown Component (Styled for Hero Banner) ───────────────────
+// ── Reusable Dropdown Component ────────────────────────────────────────────
 function DropdownFilter({ label, options, selected, toggleOption }: { label: string, options: string[], selected: string[], toggleOption: (val: string) => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -235,7 +234,6 @@ export default function CourseSearch() {
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   
-  // Filter states
   const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
   const [selectedStreams, setSelectedStreams] = useState<string[]>([]);
   const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
@@ -274,7 +272,6 @@ export default function CourseSearch() {
     setSearch("");
   };
 
-  // ── DYNAMIC FILTERING LOGIC ──
   const { filteredData, filterOptions } = useMemo(() => {
     const q = search.toLowerCase();
 
@@ -288,7 +285,6 @@ export default function CourseSearch() {
     const resultData: UniversityEntry[] = [];
 
     data.forEach(item => {
-      // Data is sanitized here to remove broken  symbols before being used
       const stdLevel = standardizeLevel(item.level);
       const stdStream = standardizeName(item.stream);
       const stdCourse = standardizeCourse(item.Course);
@@ -362,47 +358,27 @@ export default function CourseSearch() {
     <div style={{ background: BG, minHeight: "100vh", color: TEXT_MAIN, fontFamily: "'Manrope', sans-serif" }}>
       <link href="https://fonts.googleapis.com/css2?family=Castoro+Titling&family=Rajdhani:wght@600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-      {/* ── VISUAL HERO BANNER (With embedded filters) ─────────────────────── */}
+      {/* ── VISUAL HERO BANNER ─────────────────────────────────────────────── */}
       <div style={{
         padding: "110px 24px 80px",
         textAlign: "center",
         position: "relative",
       }}>
-        {/* Background Layer (Strictly Contained) */}
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, overflow: "hidden", zIndex: 0 }}>
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            poster="/students_hero.jpg"
-            style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover" }}
-          >
+          <video autoPlay muted loop playsInline poster="/students_hero.jpg" style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover" }}>
             <source src="https://admin.studyinnepal.com/storage/videos/d47e6ef1-9380-4968-b9b3-5b0b3a9a6e81.mp4" type="video/mp4" />
           </video>
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(rgba(0, 0, 0, 0.7), rgba(0,0,0,0.5))" }} />
-          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 10% 20%, rgba(0, 0, 0, 0.15) 0%, transparent 40%)", pointerEvents: "none" }} />
         </div>
 
-        {/* Hero Content Layer */}
         <div style={{ maxWidth: 1040, margin: "0 auto", position: "relative", zIndex: 5 }}>
-          <p style={{
-            fontFamily: "'Rajdhani', sans-serif", color: AMBER, fontSize: 11, fontWeight: 700, letterSpacing: "0.28em", textTransform: "uppercase", margin: "0 0 16px", textShadow: "0 2px 4px rgba(0,0,0,0.4)"
-          }}>
+          <p style={{ fontFamily: "'Rajdhani', sans-serif", color: AMBER, fontSize: 11, fontWeight: 700, letterSpacing: "0.28em", textTransform: "uppercase", margin: "0 0 16px", textShadow: "0 2px 4px rgba(0,0,0,0.4)" }}>
             Explore Academic Fields
           </p>
-          <h1 style={{
-            fontFamily: "'Castoro Titling', serif", color: SURFACE, fontSize: "calc(26px + 2.2vw)", fontWeight: 400, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 24px", lineHeight: 1.15, textShadow: "0 4px 12px rgba(0,0,0,0.5)"
-          }}>
+          <h1 style={{ fontFamily: "'Castoro Titling', serif", color: SURFACE, fontSize: "calc(26px + 2.2vw)", fontWeight: 400, textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 24px", lineHeight: 1.15, textShadow: "0 4px 12px rgba(0,0,0,0.5)" }}>
             Discover <span style={{ color: P }}>Your Pathway</span> in Nepal
           </h1>
-          <p style={{
-            color: "rgba(255,255,255,0.85)", fontSize: 14, lineHeight: 1.7, maxWidth: 620, margin: "0 auto 32px", textShadow: "0 2px 4px rgba(0,0,0,0.3)"
-          }}>
-            Search registered universities, streams, specialized colleges, and find the perfect program that meets your academic goals.
-          </p>
 
-          {/* Search Bar */}
           <div style={{ position: "relative", maxWidth: 640, margin: "0 auto 24px" }}>
             <SearchLargeIcon />
             <input
@@ -412,27 +388,14 @@ export default function CourseSearch() {
               onChange={(e) => setSearch(e.target.value)}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
-              style={{
-                width: "100%", boxSizing: "border-box", background: SURFACE, border: `1.5px solid ${searchFocused ? P : "transparent"}`, borderRadius: 999, padding: "16px 24px 16px 54px", fontSize: 15, color: TEXT_MAIN, fontFamily: "'Manrope', sans-serif", outline: "none", boxShadow: searchFocused ? `0 12px 30px rgba(0, 140, 227, 0.2)` : "0 8px 30px rgba(0,0,0,0.2)", transition: "all 0.3s ease",
-              }}
+              style={{ width: "100%", boxSizing: "border-box", background: SURFACE, border: `1.5px solid ${searchFocused ? P : "transparent"}`, borderRadius: 999, padding: "16px 24px 16px 54px", fontSize: 15, color: TEXT_MAIN, outline: "none", boxShadow: searchFocused ? `0 12px 30px rgba(0, 140, 227, 0.2)` : "0 8px 30px rgba(0,0,0,0.2)", transition: "all 0.3s ease" }}
             />
           </div>
 
-          {/* Horizontal Filters Section directly in Hero */}
-          <div style={{ 
-            display: "flex", 
-            flexWrap: "wrap", 
-            alignItems: "center", 
-            justifyContent: "center",
-            gap: 12, 
-            paddingTop: 12
-          }}>
-            <div style={{
-              display: "flex", alignItems: "center", fontSize: 13, fontWeight: 800, color: "rgba(255,255,255,0.85)", fontFamily: "'Rajdhani', sans-serif", textTransform: "uppercase", letterSpacing: "0.1em", marginRight: 4, textShadow: "0 2px 4px rgba(0,0,0,0.5)"
-            }}>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 12, paddingTop: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", fontSize: 13, fontWeight: 800, color: "rgba(255,255,255,0.85)", fontFamily: "'Rajdhani', sans-serif", textTransform: "uppercase", letterSpacing: "0.1em", marginRight: 4, textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}>
               <FilterIcon /> Filters
             </div>
-
             <DropdownFilter label="Academic Level" options={filterOptions.levels} selected={selectedLevels} toggleOption={(v) => toggleFilter(selectedLevels, setSelectedLevels, v)} />
             <DropdownFilter label="Stream / Field" options={filterOptions.streams} selected={selectedStreams} toggleOption={(v) => toggleFilter(selectedStreams, setSelectedStreams, v)} />
             <DropdownFilter label="Course" options={filterOptions.courses} selected={selectedCourses} toggleOption={(v) => toggleFilter(selectedCourses, setSelectedCourses, v)} />
@@ -441,20 +404,7 @@ export default function CourseSearch() {
             <DropdownFilter label="Location" options={filterOptions.locations} selected={selectedLocations} toggleOption={(v) => toggleFilter(selectedLocations, setSelectedLocations, v)} />
 
             {hasActiveFilters && (
-              <button
-                onClick={handleClearFilters}
-                style={{
-                  background: "rgba(239, 68, 68, 0.15)", border: "1px solid rgba(239, 68, 68, 0.3)", color: "#fca5a5", backdropFilter: "blur(4px)", fontSize: 12, fontWeight: 700, fontFamily: "'Rajdhani', sans-serif", cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.05em", padding: "10px 18px", borderRadius: 999, transition: "all 0.2s"
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = "rgba(239, 68, 68, 0.25)";
-                  e.currentTarget.style.borderColor = "rgba(239, 68, 68, 0.5)";
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = "rgba(239, 68, 68, 0.15)";
-                  e.currentTarget.style.borderColor = "rgba(239, 68, 68, 0.3)";
-                }}
-              >
+              <button onClick={handleClearFilters} style={{ background: "rgba(239, 68, 68, 0.15)", border: "1px solid rgba(239, 68, 68, 0.3)", color: "#fca5a5", backdropFilter: "blur(4px)", fontSize: 12, fontWeight: 700, fontFamily: "'Rajdhani', sans-serif", cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.05em", padding: "10px 18px", borderRadius: 999, transition: "all 0.2s" }}>
                 Clear Filters
               </button>
             )}
@@ -464,15 +414,12 @@ export default function CourseSearch() {
 
       {/* ── MAIN CONTENT AREA ──────────────────────────────────────────────── */}
       <div style={{ maxWidth: 1040, margin: "0 auto", padding: "40px 24px 96px" }}>
-
-        {/* Results Info Bar */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
           <div style={{ fontSize: 15, color: TEXT_MUTED }}>
             Showing <strong style={{ color: TEXT_MAIN }}>{filteredData.length}</strong> programs available
           </div>
         </div>
 
-        {/* ── COURSE CARDS (SINGLE COLUMN) ── */}
         {loading ? (
           <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 64, textAlign: "center", color: TEXT_MUTED }}>
             Searching directory listings...
@@ -484,17 +431,19 @@ export default function CourseSearch() {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             {filteredData.map(item => {
-              // Ensure sanitized output renders inside the cards as well!
               const stdLevel = standardizeLevel(item.level);
               const stdUni = standardizeName(item.University);
               const stdCol = standardizeName(item.College);
               const stdLoc = standardizeName(item.Location);
               const stdStream = standardizeName(item.stream);
-              const stdCourse = standardizeCourse(item.Course); // Sanitized
+              const stdCourse = standardizeCourse(item.Course);
 
               const collegeLogo = validUrl(item.college_logo_url);
               const universityLogo = validUrl(item.university_logo_url);
               const fallbackImage = getStreamImage(item.stream, item.id);
+
+              // ── THE ROUTE FOR THE CARD CLIcks (auto-encodes spaces etc.) ──
+              const uniRoute = `/courses/${encodeURIComponent(stdUni)}`;
 
               return (
                 <div
@@ -520,8 +469,10 @@ export default function CourseSearch() {
                     e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.02)";
                   }}
                 >
-                  {/* Left Column: Image */}
-                  <div className="card-image-col" style={{
+                  {/* Left Column: Image (Now Clickable) */}
+                  <a href={uniRoute} className="card-image-col" style={{
+                    textDecoration: "none",
+                    color: "inherit",
                     width: 240,
                     position: "relative",
                     overflow: "hidden",
@@ -556,27 +507,23 @@ export default function CourseSearch() {
                         e.currentTarget.parentElement!.style.background = "#E5E7EB";
                       }}
                     />
-                    <div style={{
-                      position: "absolute", bottom: 12, left: 12, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)", color: "#ffffff", fontSize: 10, fontWeight: 700, fontFamily: "'Rajdhani', sans-serif", padding: "4px 8px", borderRadius: 4, letterSpacing: "0.08em", textTransform: "uppercase"
-                    }}>
+                    <div style={{ position: "absolute", bottom: 12, left: 12, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)", color: "#ffffff", fontSize: 10, fontWeight: 700, fontFamily: "'Rajdhani', sans-serif", padding: "4px 8px", borderRadius: 4, letterSpacing: "0.08em", textTransform: "uppercase" }}>
                       {stdStream}
                     </div>
-                  </div>
+                  </a>
 
                   {/* Right Column: Content */}
-                  <div style={{ padding: "28px 24px", flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between", minWidth: 0 }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div style={{ padding: "28px 24px", flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+                    
+                    {/* Top Content (Now Clickable and takes up available space) */}
+                    <a href={uniRoute} style={{ textDecoration: "none", color: "inherit", display: "flex", flexDirection: "column", gap: 12, flex: 1 }}>
                       {/* Tags */}
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        <span style={{
-                          background: `${AMBER}12`, color: AMBER, border: `1px solid ${AMBER}33`, fontSize: 9, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, letterSpacing: "0.12em", padding: "4px 10px", borderRadius: 999, textTransform: "uppercase"
-                        }}>
+                        <span style={{ background: `${AMBER}12`, color: AMBER, border: `1px solid ${AMBER}33`, fontSize: 9, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, letterSpacing: "0.12em", padding: "4px 10px", borderRadius: 999, textTransform: "uppercase" }}>
                           {stdLevel}
                         </span>
                         {item.Intake && (
-                          <span style={{
-                            background: "#F3F4F6", color: TEXT_MUTED, border: `1px solid #E5E7EB`, fontSize: 9, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, letterSpacing: "0.12em", padding: "4px 10px", borderRadius: 999, textTransform: "uppercase"
-                          }}>
+                          <span style={{ background: "#F3F4F6", color: TEXT_MUTED, border: `1px solid #E5E7EB`, fontSize: 9, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, letterSpacing: "0.12em", padding: "4px 10px", borderRadius: 999, textTransform: "uppercase" }}>
                             Intake: {item.Intake}
                           </span>
                         )}
@@ -598,13 +545,13 @@ export default function CourseSearch() {
                           </span>
                         </div>
                       </div>
-                    </div>
+                    </a>
 
                     {/* Footer Row: Uni & Button */}
-                    <div style={{
-                      borderTop: `1px solid ${BORDER}`, paddingTop: 14, marginTop: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
-                    }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                    <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 14, marginTop: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                      
+                      {/* Uni info (Now Clickable) */}
+                      <a href={uniRoute} style={{ textDecoration: "none", color: "inherit", display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
                         {universityLogo ? (
                           <img
                             src={universityLogo}
@@ -613,9 +560,7 @@ export default function CourseSearch() {
                             onError={(e) => { e.currentTarget.style.display = "none"; }}
                           />
                         ) : (
-                          <div style={{
-                            width: 32, height: 32, borderRadius: 6, border: `1px solid ${BORDER}`, background: `${P}12`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: P, fontFamily: "'Rajdhani', sans-serif",
-                          }}>
+                          <div style={{ width: 32, height: 32, borderRadius: 6, border: `1px solid ${BORDER}`, background: `${P}12`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: P, fontFamily: "'Rajdhani', sans-serif" }}>
                             {stdUni.charAt(0).toUpperCase()}
                           </div>
                         )}
@@ -627,13 +572,12 @@ export default function CourseSearch() {
                             {stdUni}
                           </span>
                         </div>
-                      </div>
+                      </a>
 
+                      {/* Inquire Button (Independent Link) */}
                       <a href={`/student-inquiry`} style={{ textDecoration: 'none' }}>
                         <button
-                          style={{
-                            background: P, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8, fontSize: 12, fontWeight: 700, fontFamily: "'Rajdhani', sans-serif", textTransform: "uppercase", letterSpacing: "0.05em", cursor: "pointer", transition: "all 0.2s ease", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap"
-                          }}
+                          style={{ background: P, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8, fontSize: 12, fontWeight: 700, fontFamily: "'Rajdhani', sans-serif", textTransform: "uppercase", letterSpacing: "0.05em", cursor: "pointer", transition: "all 0.2s ease", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.background = "#0072b8";
                             e.currentTarget.style.transform = "scale(1.02)";
@@ -651,6 +595,7 @@ export default function CourseSearch() {
                         </button>
                       </a>
                     </div>
+
                   </div>
                 </div>
               );
@@ -659,9 +604,7 @@ export default function CourseSearch() {
         )}
       </div>
 
-      {/* CSS Rules */}
       <style>{`
-        /* Custom scrollbars for inner filter dropdowns */
         .custom-scroll::-webkit-scrollbar {
           width: 5px;
         }
@@ -676,7 +619,6 @@ export default function CourseSearch() {
           background: #9ca3af;
         }
 
-        /* Mobile View Adjustments */
         @media (max-width: 768px) {
           .course-card-element {
             flex-direction: column !important;
