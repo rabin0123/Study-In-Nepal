@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CourseDetail;
+use App\Models\University; 
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
@@ -131,11 +132,18 @@ class CourseDetailController extends Controller
     /**
      * Public detail page.
      */
-    public function show(CourseDetail $courseDetail): Response
+     public function show(University $university): Response
     {
-        $courseDetail->load('university');
+        // Find the CourseDetail that matches the 3 columns from the University model
+        $courseDetail = CourseDetail::where('course_name', $university->course_name)
+            ->where('college_name', $university->college_name)
+            ->where('university_name', $university->university_name)
+            ->first(); 
+            // Note: You can use firstOrFail() instead of first() if you want 
+            // to show a 404 page when no details are found.
 
         return Inertia::render('university/course/show', [
+            'university'   => $university, // Passing the university record for context
             'courseDetail' => $courseDetail,
         ]);
     }
