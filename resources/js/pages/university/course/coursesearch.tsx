@@ -241,6 +241,7 @@ export default function CourseSearch() {
   const [selectedUniversities, setSelectedUniversities] = useState<string[]>([]);
   const [selectedColleges, setSelectedColleges] = useState<string[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+  const [selectedIntakes, setSelectedIntakes] = useState<string[]>([]);
 
   useEffect(() => {
     fetchUniversities();
@@ -270,6 +271,7 @@ export default function CourseSearch() {
     setSelectedUniversities([]);
     setSelectedColleges([]);
     setSelectedLocations([]);
+    setSelectedIntakes([]);
     setSearch("");
   };
 
@@ -282,6 +284,7 @@ export default function CourseSearch() {
     const universitiesSet = new Set<string>(selectedUniversities);
     const collegesSet = new Set<string>(selectedColleges);
     const locationsSet = new Set<string>(selectedLocations);
+    const intakesSet = new Set<string>(selectedIntakes);
     
     const resultData: UniversityEntry[] = [];
 
@@ -292,6 +295,7 @@ export default function CourseSearch() {
       const stdUni = standardizeName(item.University);
       const stdCol = standardizeName(item.College);
       const stdLoc = standardizeName(item.Location);
+      const stdIntake = (item.Intake || "").trim();
 
       const matchesSearch = !q || (
         stdUni.toLowerCase().includes(q) ||
@@ -307,43 +311,49 @@ export default function CourseSearch() {
       const matchesUni = selectedUniversities.length === 0 || selectedUniversities.includes(stdUni);
       const matchesCol = selectedColleges.length === 0 || selectedColleges.includes(stdCol);
       const matchesLoc = selectedLocations.length === 0 || selectedLocations.includes(stdLoc);
+      const matchesIntake = selectedIntakes.length === 0 || selectedIntakes.includes(stdIntake);
 
-      if (matchesSearch && matchesLevel && matchesStream && matchesCourse && matchesUni && matchesCol && matchesLoc) {
+      if (matchesSearch && matchesLevel && matchesStream && matchesCourse && matchesUni && matchesCol && matchesLoc && matchesIntake) {
         resultData.push(item);
       }
 
-      if (matchesSearch && matchesStream && matchesCourse && matchesUni && matchesCol && matchesLoc) {
+      // Populate filter options dynamically based on matching other active filters
+      if (matchesSearch && matchesStream && matchesCourse && matchesUni && matchesCol && matchesLoc && matchesIntake) {
         if (stdLevel) levelsSet.add(stdLevel);
       }
-      if (matchesSearch && matchesLevel && matchesCourse && matchesUni && matchesCol && matchesLoc) {
+      if (matchesSearch && matchesLevel && matchesCourse && matchesUni && matchesCol && matchesLoc && matchesIntake) {
         if (stdStream) streamsSet.add(stdStream);
       }
-      if (matchesSearch && matchesLevel && matchesStream && matchesUni && matchesCol && matchesLoc) {
+      if (matchesSearch && matchesLevel && matchesStream && matchesUni && matchesCol && matchesLoc && matchesIntake) {
         if (stdCourse) coursesSet.add(stdCourse);
       }
-      if (matchesSearch && matchesLevel && matchesStream && matchesCourse && matchesCol && matchesLoc) {
+      if (matchesSearch && matchesLevel && matchesStream && matchesCourse && matchesCol && matchesLoc && matchesIntake) {
         if (stdUni) universitiesSet.add(stdUni);
       }
-      if (matchesSearch && matchesLevel && matchesStream && matchesCourse && matchesUni && matchesLoc) {
+      if (matchesSearch && matchesLevel && matchesStream && matchesCourse && matchesUni && matchesLoc && matchesIntake) {
         if (stdCol) collegesSet.add(stdCol);
       }
-      if (matchesSearch && matchesLevel && matchesStream && matchesCourse && matchesUni && matchesCol) {
+      if (matchesSearch && matchesLevel && matchesStream && matchesCourse && matchesUni && matchesCol && matchesIntake) {
         if (stdLoc) locationsSet.add(stdLoc);
+      }
+      if (matchesSearch && matchesLevel && matchesStream && matchesCourse && matchesUni && matchesCol && matchesLoc) {
+        if (stdIntake) intakesSet.add(stdIntake);
       }
     });
 
     return {
       filteredData: resultData,
       filterOptions: {
-        levels: Array.from(levelsSet).sort(),
-        streams: Array.from(streamsSet).sort(),
-        courses: Array.from(coursesSet).sort(),
-        universities: Array.from(universitiesSet).sort(),
-        colleges: Array.from(collegesSet).sort(),
-        locations: Array.from(locationsSet).sort(),
+        levels: Array.from(levelsSet).filter(Boolean).sort(),
+        streams: Array.from(streamsSet).filter(Boolean).sort(),
+        courses: Array.from(coursesSet).filter(Boolean).sort(),
+        universities: Array.from(universitiesSet).filter(Boolean).sort(),
+        colleges: Array.from(collegesSet).filter(Boolean).sort(),
+        locations: Array.from(locationsSet).filter(Boolean).sort(),
+        intakes: Array.from(intakesSet).filter(Boolean).sort(),
       }
     };
-  }, [data, search, selectedLevels, selectedStreams, selectedCourses, selectedUniversities, selectedColleges, selectedLocations]);
+  }, [data, search, selectedLevels, selectedStreams, selectedCourses, selectedUniversities, selectedColleges, selectedLocations, selectedIntakes]);
 
   const toggleFilter = (list: string[], setList: (next: string[]) => void, value: string) => {
     if (list.includes(value)) {
@@ -353,7 +363,7 @@ export default function CourseSearch() {
     }
   };
 
-  const hasActiveFilters = selectedLevels.length > 0 || selectedStreams.length > 0 || selectedCourses.length > 0 || selectedUniversities.length > 0 || selectedColleges.length > 0 || selectedLocations.length > 0;
+  const hasActiveFilters = selectedLevels.length > 0 || selectedStreams.length > 0 || selectedCourses.length > 0 || selectedUniversities.length > 0 || selectedColleges.length > 0 || selectedLocations.length > 0 || selectedIntakes.length > 0;
 
   return (
     <div style={{ background: BG, minHeight: "100vh", color: TEXT_MAIN, fontFamily: "'Manrope', sans-serif" }}>
@@ -403,6 +413,7 @@ export default function CourseSearch() {
             <DropdownFilter label="Universities" options={filterOptions.universities} selected={selectedUniversities} toggleOption={(v) => toggleFilter(selectedUniversities, setSelectedUniversities, v)} />
             <DropdownFilter label="Colleges" options={filterOptions.colleges} selected={selectedColleges} toggleOption={(v) => toggleFilter(selectedColleges, setSelectedColleges, v)} />
             <DropdownFilter label="Location" options={filterOptions.locations} selected={selectedLocations} toggleOption={(v) => toggleFilter(selectedLocations, setSelectedLocations, v)} />
+            <DropdownFilter label="Intake" options={filterOptions.intakes} selected={selectedIntakes} toggleOption={(v) => toggleFilter(selectedIntakes, setSelectedIntakes, v)} />
 
             {hasActiveFilters && (
               <button onClick={handleClearFilters} style={{ background: "rgba(239, 68, 68, 0.15)", border: "1px solid rgba(239, 68, 68, 0.3)", color: "#fca5a5", backdropFilter: "blur(4px)", fontSize: 12, fontWeight: 700, fontFamily: "'Rajdhani', sans-serif", cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.05em", padding: "10px 18px", borderRadius: 999, transition: "all 0.2s" }}>
@@ -444,7 +455,7 @@ export default function CourseSearch() {
               const fallbackImage = getStreamImage(item.stream, item.id);
 
               const uuid = item.course_detail_uuid;
-const uniRoute = uuid ? `/courses/${uuid}` : "#";
+              const uniRoute = uuid ? `/courses/${uuid}` : "#";
 
               return (
                 <div
@@ -470,7 +481,7 @@ const uniRoute = uuid ? `/courses/${uuid}` : "#";
                     e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.02)";
                   }}
                 >
-                  {/* Left Column: Image (Now Clickable) */}
+                  {/* Left Column: Stock Image to keep it visually rich */}
                   <a href={uniRoute} className="card-image-col" style={{
                     textDecoration: "none",
                     color: "inherit",
@@ -478,34 +489,27 @@ const uniRoute = uuid ? `/courses/${uuid}` : "#";
                     position: "relative",
                     overflow: "hidden",
                     flexShrink: 0,
-                    background: collegeLogo ? "#ffffff" : "#E5E7EB",
+                    background: "#E5E7EB",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     borderRight: `1px solid ${BORDER}`
                   }}>
                     <img
-                      src={collegeLogo ?? fallbackImage}
-                      alt={stdCol}
+                      src={fallbackImage}
+                      alt={stdStream}
                       style={{
                         width: "100%",
                         height: "100%",
-                        objectFit: collegeLogo ? "contain" : "cover",
-                        padding: collegeLogo ? "24px" : "0",
+                        objectFit: "cover",
                         transition: "transform 0.5s ease",
                         boxSizing: "border-box",
                       }}
                       onMouseEnter={(e) => {
-                        if (!collegeLogo) e.currentTarget.style.transform = "scale(1.05)";
+                        e.currentTarget.style.transform = "scale(1.05)";
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.transform = "scale(1.0)";
-                      }}
-                      onError={(e) => {
-                        e.currentTarget.src = fallbackImage;
-                        e.currentTarget.style.objectFit = "cover";
-                        e.currentTarget.style.padding = "0";
-                        e.currentTarget.parentElement!.style.background = "#E5E7EB";
                       }}
                     />
                     <div style={{ position: "absolute", bottom: 12, left: 12, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)", color: "#ffffff", fontSize: 10, fontWeight: 700, fontFamily: "'Rajdhani', sans-serif", padding: "4px 8px", borderRadius: 4, letterSpacing: "0.08em", textTransform: "uppercase" }}>
@@ -516,7 +520,7 @@ const uniRoute = uuid ? `/courses/${uuid}` : "#";
                   {/* Right Column: Content */}
                   <div style={{ padding: "28px 24px", flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
                     
-                    {/* Top Content (Now Clickable and takes up available space) */}
+                    {/* Top Content */}
                     <a href={uniRoute} style={{ textDecoration: "none", color: "inherit", display: "flex", flexDirection: "column", gap: 12, flex: 1 }}>
                       {/* Tags */}
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -530,20 +534,36 @@ const uniRoute = uuid ? `/courses/${uuid}` : "#";
                         )}
                       </div>
 
-                      {/* Title & Meta */}
+                      {/* Title & Meta Info (College Layout Included Here) */}
                       <div>
-                        <h2 style={{ fontSize: 18, fontWeight: 700, color: TEXT_MAIN, margin: "0 0 6px", fontFamily: "'Manrope', sans-serif" }}>
+                        <h2 style={{ fontSize: 18, fontWeight: 700, color: TEXT_MAIN, margin: "0 0 12px", fontFamily: "'Manrope', sans-serif" }}>
                           {stdCourse}
                         </h2>
-                        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, fontSize: 13, color: TEXT_MUTED }}>
-                          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                            <BuildingIcon />
-                            {stdCol}
-                          </span>
-                          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                            <LocationIcon />
-                            {stdLoc}
-                          </span>
+                        
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          {collegeLogo ? (
+                            <img
+                              src={collegeLogo}
+                              alt={stdCol}
+                              style={{ width: 44, height: 44, objectFit: "contain", borderRadius: 8, border: `1px solid ${BORDER}`, background: "#ffffff", padding: 2, flexShrink: 0, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}
+                              onError={(e) => { e.currentTarget.style.display = "none"; }}
+                            />
+                          ) : (
+                            <div style={{ width: 44, height: 44, borderRadius: 8, border: `1px solid ${BORDER}`, background: `${P}12`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 800, color: P, fontFamily: "'Rajdhani', sans-serif" }}>
+                              {stdCol.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: TEXT_MAIN, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={stdCol}>
+                              {stdCol}
+                            </span>
+                            <span style={{ fontSize: 12, color: TEXT_MUTED, display: "flex", alignItems: "center", gap: 4 }}>
+                              <LocationIcon />
+                              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={stdLoc}>
+                                {stdLoc}
+                              </span>
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </a>
@@ -551,7 +571,7 @@ const uniRoute = uuid ? `/courses/${uuid}` : "#";
                     {/* Footer Row: Uni & Button */}
                     <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 14, marginTop: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                       
-                      {/* Uni info (Now Clickable) */}
+                      {/* Uni info */}
                       <a href={uniRoute} style={{ textDecoration: "none", color: "inherit", display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
                         {universityLogo ? (
                           <img
@@ -575,7 +595,7 @@ const uniRoute = uuid ? `/courses/${uuid}` : "#";
                         </div>
                       </a>
 
-                      {/* Inquire Button (Independent Link) */}
+                      {/* Inquire Button */}
                       <a href={`/student-inquiry`} style={{ textDecoration: 'none' }}>
                         <button
                           style={{ background: P, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8, fontSize: 12, fontWeight: 700, fontFamily: "'Rajdhani', sans-serif", textTransform: "uppercase", letterSpacing: "0.05em", cursor: "pointer", transition: "all 0.2s ease", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}
