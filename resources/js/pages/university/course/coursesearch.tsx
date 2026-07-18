@@ -112,6 +112,7 @@ interface UniversityEntry {
   Amount: string | null;
   Scholarship: string | null;
   requireddocuments: string | null;
+  course_detail_uuid?: string; 
 }
 
 const validUrl = (url: string | null | undefined): string | null => {

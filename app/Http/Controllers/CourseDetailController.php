@@ -132,18 +132,19 @@ class CourseDetailController extends Controller
     /**
      * Public detail page.
      */
-     public function show(University $university): Response
+      public function show($uuid): Response
     {
-        // Find the CourseDetail that matches the 3 columns from the University model
-        $courseDetail = CourseDetail::where('course_name', $university->course_name)
-            ->where('college_name', $university->college_name)
-            ->where('university_name', $university->university_name)
-            ->first(); 
-            // Note: You can use firstOrFail() instead of first() if you want 
-            // to show a 404 page when no details are found.
+        // 1. Find the CourseDetail using the UUID (throws 404 if not found)
+        $courseDetail = CourseDetail::where('uuid', $uuid)->firstOrFail();
+
+        // 2. Find the matching University record for context (so your Inertia page doesn't break)
+        $university = University::where('course_name', $courseDetail->course_name)
+            ->where('college_name', $courseDetail->college_name)
+            ->where('university_name', $courseDetail->university_name)
+            ->first();
 
         return Inertia::render('university/course/show', [
-            'university'   => $university, // Passing the university record for context
+            'university'   => $university, // Will pass the university if found, or null
             'courseDetail' => $courseDetail,
         ]);
     }
