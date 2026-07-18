@@ -93,15 +93,18 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
         window.scrollTo({ top, behavior: 'smooth' });
     };
 
-    // States for logos
+    // States for logos and extra fetched info
     const [univLogo, setUnivLogo] = useState<string | null | undefined>(courseDetail.university?.university_logo_url);
     const [collegeLogo, setCollegeLogo] = useState<string | null | undefined>(null);
+    const [intake, setIntake] = useState<string | null | undefined>(courseDetail.university?.Intake);
+    const [location, setLocation] = useState<string | null | undefined>(courseDetail.university?.Location);
+    const [level, setLevel] = useState<string | null | undefined>(courseDetail.university?.level || 'Postgraduate');
 
-    // Fetch logos from the API
+    // Fetch details from the API
     useEffect(() => {
         let isMounted = true;
 
-        const fetchLogos = async () => {
+        const fetchDetails = async () => {
             try {
                 const res = await fetch('https://www.admin.studyinnepal.com/api/university');
                 const data = await res.json();
@@ -118,6 +121,9 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 if (exactMatch) {
                     if (exactMatch.university_logo_url) setUnivLogo(exactMatch.university_logo_url);
                     if (exactMatch.college_logo_url) setCollegeLogo(exactMatch.college_logo_url);
+                    if (exactMatch.Intake) setIntake(exactMatch.Intake);
+                    if (exactMatch.Location) setLocation(exactMatch.Location);
+                    if (exactMatch.Level || exactMatch.level) setLevel(exactMatch.Level || exactMatch.level);
                 } else {
                     // Fallback to partial matching if exactly matching both fails
                     const univMatch = data.find((item: any) => item.University === courseDetail.university_name);
@@ -125,13 +131,21 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
                     if (univMatch?.university_logo_url) setUnivLogo(univMatch.university_logo_url);
                     if (colMatch?.college_logo_url) setCollegeLogo(colMatch.college_logo_url);
+
+                    const fallbackIntake = colMatch?.Intake || univMatch?.Intake;
+                    const fallbackLocation = colMatch?.Location || univMatch?.Location;
+                    const fallbackLevel = colMatch?.Level || colMatch?.level || univMatch?.Level || univMatch?.level;
+
+                    if (fallbackIntake) setIntake(fallbackIntake);
+                    if (fallbackLocation) setLocation(fallbackLocation);
+                    if (fallbackLevel) setLevel(fallbackLevel);
                 }
             } catch (err) {
-                console.error('Failed to fetch university API data for logos:', err);
+                console.error('Failed to fetch university API data for details:', err);
             }
         };
 
-        fetchLogos();
+        fetchDetails();
 
         return () => {
             isMounted = false;
@@ -189,34 +203,28 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 <div className="gcu-wrap">
                     <div className="gcu-banner-info">
                         <div className="gcu-banner-info__wrap">
-                            <span className="gcu-banner-info__award">{courseDetail.university?.level || 'Postgraduate'}</span>
+                            <span className="gcu-banner-info__award">
+                                {level} {intake ? ` | Intake: ${intake}` : ''}
+                            </span>
                             <div className="gcu-banner-info__title">{courseDetail.course_name}</div>
                             <div className="gcu-banner-info__meta">
                                 <div className="gcu-banner-info__tagline">
                                     {collegeLogo && (
                                         <img src={collegeLogo} alt={courseDetail.college_name} className="gcu-banner-college-logo" />
                                     )}
-                                    <span>{courseDetail.college_name}</span>
+                                    <div className="gcu-banner-college-details">
+                                        <span className="gcu-banner-college-name">{courseDetail.college_name}</span>
+                                        {location && (
+                                            <span className="gcu-banner-college-location">
+                                                <span className="gcu-icon" aria-hidden="true">
+                                                    location_on
+                                                </span>
+                                                {location}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                            <ul className="gcu-banner-info__list">
-                                {courseDetail.university?.Intake && (
-                                    <li>
-                                        <span className="gcu-icon" aria-hidden="true">
-                                            arrow_circle_up
-                                        </span>
-                                        Intake: {courseDetail.university.Intake}
-                                    </li>
-                                )}
-                                {courseDetail.university?.Location && (
-                                    <li>
-                                        <span className="gcu-icon" aria-hidden="true">
-                                            watch_later
-                                        </span>
-                                        Location: {courseDetail.university.Location}
-                                    </li>
-                                )}
-                            </ul>
                         </div>
                     </div>
                 </div>
@@ -554,22 +562,26 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     border-radius: 6px;
                     flex-shrink: 0;
                 }
-
-                .gcu-banner-info__list {
-                    list-style: none;
+                .gcu-banner-college-details {
                     display: flex;
-                    flex-wrap: wrap;
-                    gap: 20px;
-                    border-top: 1px solid rgba(255, 255, 255, 0.15);
-                    padding-top: 20px;
-                    font-size: 0.88rem;
-                    font-weight: 600;
+                    flex-direction: column;
+                    justify-content: center;
                 }
-                .gcu-banner-info__list li {
+                .gcu-banner-college-name {
+                    font-size: 1.1rem;
+                    font-weight: 700;
+                    line-height: 1.2;
+                }
+                .gcu-banner-college-location {
+                    font-size: 0.85rem;
+                    font-weight: 500;
+                    color: rgba(255, 255, 255, 0.8);
                     display: flex;
                     align-items: center;
-                    gap: 8px;
+                    gap: 4px;
+                    margin-top: 4px;
                 }
+
                 .gcu-icon {
                     font-size: 0.95rem;
                     opacity: 0.8;
@@ -586,13 +598,13 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     overflow-x: hidden;
                 }
                 .gcu-subnav__list {
-    list-style: none;
-    display: flex;
-    justify-content: center;
-    gap: 24px;
-    overflow-x: auto;
-    scrollbar-width: none;
-}
+                    list-style: none;
+                    display: flex;
+                    justify-content: center;
+                    gap: 24px;
+                    overflow-x: auto;
+                    scrollbar-width: none;
+                }
                 .gcu-subnav__list::-webkit-scrollbar { display: none; }
                 .gcu-subnav__link {
                     background: none;
