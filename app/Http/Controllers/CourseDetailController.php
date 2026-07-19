@@ -219,3 +219,5 @@ class CourseDetailController extends Controller
         return redirect()->back()->with('success', 'Course details deleted successfully.');
     }
 }
+
+
