@@ -703,8 +703,10 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: var(--color-black);
                 }
                 .gcu-credit-hours {
-                    color: var(--color-blue);
-                }
+    color: var(--color-blue);
+    display: flex;
+    justify-content: flex-end;
+}
 
                 .gcu-panel.scheme--mild-black-bg {
                     background-color: #1e293b;
