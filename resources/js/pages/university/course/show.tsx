@@ -21,6 +21,7 @@ type Props = {
             id: number;
             level?: string;
             Intake?: string;
+            credit_hours?: string;
             Location?: string;
             university_logo_url?: string | null;
         } | null;
