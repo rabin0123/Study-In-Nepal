@@ -296,7 +296,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                             return (
                                                 <div key={yearBlock.year} className="gcu-accordion-navigation">
                                                     {yearBlock.title && modules.length === 1 && (
-                                                        <h3 className="gcu-single-year-title">{yearBlock.title}</h3>
+                                                        <h3 className="gcu-single-year-title"></h3>
                                                     )}
                                                     {yearBlock.modules && yearBlock.modules.length > 0 ? (
                                                         yearBlock.modules
