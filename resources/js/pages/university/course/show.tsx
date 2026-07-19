@@ -1089,7 +1089,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
     );
 }
 
-function ModuleAccordion({ name, info }: { name: string; info?: string | null }) {
+function ModuleAccordion({ name, info, credit_hours }: { name: string; info?: string | null; credit_hours?: string | null }) {
     const hasInfo = Boolean(info && info.trim() !== '');
     const [open, setOpen] = useState(false);
 
