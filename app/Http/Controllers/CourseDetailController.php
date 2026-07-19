@@ -52,28 +52,34 @@ class CourseDetailController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        // 1. Validate the new multi-institution payload
+        // 1. Validate the new multi-institution payload (Updated to include Semesters)
         $validated = $request->validate([
-            'course_name'                                  => 'required|string|max:255',
-            'summary'                                      => 'nullable|string',
-            'careers'                                      => 'nullable|string', 
+            'course_name'                                                            => 'required|string|max:255',
+            'summary'                                                                => 'nullable|string',
+            'careers'                                                                => 'nullable|string', 
             
-            'fees'                                         => 'nullable|array',
-            'fees.*.year'                                  => 'required_with:fees|integer|min:1',
-            'fees.*.amount'                                => 'nullable|string|max:100',
-            'fees.*.currency'                              => 'nullable|string|max:10',
-            'fees.*.note'                                  => 'nullable|string|max:255',
+            'fees'                                                                   => 'nullable|array',
+            'fees.*.year'                                                            => 'required_with:fees|integer|min:1',
+            'fees.*.amount'                                                          => 'nullable|string|max:100',
+            'fees.*.currency'                                                        => 'nullable|string|max:10',
+            'fees.*.note'                                                            => 'nullable|string|max:255',
             
-            'institutions'                                 => 'required|array|min:1',
-            'institutions.*.university_name'               => 'required|string|max:255',
-            'institutions.*.college_name'                  => 'required|string|max:255',
-            'institutions.*.year_wise_modules'             => 'nullable|array',
-            'institutions.*.year_wise_modules.*.year'      => 'required_with:institutions.*.year_wise_modules|integer|min:1',
-            'institutions.*.year_wise_modules.*.title'     => 'nullable|string|max:255',
-            'institutions.*.year_wise_modules.*.modules'   => 'nullable|array',
-            'institutions.*.year_wise_modules.*.modules.*.name'         => 'required|string|max:255',
-            'institutions.*.year_wise_modules.*.modules.*.info'         => 'nullable|string|max:500',
-            'institutions.*.year_wise_modules.*.modules.*.credit_hours' => 'nullable|string|max:100', // <-- ADDED CREDIT HOURS
+            'institutions'                                                           => 'required|array|min:1',
+            'institutions.*.university_name'                                         => 'required|string|max:255',
+            'institutions.*.college_name'                                            => 'required|string|max:255',
+            
+            // Year -> Semester -> Module Validation
+            'institutions.*.year_wise_modules'                                       => 'nullable|array',
+            'institutions.*.year_wise_modules.*.year'                                => 'required_with:institutions.*.year_wise_modules|integer|min:1',
+            'institutions.*.year_wise_modules.*.title'                               => 'nullable|string|max:255',
+            
+            'institutions.*.year_wise_modules.*.semesters'                           => 'nullable|array',
+            'institutions.*.year_wise_modules.*.semesters.*.title'                   => 'nullable|string|max:255',
+            
+            'institutions.*.year_wise_modules.*.semesters.*.modules'                 => 'nullable|array',
+            'institutions.*.year_wise_modules.*.semesters.*.modules.*.name'         => 'required|string|max:255',
+            'institutions.*.year_wise_modules.*.semesters.*.modules.*.info'         => 'nullable|string|max:500',
+            'institutions.*.year_wise_modules.*.semesters.*.modules.*.credit_hours' => 'nullable|string|max:100',
         ]);
 
         // 2. Check for duplicate entries (same course, university, and college) in the database
@@ -168,26 +174,31 @@ class CourseDetailController extends Controller
     public function update(Request $request, CourseDetail $courseDetail): JsonResponse
     {
         $validated = $request->validate([
-            'university_name'                           => 'sometimes|required|string|max:255',
-            'college_name'                              => 'sometimes|required|string|max:255',
-            'course_name'                               => 'sometimes|required|string|max:255',
+            'university_name'                                         => 'sometimes|required|string|max:255',
+            'college_name'                                            => 'sometimes|required|string|max:255',
+            'course_name'                                             => 'sometimes|required|string|max:255',
 
-            'summary'                                   => 'nullable|string',
-            'careers'                                   => 'nullable|string',
+            'summary'                                                 => 'nullable|string',
+            'careers'                                                 => 'nullable|string',
 
-            'year_wise_modules'                         => 'nullable|array',
-            'year_wise_modules.*.year'                  => 'required_with:year_wise_modules|integer|min:1',
-            'year_wise_modules.*.title'                 => 'nullable|string|max:255',
-            'year_wise_modules.*.modules'               => 'nullable|array',
-            'year_wise_modules.*.modules.*.name'        => 'required|string|max:255',
-            'year_wise_modules.*.modules.*.info'        => 'nullable|string|max:500',
-            'year_wise_modules.*.modules.*.credit_hours'=> 'nullable|string|max:100', // <-- ADDED CREDIT HOURS
+            // Year -> Semester -> Module Validation
+            'year_wise_modules'                                       => 'nullable|array',
+            'year_wise_modules.*.year'                                => 'required_with:year_wise_modules|integer|min:1',
+            'year_wise_modules.*.title'                               => 'nullable|string|max:255',
+            
+            'year_wise_modules.*.semesters'                           => 'nullable|array',
+            'year_wise_modules.*.semesters.*.title'                   => 'nullable|string|max:255',
+            
+            'year_wise_modules.*.semesters.*.modules'                 => 'nullable|array',
+            'year_wise_modules.*.semesters.*.modules.*.name'          => 'required|string|max:255',
+            'year_wise_modules.*.semesters.*.modules.*.info'          => 'nullable|string|max:500',
+            'year_wise_modules.*.semesters.*.modules.*.credit_hours'  => 'nullable|string|max:100',
 
-            'fees'                                      => 'nullable|array',
-            'fees.*.year'                               => 'required_with:fees|integer|min:1',
-            'fees.*.amount'                             => 'nullable|string|max:100',
-            'fees.*.currency'                           => 'nullable|string|max:10',
-            'fees.*.note'                               => 'nullable|string|max:255',
+            'fees'                                                    => 'nullable|array',
+            'fees.*.year'                                             => 'required_with:fees|integer|min:1',
+            'fees.*.amount'                                           => 'nullable|string|max:100',
+            'fees.*.currency'                                         => 'nullable|string|max:10',
+            'fees.*.note'                                             => 'nullable|string|max:255',
         ]);
 
         $courseDetail->update($validated);
