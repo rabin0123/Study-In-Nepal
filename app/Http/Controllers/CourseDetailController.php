@@ -133,7 +133,7 @@ class CourseDetailController extends Controller
     /**
      * Public detail page.
      */
-    public function show($uuid): Response
+    public function show($uuid)
     {
         // 1. Find the CourseDetail using the UUID (throws 404 if not found)
         $courseDetail = CourseDetail::where('uuid', $uuid)->firstOrFail();
