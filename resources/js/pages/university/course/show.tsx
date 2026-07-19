@@ -286,6 +286,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                                     onClick={() => setActiveTab(yearBlock.year)}
                                                 >
                                                     {yearBlock.title || `Year ${yearBlock.year}`}
+                                                    
                                                 </button>
                                             ))}
                                         </div>
