@@ -301,7 +301,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                                     {yearBlock.modules && yearBlock.modules.length > 0 ? (
                                                         yearBlock.modules
                                                             .map(normalizeModuleEntry)
-                                                            .map((mod, i) => <ModuleAccordion key={i} name={mod.name} info={mod.info} />)
+                                                            .map((mod, i) => <ModuleAccordion key={i} name={mod.name} credit_hours={mod.name} info={mod.info} />)
                                                     ) : (
                                                         <p className="gcu-muted">No modules listed for this period.</p>
                                                     )}
