@@ -12,7 +12,6 @@ type Props = {
         college_name: string;
         course_name: string;
         summary: string | null;
-        credit_hours: string | null;
         year_wise_modules: YearModule[] | null;
         fees: YearFee[] | null;
         careers: string | string[] | null;
