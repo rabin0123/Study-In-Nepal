@@ -705,7 +705,8 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
               .gcu-credit-hours {
     margin-left: auto;
     margin-right: 20px;
-    font-size: 15px
+    font-size: 15px;
+    font-weight: normal;
 }
 
                 .gcu-panel.scheme--mild-black-bg {
