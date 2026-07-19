@@ -2,7 +2,14 @@ import { Head } from '@inertiajs/react';
 import { useEffect, useState, useMemo } from 'react';
 
 type ModuleEntry = { name: string; info?: string | null; credit_hours?: string | null };
-type YearModule = { year: number; title?: string; credit_hours?: string | null; modules?: (string | ModuleEntry)[] | null };
+type Semester = { title: string; modules?: (string | ModuleEntry)[] | null };
+type YearModule = { 
+    year: number; 
+    title?: string; 
+    credit_hours?: string | null; 
+    modules?: (string | ModuleEntry)[] | null; 
+    semesters?: Semester[] | null; 
+};
 type YearFee = { year: number; amount?: string | null; currency?: string | null; note?: string | null };
 
 type Props = {
@@ -75,6 +82,9 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
     const [activeTab, setActiveTab] = useState<number>(() => {
         return modules.length > 0 ? modules[0].year : 1;
     });
+    
+    // State to track the currently active semester index within the active year
+    const [activeSemester, setActiveSemester] = useState<number>(0);
 
     const [activeSection, setActiveSection] = useState<string>('');
 
@@ -83,6 +93,12 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
         if (!el) return;
         const top = el.getBoundingClientRect().top + window.scrollY - 100;
         window.scrollTo({ top, behavior: 'smooth' });
+    };
+
+    const handleYearTabClick = (year: number) => {
+        setActiveTab(year);
+        // Reset to the first semester when a new year is selected
+        setActiveSemester(0);
     };
 
     const [univLogo, setUnivLogo] = useState<string | null | undefined>(courseDetail.university?.university_logo_url);
@@ -186,7 +202,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     <div className="gcu-banner-info">
                         <div className="gcu-banner-info__wrap">
                             
-                            {/* Flex container to push Level to left and Intake to right */}
                             <div className="gcu-banner-top-row">
                                 <span className="gcu-banner-info__award">{level}</span>
                                 
@@ -282,7 +297,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                                     key={yearBlock.year}
                                                     type="button"
                                                     className={`gcu-tab-header-btn ${activeTab === yearBlock.year ? 'is-active' : ''}`}
-                                                    onClick={() => setActiveTab(yearBlock.year)}
+                                                    onClick={() => handleYearTabClick(yearBlock.year)}
                                                 >
                                                     {yearBlock.title || `Year ${yearBlock.year}`}
                                                 </button>
@@ -298,7 +313,39 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                                     {yearBlock.title && modules.length === 1 && (
                                                         <h3 className="gcu-single-year-title">{yearBlock.title}</h3>
                                                     )}
-                                                    {yearBlock.modules && yearBlock.modules.length > 0 ? (
+
+                                                    {/* Handling nested semesters if they exist */}
+                                                    {yearBlock.semesters && yearBlock.semesters.length > 0 ? (
+                                                        <>
+                                                            <div className="gcu-semester-tabs">
+                                                                {yearBlock.semesters.map((sem, idx) => (
+                                                                    <button
+                                                                        key={idx}
+                                                                        type="button"
+                                                                        className={`gcu-semester-tab-btn ${activeSemester === idx ? 'is-active' : ''}`}
+                                                                        onClick={() => setActiveSemester(idx)}
+                                                                    >
+                                                                        {sem.title}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+
+                                                            <div className="gcu-semester-modules-list gcu-accordion-navigation">
+                                                                {(() => {
+                                                                    const currentSem = yearBlock.semesters[activeSemester];
+                                                                    if (currentSem && currentSem.modules && currentSem.modules.length > 0) {
+                                                                        return currentSem.modules
+                                                                            .map(normalizeModuleEntry)
+                                                                            .map((mod, i) => (
+                                                                                <ModuleAccordion key={i} name={mod.name} credit_hours={mod.credit_hours} info={mod.info} />
+                                                                            ));
+                                                                    }
+                                                                    return <p className="gcu-muted">No modules listed for this semester.</p>;
+                                                                })()}
+                                                            </div>
+                                                        </>
+                                                    ) : yearBlock.modules && yearBlock.modules.length > 0 ? (
+                                                        /* Fallback logic for backward compatibility if no nested semesters are passed */
                                                         yearBlock.modules
                                                             .map(normalizeModuleEntry)
                                                             .map((mod, i) => <ModuleAccordion key={i} name={mod.name} credit_hours={mod.credit_hours} info={mod.info} />)
@@ -516,7 +563,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     max-width: 100%;
                 }
 
-                /* Layout for the Level and Intake tags */
                 .gcu-banner-top-row {
                     display: flex;
                     justify-content: space-between;
@@ -702,12 +748,45 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 .gcu-panel.scheme--black-card .gcu-module-row__arrow {
                     color: var(--color-black);
                 }
-              .gcu-credit-hours {
-    margin-left: auto;
-    margin-right: 20px;
-    font-size: 12px;
-    font-weight: semibold;
-}
+                .gcu-credit-hours {
+                    margin-left: auto;
+                    margin-right: 20px;
+                    font-size: 12px;
+                    font-weight: 600;
+                }
+
+                /* -- NEW SEMESTER TABS STYLING -- */
+                .gcu-semester-tabs {
+                    display: flex;
+                    gap: 12px;
+                    margin-bottom: 24px;
+                    flex-wrap: wrap;
+                }
+                .gcu-semester-tab-btn {
+                    background: rgba(255, 255, 255, 0.08);
+                    border: 1px solid rgba(255, 255, 255, 0.15);
+                    color: rgba(255, 255, 255, 0.7);
+                    padding: 8px 18px;
+                    border-radius: 30px;
+                    cursor: pointer;
+                    font-size: 0.95rem;
+                    font-weight: 600;
+                    transition: all 0.2s ease;
+                }
+                .gcu-semester-tab-btn:hover {
+                    background: rgba(255, 255, 255, 0.15);
+                    color: var(--color-white);
+                }
+                .gcu-semester-tab-btn.is-active {
+                    background: var(--color-skyblue);
+                    color: var(--color-white);
+                    border-color: var(--color-skyblue);
+                }
+                .gcu-semester-modules-list {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                }
 
                 .gcu-panel.scheme--mild-black-bg {
                     background-color: #1e293b;
@@ -890,16 +969,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: var(--color-muted-text);
                 }
 
-                /* ============================================================
-                   Rich text content rendering (Overview + Career Prospectus)
-                   -----------------------------------------------------------
-                   IMPORTANT: This must mirror the *plain* semantic HTML that
-                   document.execCommand() produces in the create/edit form's
-                   RichTextEditor (<ul><li>, <ol><li>, <b>, <u>, etc.). We do
-                   NOT restyle lists into pill/chip badges anymore, so that
-                   whatever the user sees in the editor is exactly what shows
-                   up here on the public page.
-                   ============================================================ */
                 .gcu-html-content {
                     font-size: 1.05rem;
                     line-height: 1.75;
@@ -948,8 +1017,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     margin: 14px 0;
                     color: var(--color-muted-text);
                 }
-
-                /* Plain bulleted / numbered lists — matches editor output */
                 .gcu-html-content ul {
                     list-style: disc;
                     padding-left: 1.5rem;
@@ -980,8 +1047,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: inherit;
                 }
 
-                /* Dark "Career Prospectus" panel — same plain list styling,
-                   just inheriting the light-on-dark text color */
                 .gcu-panel.scheme--mild-black-bg .gcu-html-content {
                     color: rgba(255, 255, 255, 0.9);
                 }
