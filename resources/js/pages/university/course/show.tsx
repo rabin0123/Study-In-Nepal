@@ -1,7 +1,7 @@
 import { Head } from '@inertiajs/react';
 import { useEffect, useState, useMemo } from 'react';
 
-type ModuleEntry = { name: string; info?: string | null };
+type ModuleEntry = { name: string; info?: string | null; credit_hours?: string | null };
 type YearModule = { year: number; title?: string; credit_hours?: string | null; modules?: (string | ModuleEntry)[] | null };
 type YearFee = { year: number; amount?: string | null; currency?: string | null; note?: string | null };
 
@@ -34,7 +34,7 @@ function sortByYear<T extends { year: number }>(items: T[] | null | undefined): 
 
 function normalizeModuleEntry(m: string | ModuleEntry): ModuleEntry {
     if (typeof m === 'string') return { name: m, info: null };
-    return { name: m.name, info: m.info ?? null };
+    return { name: m.name, info: m.info ?? null, credit_hours: m.credit_hours ?? null };
 }
 
 function normalizeCareersData(careers: string | string[] | null | undefined): string | string[] | null {
