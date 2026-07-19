@@ -273,15 +273,15 @@ public function destroy($id)
                 }
 
                 // Match strictly by University and Course
-                $record = University::updateOrCreate(
+    $record = University::updateOrCreate(
     [
         'University' => trim($data['University']),
+        'College'    => isset($data['College']) ? trim($data['College']) : null,
         'Course'     => trim($data['Course']),
     ],
     [
         'level'               => isset($data['level']) ? trim($data['level']) : null,
         'Intake'              => isset($data['Intake']) ? trim($data['Intake']) : null,
-        'College'             => isset($data['College']) ? trim($data['College']) : null,
         'Location'            => isset($data['Location']) ? trim($data['Location']) : null,
         'stream'              => isset($data['stream']) ? trim($data['stream']) : null,
         'Amount'              => isset($data['Amount']) ? trim($data['Amount']) : null,
