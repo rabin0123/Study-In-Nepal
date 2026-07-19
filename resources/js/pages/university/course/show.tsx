@@ -1176,7 +1176,7 @@ function ModuleAccordion({ name, info, credit_hours }: { name: string; info?: st
                 aria-expanded={hasInfo ? open : undefined}
             >
                 <span>{name}</span>
-                <span className="gcu-credit-hours">Credit Hours: {credit_hours}</span>
+                <span className="gcu-credit-hours">{credit_hours} Credit Hours </span>
                 {hasInfo && (
                     <span className="gcu-module-row__arrow" aria-hidden="true">
                         &#10142;
