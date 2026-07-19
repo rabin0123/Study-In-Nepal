@@ -890,9 +890,25 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: var(--color-muted-text);
                 }
 
+                /* ============================================================
+                   Rich text content rendering (Overview + Career Prospectus)
+                   -----------------------------------------------------------
+                   IMPORTANT: This must mirror the *plain* semantic HTML that
+                   document.execCommand() produces in the create/edit form's
+                   RichTextEditor (<ul><li>, <ol><li>, <b>, <u>, etc.). We do
+                   NOT restyle lists into pill/chip badges anymore, so that
+                   whatever the user sees in the editor is exactly what shows
+                   up here on the public page.
+                   ============================================================ */
                 .gcu-html-content {
                     font-size: 1.05rem;
                     line-height: 1.75;
+                }
+                .gcu-html-content h1 {
+                    font-size: 1.6rem;
+                    font-weight: 800;
+                    margin: 28px 0 12px;
+                    color: var(--color-skyblue-dark);
                 }
                 .gcu-html-content h2 {
                     font-size: 1.4rem;
@@ -900,6 +916,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     margin: 28px 0 12px;
                     color: var(--color-skyblue-dark);
                 }
+                .gcu-html-content h1:first-child,
                 .gcu-html-content h2:first-child { margin-top: 0; }
                 .gcu-html-content h3 {
                     font-size: 1.1rem;
@@ -910,67 +927,71 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 .gcu-html-content p {
                     margin-bottom: 14px;
                 }
-                .gcu-html-content ul {
-                    list-style: none;
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 10px;
-                    margin: 10px 0 20px;
+                .gcu-html-content b,
+                .gcu-html-content strong {
+                    font-weight: 700;
                 }
-                .gcu-html-content ul li {
-                    background: var(--color-grey);
-                    border: 1px solid var(--color-border);
-                    padding: 8px 16px;
-                    border-radius: 999px;
-                    font-weight: 600;
-                    font-size: 0.9rem;
-                    color: var(--color-skyblue-dark);
-                    min-height: auto;
-                    display: inline-flex;
-                    align-items: center;
-                    white-space: nowrap;
+                .gcu-html-content i,
+                .gcu-html-content em {
+                    font-style: italic;
                 }
-                .gcu-html-content ol {
-                    counter-reset: step;
-                    list-style: none;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 8px;
-                    margin: 10px 0 20px;
+                .gcu-html-content u {
+                    text-decoration: underline;
                 }
-                .gcu-html-content ol li {
-                    counter-increment: step;
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    padding: 10px 14px;
-                    background: var(--color-grey);
-                    border-radius: 6px;
-                    font-weight: 600;
+                .gcu-html-content a {
+                    color: var(--color-skyblue);
+                    text-decoration: underline;
                 }
-                .gcu-html-content ol li::before {
-                    content: counter(step);
-                    flex-shrink: 0;
-                    width: 24px;
-                    height: 24px;
-                    border-radius: 50%;
-                    background: var(--color-skyblue);
-                    color: white;
-                    font-size: 0.75rem;
-                    font-weight: 800;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
+                .gcu-html-content blockquote {
+                    border-left: 3px solid var(--color-border);
+                    padding-left: 14px;
+                    margin: 14px 0;
+                    color: var(--color-muted-text);
                 }
 
+                /* Plain bulleted / numbered lists — matches editor output */
+                .gcu-html-content ul {
+                    list-style: disc;
+                    padding-left: 1.5rem;
+                    margin: 10px 0 20px;
+                }
+                .gcu-html-content ul ul {
+                    list-style: circle;
+                    margin: 4px 0;
+                }
+                .gcu-html-content ul ul ul {
+                    list-style: square;
+                }
+                .gcu-html-content ol {
+                    list-style: decimal;
+                    padding-left: 1.5rem;
+                    margin: 10px 0 20px;
+                }
+                .gcu-html-content ol ol {
+                    list-style: lower-alpha;
+                    margin: 4px 0;
+                }
+                .gcu-html-content ol ol ol {
+                    list-style: lower-roman;
+                }
+                .gcu-html-content li {
+                    display: list-item;
+                    margin: 6px 0;
+                    color: inherit;
+                }
+
+                /* Dark "Career Prospectus" panel — same plain list styling,
+                   just inheriting the light-on-dark text color */
                 .gcu-panel.scheme--mild-black-bg .gcu-html-content {
                     color: rgba(255, 255, 255, 0.9);
                 }
+                .gcu-panel.scheme--mild-black-bg .gcu-html-content h1,
                 .gcu-panel.scheme--mild-black-bg .gcu-html-content h2 {
                     color: var(--color-white);
                     font-size: 1.5rem;
                     margin-top: 36px;
                 }
+                .gcu-panel.scheme--mild-black-bg .gcu-html-content h1:first-child,
                 .gcu-panel.scheme--mild-black-bg .gcu-html-content h2:first-child {
                     margin-top: 0;
                 }
@@ -982,35 +1003,15 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 .gcu-panel.scheme--mild-black-bg .gcu-html-content p {
                     color: rgba(255, 255, 255, 0.8);
                 }
-                .gcu-panel.scheme--mild-black-bg .gcu-html-content ul li {
-                    background: rgba(255, 255, 255, 0.08);
-                    border: 1px solid rgba(255, 255, 255, 0.14);
-                    color: var(--color-white);
-                    box-shadow: none;
-                    backdrop-filter: blur(4px);
-                    min-height: auto;
-                    display: inline-flex;
-                    align-items: center;
-                    padding: 8px 16px;
-                    border-radius: 999px;
-                    font-size: 0.88rem;
-                    transition: background 0.15s, border-color 0.15s;
+                .gcu-panel.scheme--mild-black-bg .gcu-html-content a {
+                    color: var(--color-skyblue-light);
                 }
-                .gcu-panel.scheme--mild-black-bg .gcu-html-content ul li:hover {
-                    background: rgba(255, 255, 255, 0.16);
-                    border-color: var(--color-skyblue-light);
+                .gcu-panel.scheme--mild-black-bg .gcu-html-content blockquote {
+                    border-left-color: rgba(255, 255, 255, 0.25);
+                    color: rgba(255, 255, 255, 0.7);
                 }
-                .gcu-panel.scheme--mild-black-bg .gcu-html-content ul ul {
-                    width: 100%;
-                    margin-top: 6px;
-                }
-                .gcu-panel.scheme--mild-black-bg .gcu-html-content ol li {
-                    background: rgba(255, 255, 255, 0.06);
-                    color: rgba(255, 255, 255, 0.92);
-                }
-                .gcu-panel.scheme--mild-black-bg .gcu-html-content ol li::before {
-                    background: var(--color-skyblue-light);
-                    color: #041118;
+                .gcu-panel.scheme--mild-black-bg .gcu-html-content li {
+                    color: rgba(255, 255, 255, 0.9);
                 }
 
                 .gcu-muted {
