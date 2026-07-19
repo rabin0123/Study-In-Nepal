@@ -2,7 +2,14 @@ import { Head } from '@inertiajs/react';
 import { useEffect, useState, useMemo } from 'react';
 
 type ModuleEntry = { name: string; info?: string | null; credit_hours?: string | null };
-type YearModule = { year: number; title?: string; credit_hours?: string | null; modules?: (string | ModuleEntry)[] | null };
+type SemesterModule = { title?: string | null; modules?: (string | ModuleEntry)[] | null };
+type YearModule = { 
+    year: number; 
+    title?: string; 
+    credit_hours?: string | null; 
+    semesters?: SemesterModule[] | null; 
+    modules?: (string | ModuleEntry)[] | null; // For legacy records
+};
 type YearFee = { year: number; amount?: string | null; currency?: string | null; note?: string | null };
 
 type Props = {
@@ -72,9 +79,16 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
         ].filter((s) => s.show);
     }, [courseDetail.summary, modules.length, fees.length]);
 
-    const [activeTab, setActiveTab] = useState<number>(() => {
+    // Active Tab States (Year and Semester)
+    const [activeYear, setActiveYear] = useState<number>(() => {
         return modules.length > 0 ? modules[0].year : 1;
     });
+    const [activeSemesterIdx, setActiveSemesterIdx] = useState<number>(0);
+
+    const handleYearChange = (year: number) => {
+        setActiveYear(year);
+        setActiveSemesterIdx(0); // Reset to first semester when year changes
+    };
 
     const [activeSection, setActiveSection] = useState<string>('');
 
@@ -186,7 +200,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     <div className="gcu-banner-info">
                         <div className="gcu-banner-info__wrap">
                             
-                            {/* Flex container to push Level to left and Intake to right */}
                             <div className="gcu-banner-top-row">
                                 <span className="gcu-banner-info__award">{level}</span>
                                 
@@ -275,14 +288,15 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                     </h2>
                                 </div>
                                 <div className="gcu-col-content mt-2">
+                                    {/* 1. YEAR TABS */}
                                     {modules.length > 1 && (
                                         <div className="gcu-tab-headers">
                                             {modules.map((yearBlock) => (
                                                 <button
                                                     key={yearBlock.year}
                                                     type="button"
-                                                    className={`gcu-tab-header-btn ${activeTab === yearBlock.year ? 'is-active' : ''}`}
-                                                    onClick={() => setActiveTab(yearBlock.year)}
+                                                    className={`gcu-tab-header-btn ${activeYear === yearBlock.year ? 'is-active' : ''}`}
+                                                    onClick={() => handleYearChange(yearBlock.year)}
                                                 >
                                                     {yearBlock.title || `Year ${yearBlock.year}`}
                                                 </button>
@@ -292,14 +306,45 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
                                     <div className="gcu-tab-body">
                                         {modules.map((yearBlock) => {
-                                            if (activeTab !== yearBlock.year && modules.length > 1) return null;
+                                            if (activeYear !== yearBlock.year) return null;
+
+                                            // Backwards compatibility normalization
+                                            let displaySemesters: SemesterModule[] = [];
+                                            if (yearBlock.semesters && yearBlock.semesters.length > 0) {
+                                                displaySemesters = yearBlock.semesters;
+                                            } else if (yearBlock.modules && yearBlock.modules.length > 0) {
+                                                // Create a fake Semester 1 wrapping legacy modules
+                                                displaySemesters = [{ title: 'Semester 1', modules: yearBlock.modules }];
+                                            }
+
+                                            const activeSemester = displaySemesters[activeSemesterIdx] || null;
+
                                             return (
                                                 <div key={yearBlock.year} className="gcu-accordion-navigation">
+                                                    
                                                     {yearBlock.title && modules.length === 1 && (
                                                         <h3 className="gcu-single-year-title">{yearBlock.title}</h3>
                                                     )}
-                                                    {yearBlock.modules && yearBlock.modules.length > 0 ? (
-                                                        yearBlock.modules
+
+                                                    {/* 2. SEMESTER TABS */}
+                                                    {displaySemesters.length > 1 && (
+                                                        <div className="gcu-semester-headers">
+                                                            {displaySemesters.map((sem, idx) => (
+                                                                <button
+                                                                    key={idx}
+                                                                    type="button"
+                                                                    className={`gcu-semester-btn ${activeSemesterIdx === idx ? 'is-active' : ''}`}
+                                                                    onClick={() => setActiveSemesterIdx(idx)}
+                                                                >
+                                                                    {sem.title || `Semester ${idx + 1}`}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    )}
+
+                                                    {/* 3. ACTIVE SEMESTER MODULES */}
+                                                    {activeSemester?.modules && activeSemester.modules.length > 0 ? (
+                                                        activeSemester.modules
                                                             .map(normalizeModuleEntry)
                                                             .map((mod, i) => <ModuleAccordion key={i} name={mod.name} credit_hours={mod.credit_hours} info={mod.info} />)
                                                     ) : (
@@ -691,6 +736,32 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: rgba(255, 255, 255, 0.6);
                 }
 
+                .gcu-semester-headers {
+                    display: flex;
+                    gap: 12px;
+                    margin-bottom: 24px;
+                    flex-wrap: wrap;
+                }
+                
+                .gcu-semester-btn {
+                    background: rgba(255, 255, 255, 0.06);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    color: rgba(255, 255, 255, 0.7);
+                    padding: 8px 18px;
+                    border-radius: 99px;
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+                
+                .gcu-semester-btn.is-active, 
+                .gcu-semester-btn:hover {
+                    background: var(--color-skyblue);
+                    border-color: var(--color-skyblue);
+                    color: var(--color-white);
+                }
+
                 .gcu-panel.scheme--black-card .gcu-module-row {
                     background-color: var(--color-white);
                     border: none;
@@ -702,12 +773,12 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 .gcu-panel.scheme--black-card .gcu-module-row__arrow {
                     color: var(--color-black);
                 }
-              .gcu-credit-hours {
-    margin-left: auto;
-    margin-right: 20px;
-    font-size: 12px;
-    font-weight: semibold;
-}
+                .gcu-credit-hours {
+                    margin-left: auto;
+                    margin-right: 20px;
+                    font-size: 12px;
+                    font-weight: 600;
+                }
 
                 .gcu-panel.scheme--mild-black-bg {
                     background-color: #1e293b;
@@ -770,7 +841,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 .gcu-tab-headers {
                     display: flex;
                     border-bottom: 2px solid rgba(255, 255, 255, 0.2);
-                    margin-bottom: 30px;
+                    margin-bottom: 20px;
                     gap: 20px;
                     flex-wrap: wrap;
                 }
@@ -792,7 +863,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 .gcu-single-year-title {
                     font-size: 1.25rem;
                     font-weight: 700;
-                    margin-bottom: 20px;
+                    margin-bottom: 12px;
                 }
 
                 .gcu-accordion-navigation {
@@ -890,16 +961,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: var(--color-muted-text);
                 }
 
-                /* ============================================================
-                   Rich text content rendering (Overview + Career Prospectus)
-                   -----------------------------------------------------------
-                   IMPORTANT: This must mirror the *plain* semantic HTML that
-                   document.execCommand() produces in the create/edit form's
-                   RichTextEditor (<ul><li>, <ol><li>, <b>, <u>, etc.). We do
-                   NOT restyle lists into pill/chip badges anymore, so that
-                   whatever the user sees in the editor is exactly what shows
-                   up here on the public page.
-                   ============================================================ */
                 .gcu-html-content {
                     font-size: 1.05rem;
                     line-height: 1.75;
@@ -949,7 +1010,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: var(--color-muted-text);
                 }
 
-                /* Plain bulleted / numbered lists — matches editor output */
+                /* Plain bulleted / numbered lists */
                 .gcu-html-content ul {
                     list-style: disc;
                     padding-left: 1.5rem;
@@ -980,8 +1041,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: inherit;
                 }
 
-                /* Dark "Career Prospectus" panel — same plain list styling,
-                   just inheriting the light-on-dark text color */
                 .gcu-panel.scheme--mild-black-bg .gcu-html-content {
                     color: rgba(255, 255, 255, 0.9);
                 }
@@ -1111,7 +1170,7 @@ function ModuleAccordion({ name, info, credit_hours }: { name: string; info?: st
                 aria-expanded={hasInfo ? open : undefined}
             >
                 <span>{name}</span>
-                <span className="gcu-credit-hours">Credit Hours: {credit_hours}</span>
+                {credit_hours && <span className="gcu-credit-hours">Credit Hours: {credit_hours}</span>}
                 {hasInfo && (
                     <span className="gcu-module-row__arrow" aria-hidden="true">
                         &#10142;
