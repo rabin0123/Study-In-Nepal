@@ -24,7 +24,7 @@ class CourseDetail extends Model
     protected $casts = [
         'year_wise_modules' => 'array',
         'fees'              => 'array',
-        // Removed custom JSON casts for 'careers' - it should just act as standard HTML string.
+      
     ];
 
     protected static function booted(): void
@@ -35,6 +35,12 @@ class CourseDetail extends Model
             }
         });
 
+        // Try to link immediately on creation too, in case a matching
+        // universities row already exists at the moment the standalone
+        // form is submitted. The reverse direction — universities being
+        // imported/created after this row already exists — is handled by
+        // whatever fires University::matchCourseDetails() (see the
+        // University model addition / import controller hook).
         static::created(function (CourseDetail $courseDetail) {
             $courseDetail->attemptLink();
         });
@@ -54,11 +60,19 @@ class CourseDetail extends Model
     {
         return ! is_null($this->university_id);
     }
+    protected function careers(): \Illuminate\Database\Eloquent\Casts\Attribute
+{
+    return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+        get: fn ($value) => is_string($value) ? (json_decode($value, true) ?? $value) : $value,
+        set: fn ($value) => is_string($value) ? json_encode($value) : $value,
+    );
+}
 
     /**
      * Look for a universities row whose University/College/Course text
      * matches this detail's own name fields, and attach it if found.
-     * Uses REPLACE() to ensure strings with brackets and multiple spaces matches.
+     * Case-insensitive, trimmed exact match — deliberately not fuzzy, so a
+     * bad auto-link never silently attaches the wrong course.
      */
     public function attemptLink(): bool
     {
@@ -66,15 +80,10 @@ class CourseDetail extends Model
             return true;
         }
 
-        $normalize = function ($value) {
-            $decoded = html_entity_decode((string) $value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            return mb_strtolower(preg_replace('/\s+/', '', $decoded));
-        };
-
-        $match = \App\Models\University::query()
-            ->whereRaw("REPLACE(LOWER(`University`), ' ', '') = ?", [$normalize($this->university_name)])
-            ->whereRaw("REPLACE(LOWER(`College`), ' ', '') = ?", [$normalize($this->college_name)])
-            ->whereRaw("REPLACE(LOWER(`Course`), ' ', '') = ?", [$normalize($this->course_name)])
+        $match = University::query()
+            ->whereRaw('LOWER(TRIM(University)) = ?', [mb_strtolower(trim($this->university_name))])
+            ->whereRaw('LOWER(TRIM(College)) = ?', [mb_strtolower(trim($this->college_name))])
+            ->whereRaw('LOWER(TRIM(Course)) = ?', [mb_strtolower(trim($this->course_name))])
             ->first();
 
         if (! $match) {
@@ -82,7 +91,7 @@ class CourseDetail extends Model
         }
 
         $this->university_id = $match->id;
-        $this->saveQuietly(); // Use saveQuietly() to avoid infinitely triggering saved events 
+        $this->save();
 
         return true;
     }
