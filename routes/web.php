@@ -115,7 +115,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('api')->group(function () {
 
         // Universities API
-        Route::get('/university', [UniversityApiControler::class, 'index']);
+        Route::get('/api/university', [UniversityApiControler::class, 'index']);
         Route::post('/universities', [UniversityApiControler::class, 'store']);
         Route::get('/universities/{id}', [UniversityApiControler::class, 'show']);
         Route::put('/universities/{id}', [UniversityApiControler::class, 'update']);
