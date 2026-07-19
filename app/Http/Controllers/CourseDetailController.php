@@ -48,13 +48,15 @@ class CourseDetailController extends Controller
 
     /**
      * Store a newly created resource in storage.
+     * Updated to handle multiple institutions sharing the same course mapping and prevent duplicate entries.
      */
     public function store(Request $request): JsonResponse
     {
+        // 1. Validate the new multi-institution payload
         $validated = $request->validate([
             'course_name'                                  => 'required|string|max:255',
             'summary'                                      => 'nullable|string',
-            'careers'                                      => 'nullable|string', 
+            'careers'                                      => 'nullable|string', // Replaced careers array with HTML string
             
             'fees'                                         => 'nullable|array',
             'fees.*.year'                                  => 'required_with:fees|integer|min:1',
@@ -73,19 +75,12 @@ class CourseDetailController extends Controller
             'institutions.*.year_wise_modules.*.modules.*.info' => 'nullable|string|max:500',
         ]);
 
-        // Helper to normalize strings so brackets and spaces don't trigger false duplicate checks
-        $normalize = function ($value) {
-            $decoded = html_entity_decode((string) $value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            return mb_strtolower(preg_replace('/\s+/', '', $decoded));
-        };
-
-        // 2. Check for duplicate entries (ignores exact spacing issues for safety)
+        // 2. Check for duplicate entries (same course, university, and college) in the database
         $duplicates = [];
         foreach ($validated['institutions'] as $inst) {
-            $exists = CourseDetail::query()
-                ->whereRaw("REPLACE(LOWER(`course_name`), ' ', '') = ?", [$normalize($validated['course_name'])])
-                ->whereRaw("REPLACE(LOWER(`university_name`), ' ', '') = ?", [$normalize($inst['university_name'])])
-                ->whereRaw("REPLACE(LOWER(`college_name`), ' ', '') = ?", [$normalize($inst['college_name'])])
+            $exists = CourseDetail::where('course_name', $validated['course_name'])
+                ->where('university_name', $inst['university_name'])
+                ->where('college_name', $inst['college_name'])
                 ->exists();
 
             if ($exists) {
@@ -93,6 +88,7 @@ class CourseDetailController extends Controller
             }
         }
 
+        // 3. Return standard 422 validation response if duplicates exist
         if (!empty($duplicates)) {
             return response()->json([
                 'message' => 'The selected course details already exist for one or more institutions.',
@@ -106,6 +102,7 @@ class CourseDetailController extends Controller
 
         $firstCreated = null;
 
+        // 4. Loop through each selected institution and create a CourseDetail record
         DB::transaction(function () use ($validated, &$firstCreated) {
             foreach ($validated['institutions'] as $inst) {
                 $courseDetail = CourseDetail::create([
@@ -119,6 +116,7 @@ class CourseDetailController extends Controller
                     'year_wise_modules' => $inst['year_wise_modules'] ?? null,
                 ]);
 
+                // Store the first one to return in the JSON response
                 if (!$firstCreated) {
                     $firstCreated = $courseDetail;
                 }
@@ -134,37 +132,29 @@ class CourseDetailController extends Controller
     /**
      * Public detail page.
      */
-    public function show($uuid): Response
+      public function show($uuid): Response
     {
+        // 1. Find the CourseDetail using the UUID (throws 404 if not found)
         $courseDetail = CourseDetail::where('uuid', $uuid)->firstOrFail();
 
-        // 2. Find the matching University record for context.
-        // First, check if the link relationship was successfully established natively.
-        $university = null;
-        if ($courseDetail->university_id) {
-            $university = University::find($courseDetail->university_id);
-        }
-
-        // If not natively linked, perform robust text search stripping spaces.
-        if (!$university) {
-            $normalize = function ($value) {
-                $decoded = html_entity_decode((string) $value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-                return mb_strtolower(preg_replace('/\s+/', '', $decoded));
-            };
-
-            $university = University::query()
-                ->whereRaw("REPLACE(LOWER(`Course`), ' ', '') = ?", [$normalize($courseDetail->course_name)])
-                ->whereRaw("REPLACE(LOWER(`College`), ' ', '') = ?", [$normalize($courseDetail->college_name)])
-                ->whereRaw("REPLACE(LOWER(`University`), ' ', '') = ?", [$normalize($courseDetail->university_name)])
-                ->first();
-        }
+        // 2. Find the matching University record for context
+        // Notice we are matching the capitalized column names from the `universities` table
+        // against the snake_case column names from the `course_details` table.
+        $university = University::where('Course', $courseDetail->course_name)
+            ->where('College', $courseDetail->college_name)
+            ->where('University', $courseDetail->university_name)
+            ->first();
 
         return Inertia::render('university/course/show', [
             'university'   => $university, 
             'courseDetail' => $courseDetail,
         ]);
     }
+    
    
+    /**
+     * Show edit form for a single Course Detail.
+     */
     public function edit(CourseDetail $courseDetail): Response
     {
         return Inertia::render('university/course/create', [
@@ -172,6 +162,9 @@ class CourseDetailController extends Controller
         ]);
     }
 
+    /**
+     * Update a SINGLE existing resource in storage.
+     */
     public function update(Request $request, CourseDetail $courseDetail): JsonResponse
     {
         $validated = $request->validate([
@@ -204,10 +197,14 @@ class CourseDetailController extends Controller
         ]);
     }
 
+    /**
+     * Remove the specified resource from storage.
+     */
     public function destroy(CourseDetail $courseDetail)
     {
         $courseDetail->delete();
 
         return redirect()->back()->with('success', 'Course details deleted successfully.');
     }
+    
 }
