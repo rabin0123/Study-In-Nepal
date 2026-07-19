@@ -146,7 +146,10 @@ class CourseDetailController extends Controller
             ->where('University', $courseDetail->university_name)
             ->first();
 
-     return response()->json($courseDetail, $university );
+     return response()->json([
+            'university'   => $university, 
+            'courseDetail' => $courseDetail,
+        ]);
     }
     
     /**
