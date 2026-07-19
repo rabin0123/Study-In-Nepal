@@ -14,12 +14,13 @@ class UniversityApiControler extends Controller
     {
         // Join course_details to fetch the uuid along with the university data
         $data = University::leftJoin('course_details', function ($join) {
-    $join->on('universities.University', '=', 'course_details.university_name')
-         ->on('universities.College', '=', 'course_details.college_name')
-         ->on('universities.Course', '=', 'course_details.course_name');
-})
-->select('universities.*', 'course_details.uuid as course_detail_uuid')
-->get();
+                $join->on('universities.University', '=', 'course_details.university_name')
+                     ->on('universities.College', '=', 'course_details.college_name')
+                     ->on('universities.Course', '=', 'course_details.course_name');
+            })
+            // Select all university columns, and grab the course_details UUID
+            ->select('universities.*', 'course_details.uuid as course_detail_uuid')
+            ->get();
 
         return response()->json($data);
     }
@@ -272,15 +273,15 @@ public function destroy($id)
                 }
 
                 // Match strictly by University and Course
-    $record = University::updateOrCreate(
+                $record = University::updateOrCreate(
     [
         'University' => trim($data['University']),
-        'College'    => isset($data['College']) ? trim($data['College']) : null,
         'Course'     => trim($data['Course']),
     ],
     [
         'level'               => isset($data['level']) ? trim($data['level']) : null,
         'Intake'              => isset($data['Intake']) ? trim($data['Intake']) : null,
+        'College'             => isset($data['College']) ? trim($data['College']) : null,
         'Location'            => isset($data['Location']) ? trim($data['Location']) : null,
         'stream'              => isset($data['stream']) ? trim($data['stream']) : null,
         'Amount'              => isset($data['Amount']) ? trim($data['Amount']) : null,
