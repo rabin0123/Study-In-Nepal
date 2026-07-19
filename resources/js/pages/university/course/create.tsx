@@ -11,7 +11,8 @@ import {
 } from 'lucide-react';
 
 // ── Interfaces ──
-type ModuleEntry = { name: string; info: string };
+// Updated ModuleEntry to include creditHours
+type ModuleEntry = { name: string; info: string; creditHours: string };
 type YearModule = { year: number; title: string; modules: ModuleEntry[] };
 type YearFee = { year: number; amount: string; currency: string; note: string };
 
@@ -23,13 +24,6 @@ interface ApiDataRow {
     [key: string]: any;
 }
 
-// Shape returned by the Laravel controller for an existing record.
-// IMPORTANT: a CourseDetail row is ONE institution, not a course with a
-// nested institutions[] array — store() loops and creates one flat row per
-// selected institution, and edit()/update() operate on a single row. Field
-// names match app/Models/CourseDetail.php exactly (note: `careers`, not
-// `careers_summary`; `year_wise_modules` and `fees` are flat columns on the
-// row, not nested under institutions).
 interface CourseDetailRecord {
     uuid: string;
     course_name: string;
@@ -37,7 +31,7 @@ interface CourseDetailRecord {
     college_name: string;
     summary: string | null;
     careers: string | null;
-    year_wise_modules: any[] | null; // raw shape from backend — may be legacy string[] modules or {name, info}[]; run through normalizeYearModules()
+    year_wise_modules: any[] | null; 
     fees: YearFee[] | null;
 }
 
@@ -45,8 +39,6 @@ interface InstitutionOption {
     key: string;
     label: string;
     subLabel: string;
-    /** true when this institution came from the saved record but is no longer
-     *  present in the live admin.studyinnepal.com master list (renamed/removed/etc). */
     isStale?: boolean;
 }
 
@@ -59,20 +51,25 @@ function csrfToken(): string {
     return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
 }
 
+// Updated to include creditHours: ''
 function defaultYearModules(): YearModule[] {
-    return [{ year: 1, title: 'Year 1', modules: [{ name: '', info: '' }] }];
+    return [{ year: 1, title: 'Year 1', modules: [{ name: '', info: '', creditHours: '' }] }];
 }
 
-// Backend rows saved before this change store `modules` as a flat string[]
-// (just names, no info). Newer rows store {name, info}[]. This normalizes
-// either shape into ModuleEntry[] so the form works with both.
 function normalizeYearModules(raw: any[] | null | undefined): YearModule[] {
     if (!raw || raw.length === 0) return defaultYearModules();
     return raw.map((y) => ({
         year: y.year,
         title: y.title ?? '',
         modules: (y.modules ?? []).map((m: any) =>
-            typeof m === 'string' ? { name: m, info: '' } : { name: m.name ?? '', info: m.info ?? '' }
+            typeof m === 'string' 
+                ? { name: m, info: '', creditHours: '' } 
+                : { 
+                    name: m.name ?? '', 
+                    info: m.info ?? '', 
+                    // Safely check for both camelCase and snake_case depending on API response
+                    creditHours: m.creditHours ?? m.credit_hours ?? '' 
+                  }
         ),
     }));
 }
@@ -86,7 +83,7 @@ function instKey(university: string, college: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// 1. ComboboxInput — Searchable dropdown combined with text input
+// 1. ComboboxInput 
 // ---------------------------------------------------------------------------
 function ComboboxInput({
     placeholder, value, onChange, options, disabled, error
@@ -161,7 +158,7 @@ function ComboboxInput({
 }
 
 // ---------------------------------------------------------------------------
-// 2. MultiSelect Dropdown — Checkbox dropdown
+// 2. MultiSelect Dropdown
 // ---------------------------------------------------------------------------
 function MultiSelectDropdown({
     options, selectedKeys, onToggle, disabled, placeholder
@@ -250,8 +247,7 @@ function MultiSelectDropdown({
 }
 
 // ---------------------------------------------------------------------------
-// 3. Rich Text Editor — Word-like toolbar (paragraph/heading styles, font,
-//    size, bold/italic/underline/strike, colors, alignment, lists, links)
+// 3. Rich Text Editor
 // ---------------------------------------------------------------------------
 const FONT_FAMILIES = [
     { label: 'Default', value: '' },
@@ -336,15 +332,10 @@ function SwatchPopover({
 
 function RichTextEditor({ value, onChange, placeholder, error }: { value: string; onChange: (v: string) => void; placeholder?: string; error?: string; }) {
     const editorRef = useRef<HTMLDivElement>(null);
-    // Track whether we've already pushed `value` into the DOM once, so that
-    // external updates (e.g. loading an existing record) render correctly,
-    // while typing doesn't get clobbered by re-renders.
     const initializedRef = useRef(false);
 
     useEffect(() => {
         if (!editorRef.current) return;
-        // Sync from parent only on first mount / when value changes externally
-        // (e.g. courseDetail finished loading) and editor isn't focused.
         if (!initializedRef.current || document.activeElement !== editorRef.current) {
             if (editorRef.current.innerHTML !== value) {
                 editorRef.current.innerHTML = value || '';
@@ -366,7 +357,6 @@ function RichTextEditor({ value, onChange, placeholder, error }: { value: string
     return (
         <div className={`rounded-2xl shadow-sm bg-white overflow-hidden border ${error ? 'border-red-500' : 'border-gray-200'}`}>
             <div className="bg-gray-50 p-2 border-b border-gray-100 flex flex-wrap items-center gap-1.5">
-                {/* Paragraph / Heading style */}
                 <select
                     onMouseDown={(e) => e.stopPropagation()}
                     onChange={(e) => applyBlock(e.target.value)}
@@ -382,7 +372,6 @@ function RichTextEditor({ value, onChange, placeholder, error }: { value: string
                     <option value="BLOCKQUOTE">Quote</option>
                 </select>
 
-                {/* Font family */}
                 <select
                     onMouseDown={(e) => e.stopPropagation()}
                     onChange={(e) => exec('fontName', e.target.value)}
@@ -397,7 +386,6 @@ function RichTextEditor({ value, onChange, placeholder, error }: { value: string
                     ))}
                 </select>
 
-                {/* Font size */}
                 <select
                     onMouseDown={(e) => e.stopPropagation()}
                     onChange={(e) => exec('fontSize', e.target.value)}
@@ -473,9 +461,7 @@ function RichTextEditor({ value, onChange, placeholder, error }: { value: string
 }
 
 // ----------------------------------------------------------------------
-// Main Component — handles BOTH create and edit.
-// Pass `courseDetail` (from Inertia props) when editing; leave it
-// undefined/null on the create route.
+// Main Component 
 // ----------------------------------------------------------------------
 export default function CourseDetailsForm({ courseDetail }: { courseDetail?: CourseDetailRecord | null }) {
     const isEditMode = !!courseDetail;
@@ -484,7 +470,6 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
     const [masterLoading, setMasterLoading] = useState(true);
     const [masterError, setMasterError] = useState<string | null>(null);
 
-    // The single saved institution key for this row (edit mode only).
     const savedInstKey = courseDetail ? instKey(courseDetail.university_name, courseDetail.college_name) : null;
 
     const [courseName, setCourseName] = useState(courseDetail?.course_name ?? '');
@@ -494,8 +479,6 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
     const [summaryHtml, setSummaryHtml] = useState(courseDetail?.summary ?? '');
     const [careersHtml, setCareersHtml] = useState(courseDetail?.careers ?? '');
 
-    // Modules per institution — seeded from the saved record's flat
-    // `year_wise_modules` column, keyed under this row's single institution.
     const [yearModulesByInst, setYearModulesByInst] = useState<Record<string, YearModule[]>>(() => {
         if (!savedInstKey) return {};
         return {
@@ -503,9 +486,7 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         };
     });
     const [activeModuleTab, setActiveModuleTab] = useState<string | null>(savedInstKey);
-    // Tracks which module rows have their "course info" field expanded, keyed
-    // "instKey:yearIndex:moduleIndex". Separate from the data itself so an
-    // empty info string doesn't force the checkbox closed.
+    
     const [expandedModuleInfo, setExpandedModuleInfo] = useState<Set<string>>(() => {
         const seed = new Set<string>();
         if (savedInstKey) {
@@ -525,8 +506,6 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
             const next = new Set(prev);
             if (next.has(key)) {
                 next.delete(key);
-                // Clear the info text when unchecked so it isn't silently
-                // saved despite the checkbox appearing off.
                 updateModuleInfo(yearIndex, moduleIndex, '');
             } else {
                 next.add(key);
@@ -535,7 +514,6 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         });
     };
 
-    // Fees are stored as a flat column on the row.
     const [courseFees, setCourseFees] = useState<YearFee[]>(
         () => (courseDetail?.fees && courseDetail.fees.length > 0 ? courseDetail.fees : defaultYearFee())
     );
@@ -557,9 +535,6 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         return () => clearTimeout(t);
     }, [errorMessage]);
 
-    // Fetch the master list (courses + institutions) from the external admin API.
-    // This runs in both create and edit mode — edit mode still needs it so the
-    // combobox/course list and "add another institution" picker work.
     useEffect(() => {
         setMasterLoading(true);
         setMasterError(null);
@@ -575,7 +550,6 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
 
     const uniqueCourses = useMemo(() => Array.from(new Set(masterData.map((item) => item.Course).filter(Boolean))), [masterData]);
 
-    // Institutions matching the currently-typed course name, from the live master list.
     const masterInstitutionsForCourse = useMemo(() => {
         if (!courseName) return [];
         const matches = masterData.filter((d) => d.Course?.toLowerCase() === courseName.toLowerCase());
@@ -589,8 +563,6 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         return Array.from(unique.values());
     }, [masterData, courseName]);
 
-    // The saved institution on this record (edit mode only), independent of
-    // whatever the master list currently contains.
     const savedInstitutionOptions = useMemo<InstitutionOption[]>(() => {
         if (!courseDetail) return [];
         return [{
@@ -600,9 +572,6 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         }];
     }, [courseDetail]);
 
-    // Merge: master-list matches ∪ saved selections. Anything present only in
-    // the saved record (not in the live master list) is flagged `isStale` so
-    // the user can see it, but it's never silently dropped.
     const availableInstitutions = useMemo<InstitutionOption[]>(() => {
         const merged = new Map<string, InstitutionOption>();
         masterInstitutionsForCourse.forEach((opt) => merged.set(opt.key, opt));
@@ -620,15 +589,11 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         return map;
     }, [availableInstitutions]);
 
-    // Prune selections that are neither in the master list nor part of the
-    // originally-saved record. This only strips genuinely invalid/new-typed
-    // selections — it never removes something that was saved on the record.
     useEffect(() => {
         const validKeys = new Set(availableInstitutions.map((i) => i.key));
         setSelectedInstKeys((prev) => prev.filter((k) => validKeys.has(k)));
     }, [availableInstitutions]);
 
-    // Keep Modules in sync with selected institutions.
     useEffect(() => {
         setYearModulesByInst((prev) => {
             const next: Record<string, YearModule[]> = {};
@@ -643,7 +608,7 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
     // -- Module Handlers --
     const addYear = () => {
         if (!activeModuleTab) return;
-        setYearModulesByInst((prev) => ({ ...prev, [activeModuleTab]: [...prev[activeModuleTab], { year: nextYear(prev[activeModuleTab]), title: '', modules: [{ name: '', info: '' }] }] }));
+        setYearModulesByInst((prev) => ({ ...prev, [activeModuleTab]: [...prev[activeModuleTab], { year: nextYear(prev[activeModuleTab]), title: '', modules: [{ name: '', info: '', creditHours: '' }] }] }));
     };
     const removeYear = (index: number) => {
         if (!activeModuleTab) return;
@@ -655,19 +620,22 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
     };
     const addModuleLine = (yearIndex: number) => {
         if (!activeModuleTab) return;
-        setYearModulesByInst((prev) => ({ ...prev, [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? { ...y, modules: [...y.modules, { name: '', info: '' }] } : y) }));
+        setYearModulesByInst((prev) => ({ ...prev, [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? { ...y, modules: [...y.modules, { name: '', info: '', creditHours: '' }] } : y) }));
     };
-    const updateModuleLine = (yearIndex: number, moduleIndex: number, value: string) => {
+    // Generic handler to update a specific property on the module (like name, creditHours)
+    const updateModuleField = (yearIndex: number, moduleIndex: number, field: keyof ModuleEntry, value: string) => {
         if (!activeModuleTab) return;
-        setYearModulesByInst((prev) => ({ ...prev, [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? { ...y, modules: y.modules.map((m, mi) => (mi === moduleIndex ? { ...m, name: value } : m)) } : y) }));
+        setYearModulesByInst((prev) => ({ 
+            ...prev, 
+            [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? { ...y, modules: y.modules.map((m, mi) => (mi === moduleIndex ? { ...m, [field]: value } : m)) } : y) 
+        }));
     };
-    // Info text is capped at 50 words — extra words typed past the cap are
-    // simply not applied, rather than silently truncating what's on screen.
+    // Special handler for Info text because of word cap logic
     const updateModuleInfo = (yearIndex: number, moduleIndex: number, value: string) => {
         if (!activeModuleTab) return;
         const wordCount = value.trim() === '' ? 0 : value.trim().split(/\s+/).length;
         if (wordCount > 50) return;
-        setYearModulesByInst((prev) => ({ ...prev, [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? { ...y, modules: y.modules.map((m, mi) => (mi === moduleIndex ? { ...m, info: value } : m)) } : y) }));
+        updateModuleField(yearIndex, moduleIndex, 'info', value);
     };
     const removeModuleLine = (yearIndex: number, moduleIndex: number) => {
         if (!activeModuleTab) return;
@@ -683,7 +651,7 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         });
     };
 
-    // -- Fee Handlers (course-level, shared) --
+    // -- Fee Handlers --
     const addFeeYear = () => {
         setCourseFees((prev) => [...prev, { year: nextYear(prev), amount: '', currency: '', note: '' }]);
     };
@@ -694,12 +662,17 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         setCourseFees((prev) => prev.map((f, i) => (i === index ? { ...f, ...patch } : f)));
     };
 
+    // Cleaned up for API (Adds standard `credit_hours` variable mapping)
     const cleanModulesFor = (key: string) =>
         (yearModulesByInst[key] ?? []).filter((y) => y.year).map((y) => ({
             year: y.year,
             title: y.title.trim() || null,
             modules: y.modules
-                .map((m) => ({ name: m.name.trim(), info: m.info.trim() || null }))
+                .map((m) => ({ 
+                    name: m.name.trim(), 
+                    info: m.info.trim() || null, 
+                    credit_hours: m.creditHours.trim() || null 
+                }))
                 .filter((m) => m.name !== ''),
         }));
 
@@ -721,14 +694,6 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         setErrors({});
 
         if (isEditMode && courseDetail) {
-            // update() (PUT /course-details/{uuid}) only ever patches THIS single
-            // flat row — it has no concept of a multi-institution course. So:
-            //  - the row's own institution (savedInstKey) is PUT to /course-details/{uuid}
-            //  - any additional institutions the user checked are NEW rows,
-            //    created via the same store() endpoint the create page uses
-            // If the user unchecked the original institution, its row is left
-            // as-is (not deleted) — deleting would need a separate DELETE call,
-            // which this form intentionally doesn't do implicitly.
             const updatePayload = {
                 course_name: courseName.trim(),
                 summary: summaryHtml.trim() || null,
@@ -751,7 +716,7 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
 
             const requests: Promise<Response>[] = [
                 fetch(`/course-details/${courseDetail.uuid}`, {
-                    method: 'POST', // spoofed PUT — see note below
+                    method: 'POST',
                     headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() },
                     body: JSON.stringify({ ...updatePayload, _method: 'PUT' }),
                 }),
@@ -785,7 +750,6 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
             return;
         }
 
-        // Create mode: one store() call creates a row per selected institution.
         const institutionsPayload = selectedInstKeys.map((key) => {
             const [uni, col] = key.split('|||');
             return { university_name: uni, college_name: col, year_wise_modules: cleanModulesFor(key) };
@@ -811,8 +775,6 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                     throw new Error(data.message || 'Failed to save.');
                 }
                 setSavedMessage(data.message || 'Saved successfully.');
-                // Reset the form so the user can create another entry without
-                // accidentally re-submitting the same course/institutions again.
                 setCourseName('');
                 setSelectedInstKeys([]);
                 setSummaryHtml('');
@@ -1056,8 +1018,16 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                                                                 </label>
                                                                 <div className="flex items-center flex-1 rounded-full border border-gray-200 bg-white shadow-sm overflow-hidden focus-within:border-[#008AE6] focus-within:ring-1 focus-within:ring-[#008AE6]">
                                                                     <span className="bg-gray-50 text-gray-400 px-3 py-1.5 text-sm border-r border-gray-200">{moduleIndex + 1}.</span>
-                                                                    <input type="text" className="flex-1 px-3 py-1.5 text-sm focus:outline-none bg-transparent" placeholder="Module Name..." value={moduleEntry.name} onChange={(e) => updateModuleLine(yearIndex, moduleIndex, e.target.value)} />
+                                                                    <input type="text" className="flex-1 px-3 py-1.5 text-sm focus:outline-none bg-transparent" placeholder="Module Name..." value={moduleEntry.name} onChange={(e) => updateModuleField(yearIndex, moduleIndex, 'name', e.target.value)} />
                                                                 </div>
+
+                                                                {/* ----- NEW: Credit Hours Field ----- */}
+                                                                <div className="flex items-center w-24 sm:w-28 flex-shrink-0 rounded-full border border-gray-200 bg-white shadow-sm overflow-hidden focus-within:border-[#008AE6] focus-within:ring-1 focus-within:ring-[#008AE6]" title="Credit Hours">
+                                                                    <span className="bg-gray-50 text-gray-500 px-2 sm:px-2.5 py-1.5 text-xs font-semibold border-r border-gray-200">Cr.</span>
+                                                                    <input type="text" className="w-full px-2 py-1.5 text-sm focus:outline-none bg-transparent text-center" placeholder="e.g. 3" value={moduleEntry.creditHours} onChange={(e) => updateModuleField(yearIndex, moduleIndex, 'creditHours', e.target.value)} />
+                                                                </div>
+                                                                {/* ---------------------------------- */}
+
                                                                 {yearBlock.modules.length > 1 && (
                                                                     <button type="button" className="rounded-full border border-gray-200 shadow-sm text-red-500 bg-white hover:bg-red-50 px-2.5 flex-shrink-0 transition-colors" onClick={() => removeModuleLine(yearIndex, moduleIndex)}><X size={14} /></button>
                                                                 )}
@@ -1091,7 +1061,7 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                     </div>
                 </div>
 
-                {/* 5. Fees (course-level, applies to all selected institutions) */}
+                {/* 5. Fees */}
                 <div className="bg-white shadow-sm rounded-xl mb-6 border-0">
                     <div className="p-3 md:p-4">
                         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
