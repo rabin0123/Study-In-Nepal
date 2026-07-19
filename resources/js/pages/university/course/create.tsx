@@ -12,7 +12,8 @@ import {
 
 // ── Interfaces ──
 type ModuleEntry = { name: string; info: string; creditHours: string };
-type YearModule = { year: number; title: string; modules: ModuleEntry[] };
+type SemesterModule = { title: string; modules: ModuleEntry[] };
+type YearModule = { year: number; title: string; semesters: SemesterModule[] };
 type YearFee = { year: number; amount: string; currency: string; note: string };
 
 interface ApiDataRow {
@@ -51,24 +52,51 @@ function csrfToken(): string {
 }
 
 function defaultYearModules(): YearModule[] {
-    return [{ year: 1, title: 'Year 1', modules: [{ name: '', info: '', creditHours: '' }] }];
+    return [{ 
+        year: 1, 
+        title: 'Year 1', 
+        semesters: [{ title: 'Semester 1', modules: [{ name: '', info: '', creditHours: '' }] }] 
+    }];
 }
 
 function normalizeYearModules(raw: any[] | null | undefined): YearModule[] {
     if (!raw || raw.length === 0) return defaultYearModules();
-    return raw.map((y) => ({
-        year: y.year,
-        title: y.title ?? '',
-        modules: (y.modules ?? []).map((m: any) =>
-            typeof m === 'string' 
-                ? { name: m, info: '', creditHours: '' } 
-                : { 
-                    name: m.name ?? '', 
-                    info: m.info ?? '', 
-                    creditHours: m.creditHours ?? m.credit_hours ?? '' 
-                  }
-        ),
-    }));
+    return raw.map((y) => {
+        let semesters: SemesterModule[] = [];
+        if (y.semesters && Array.isArray(y.semesters)) {
+            semesters = y.semesters.map((s: any) => ({
+                title: s.title || '',
+                modules: (s.modules ?? []).map((m: any) =>
+                    typeof m === 'string' 
+                        ? { name: m, info: '', creditHours: '' } 
+                        : { 
+                            name: m.name ?? '', 
+                            info: m.info ?? '', 
+                            creditHours: m.creditHours ?? m.credit_hours ?? '' 
+                          }
+                )
+            }));
+        } else {
+            // Fallback: If old structure, wrap modules in Semester 1
+            semesters = [{
+                title: 'Semester 1',
+                modules: (y.modules ?? []).map((m: any) =>
+                    typeof m === 'string' 
+                        ? { name: m, info: '', creditHours: '' } 
+                        : { 
+                            name: m.name ?? '', 
+                            info: m.info ?? '', 
+                            creditHours: m.creditHours ?? m.credit_hours ?? '' 
+                          }
+                )
+            }];
+        }
+        return {
+            year: y.year,
+            title: y.title ?? '',
+            semesters
+        };
+    });
 }
 
 function defaultYearFee(): YearFee[] {
@@ -484,35 +512,38 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
     });
     const [activeModuleTab, setActiveModuleTab] = useState<string | null>(savedInstKey);
     
-    // Checks both 'info' and 'creditHours' to see if checkbox should be checked on load
     const [expandedModuleInfo, setExpandedModuleInfo] = useState<Set<string>>(() => {
         const seed = new Set<string>();
         if (savedInstKey) {
             (yearModulesByInst[savedInstKey] ?? []).forEach((year, yi) => {
-                year.modules.forEach((m, mi) => {
-                    if ((m.info && m.info.trim() !== '') || (m.creditHours && m.creditHours.trim() !== '')) {
-                        seed.add(`${savedInstKey}:${yi}:${mi}`);
-                    }
+                year.semesters.forEach((sem, si) => {
+                    sem.modules.forEach((m, mi) => {
+                        if ((m.info && m.info.trim() !== '') || (m.creditHours && m.creditHours.trim() !== '')) {
+                            seed.add(`${savedInstKey}:${yi}:${si}:${mi}`);
+                        }
+                    });
                 });
             });
         }
         return seed;
     });
 
-    const moduleInfoKey = (instKey: string, yearIndex: number, moduleIndex: number) => `${instKey}:${yearIndex}:${moduleIndex}`;
+    const moduleInfoKey = (instKey: string, yearIndex: number, semesterIndex: number, moduleIndex: number) => `${instKey}:${yearIndex}:${semesterIndex}:${moduleIndex}`;
     
-    const toggleModuleInfoVisible = (yearIndex: number, moduleIndex: number) => {
+    const toggleModuleInfoVisible = (yearIndex: number, semesterIndex: number, moduleIndex: number) => {
         if (!activeModuleTab) return;
-        const key = moduleInfoKey(activeModuleTab, yearIndex, moduleIndex);
+        const key = moduleInfoKey(activeModuleTab, yearIndex, semesterIndex, moduleIndex);
         const isCurrentlyOpen = expandedModuleInfo.has(key);
 
         if (isCurrentlyOpen) {
-            // When hiding, we clear both the info and credit hours text so it doesn't get saved accidentally 
             setYearModulesByInst((prev) => ({
                 ...prev,
                 [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? { 
                     ...y, 
-                    modules: y.modules.map((m, mi) => (mi === moduleIndex ? { ...m, info: '', creditHours: '' } : m)) 
+                    semesters: y.semesters.map((s, si) => si === semesterIndex ? {
+                        ...s,
+                        modules: s.modules.map((m, mi) => (mi === moduleIndex ? { ...m, info: '', creditHours: '' } : m)) 
+                    } : s)
                 } : y)
             }));
         }
@@ -619,7 +650,13 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
     // -- Module Handlers --
     const addYear = () => {
         if (!activeModuleTab) return;
-        setYearModulesByInst((prev) => ({ ...prev, [activeModuleTab]: [...prev[activeModuleTab], { year: nextYear(prev[activeModuleTab]), title: '', modules: [{ name: '', info: '', creditHours: '' }] }] }));
+        setYearModulesByInst((prev) => ({ 
+            ...prev, 
+            [activeModuleTab]: [
+                ...prev[activeModuleTab], 
+                { year: nextYear(prev[activeModuleTab]), title: '', semesters: [{ title: 'Semester 1', modules: [{ name: '', info: '', creditHours: '' }] }] }
+            ] 
+        }));
     };
     const removeYear = (index: number) => {
         if (!activeModuleTab) return;
@@ -629,26 +666,82 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         if (!activeModuleTab) return;
         setYearModulesByInst((prev) => ({ ...prev, [activeModuleTab]: prev[activeModuleTab].map((y, i) => (i === index ? { ...y, ...patch } : y)) }));
     };
-    const addModuleLine = (yearIndex: number) => {
+    
+    // -- Semester Handlers --
+    const addSemester = (yearIndex: number) => {
         if (!activeModuleTab) return;
-        setYearModulesByInst((prev) => ({ ...prev, [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? { ...y, modules: [...y.modules, { name: '', info: '', creditHours: '' }] } : y) }));
+        setYearModulesByInst((prev) => ({
+            ...prev,
+            [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? {
+                ...y, 
+                semesters: [...y.semesters, { title: `Semester ${y.semesters.length + 1}`, modules: [{ name: '', info: '', creditHours: '' }] }]
+            } : y)
+        }));
     };
-    const updateModuleField = (yearIndex: number, moduleIndex: number, field: keyof ModuleEntry, value: string) => {
+    const removeSemester = (yearIndex: number, semesterIndex: number) => {
+        if (!activeModuleTab) return;
+        setYearModulesByInst((prev) => ({
+            ...prev,
+            [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? {
+                ...y,
+                semesters: y.semesters.filter((_, si) => si !== semesterIndex)
+            } : y)
+        }));
+    };
+    const updateSemester = (yearIndex: number, semesterIndex: number, patch: Partial<SemesterModule>) => {
+        if (!activeModuleTab) return;
+        setYearModulesByInst((prev) => ({
+            ...prev,
+            [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? {
+                ...y,
+                semesters: y.semesters.map((s, si) => si === semesterIndex ? { ...s, ...patch } : s)
+            } : y)
+        }));
+    };
+    const addModuleLine = (yearIndex: number, semesterIndex: number) => {
         if (!activeModuleTab) return;
         setYearModulesByInst((prev) => ({ 
             ...prev, 
-            [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? { ...y, modules: y.modules.map((m, mi) => (mi === moduleIndex ? { ...m, [field]: value } : m)) } : y) 
+            [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? {
+                ...y,
+                semesters: y.semesters.map((s, si) => si === semesterIndex ? {
+                    ...s,
+                    modules: [...s.modules, { name: '', info: '', creditHours: '' }]
+                } : s)
+            } : y) 
         }));
     };
-    const updateModuleInfo = (yearIndex: number, moduleIndex: number, value: string) => {
+    const updateModuleField = (yearIndex: number, semesterIndex: number, moduleIndex: number, field: keyof ModuleEntry, value: string) => {
+        if (!activeModuleTab) return;
+        setYearModulesByInst((prev) => ({ 
+            ...prev, 
+            [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? { 
+                ...y, 
+                semesters: y.semesters.map((s, si) => si === semesterIndex ? {
+                    ...s,
+                    modules: s.modules.map((m, mi) => (mi === moduleIndex ? { ...m, [field]: value } : m))
+                } : s)
+            } : y) 
+        }));
+    };
+    const updateModuleInfo = (yearIndex: number, semesterIndex: number, moduleIndex: number, value: string) => {
         if (!activeModuleTab) return;
         const wordCount = value.trim() === '' ? 0 : value.trim().split(/\s+/).length;
         if (wordCount > 50) return;
-        updateModuleField(yearIndex, moduleIndex, 'info', value);
+        updateModuleField(yearIndex, semesterIndex, moduleIndex, 'info', value);
     };
-    const removeModuleLine = (yearIndex: number, moduleIndex: number) => {
+    const removeModuleLine = (yearIndex: number, semesterIndex: number, moduleIndex: number) => {
         if (!activeModuleTab) return;
-        setYearModulesByInst((prev) => ({ ...prev, [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? { ...y, modules: y.modules.filter((_, mi) => mi !== moduleIndex) } : y) }));
+        setYearModulesByInst((prev) => ({ 
+            ...prev, 
+            [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? { 
+                ...y, 
+                semesters: y.semesters.map((s, si) => si === semesterIndex ? {
+                    ...s,
+                    modules: s.modules.filter((_, mi) => mi !== moduleIndex)
+                } : s) 
+            } : y) 
+        }));
     };
     const copyToAllInstitutions = () => {
         if (!activeModuleTab) return;
@@ -675,13 +768,16 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         (yearModulesByInst[key] ?? []).filter((y) => y.year).map((y) => ({
             year: y.year,
             title: y.title.trim() || null,
-            modules: y.modules
-                .map((m) => ({ 
-                    name: m.name.trim(), 
-                    info: m.info.trim() || null, 
-                    credit_hours: m.creditHours.trim() || null 
-                }))
-                .filter((m) => m.name !== ''),
+            semesters: y.semesters.map(s => ({
+                title: s.title.trim() || null,
+                modules: s.modules
+                    .map((m) => ({ 
+                        name: m.name.trim(), 
+                        info: m.info.trim() || null, 
+                        credit_hours: m.creditHours.trim() || null 
+                    }))
+                    .filter((m) => m.name !== '')
+            })).filter(s => s.modules.length > 0 || s.title)
         }));
 
     const cleanFees = () =>
@@ -985,10 +1081,10 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                                 </ul>
 
                                 {activeYearModules.map((yearBlock, yearIndex) => (
-                                    <div key={yearIndex} className="border border-gray-100 rounded-xl mb-3">
+                                    <div key={yearIndex} className="border border-gray-100 rounded-xl mb-4 bg-white shadow-sm">
                                         <div className="bg-gray-50 border-b border-gray-100 p-2 px-3 flex items-center justify-between rounded-t-xl">
                                             <div className="font-semibold text-gray-900 text-sm flex items-center gap-1.5">
-                                                <Calendar size={16} className="text-[#008AE6]" /> Academic Year Set {yearIndex + 1}
+                                                <Calendar size={16} className="text-[#008AE6]" /> Academic Year {yearBlock.year}
                                             </div>
                                             {activeYearModules.length > 1 && (
                                                 <button type="button" className="text-red-500 hover:text-red-700 flex items-center gap-1 p-0.5" onClick={() => removeYear(yearIndex)}>
@@ -997,72 +1093,105 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                                             )}
                                         </div>
                                         <div className="p-3">
-                                            <div className="grid grid-cols-12 gap-2 mb-3">
-                                                <div className="col-span-3 md:col-span-2">
+                                            {/* Year Basic Info */}
+                                            <div className="grid grid-cols-12 gap-3 mb-4">
+                                                <div className="col-span-4 md:col-span-2">
                                                     <label className="block text-gray-500 font-semibold mb-1" style={{ fontSize: '0.75rem' }}>Year Num</label>
                                                     <input type="number" min={1} className="w-full rounded-full border border-gray-200 px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:border-[#008AE6] focus:ring-1 focus:ring-[#008AE6]" value={yearBlock.year} onChange={(e) => updateYear(yearIndex, { year: Number(e.target.value) || 1 })} />
                                                 </div>
-                                                <div className="col-span-9 md:col-span-10">
+                                                <div className="col-span-8 md:col-span-10">
                                                     <label className="block text-gray-500 font-semibold mb-1" style={{ fontSize: '0.75rem' }}>Year Title (Optional)</label>
                                                     <input type="text" className="w-full rounded-full border border-gray-200 px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:border-[#008AE6] focus:ring-1 focus:ring-[#008AE6]" placeholder={`e.g. Year ${yearBlock.year} - Core Fundamentals`} value={yearBlock.title} onChange={(e) => updateYear(yearIndex, { title: e.target.value })} />
                                                 </div>
                                             </div>
 
-                                            <div className="flex flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar" style={{ maxHeight: 260 }}>
-                                                {yearBlock.modules.map((moduleEntry, moduleIndex) => {
-                                                    const infoKey = activeModuleTab ? moduleInfoKey(activeModuleTab, yearIndex, moduleIndex) : '';
-                                                    const isInfoOpen = expandedModuleInfo.has(infoKey);
-                                                    const infoWordCount = moduleEntry.info.trim() === '' ? 0 : moduleEntry.info.trim().split(/\s+/).length;
-                                                    return (
-                                                        <div key={moduleIndex} className="flex flex-col gap-1.5">
-                                                            <div className="flex gap-2 items-center">
-                                                                <label className="flex-shrink-0 flex items-center justify-center cursor-pointer" title="Add additional details (Info & Credit Hours)">
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        className="cursor-pointer accent-[#008AE6]"
-                                                                        checked={isInfoOpen}
-                                                                        onChange={() => toggleModuleInfoVisible(yearIndex, moduleIndex)}
-                                                                    />
-                                                                </label>
-                                                                <div className="flex items-center flex-1 rounded-full border border-gray-200 bg-white shadow-sm overflow-hidden focus-within:border-[#008AE6] focus-within:ring-1 focus-within:ring-[#008AE6]">
-                                                                    <span className="bg-gray-50 text-gray-400 px-3 py-1.5 text-sm border-r border-gray-200">{moduleIndex + 1}.</span>
-                                                                    <input type="text" className="flex-1 px-3 py-1.5 text-sm focus:outline-none bg-transparent" placeholder="Module Name..." value={moduleEntry.name} onChange={(e) => updateModuleField(yearIndex, moduleIndex, 'name', e.target.value)} />
-                                                                </div>
-
-                                                                {/* ----- Conditionally rendered Credit Hours Field ----- */}
-                                                                {isInfoOpen && (
-                                                                    <div className="flex items-center w-24 sm:w-28 flex-shrink-0 rounded-full border border-gray-200 bg-white shadow-sm overflow-hidden focus-within:border-[#008AE6] focus-within:ring-1 focus-within:ring-[#008AE6]" title="Credit Hours">
-                                                                        <span className="bg-gray-50 text-gray-500 px-2 sm:px-2.5 py-1.5 text-xs font-semibold border-r border-gray-200">Cr.</span>
-                                                                        <input type="text" className="w-full px-2 py-1.5 text-sm focus:outline-none bg-transparent text-center" placeholder="e.g. 3" value={moduleEntry.creditHours} onChange={(e) => updateModuleField(yearIndex, moduleIndex, 'creditHours', e.target.value)} />
-                                                                    </div>
-                                                                )}
-                                                                {/* ---------------------------------- */}
-
-                                                                {yearBlock.modules.length > 1 && (
-                                                                    <button type="button" className="rounded-full border border-gray-200 shadow-sm text-red-500 bg-white hover:bg-red-50 px-2.5 flex-shrink-0 transition-colors" onClick={() => removeModuleLine(yearIndex, moduleIndex)}><X size={14} /></button>
-                                                                )}
+                                            {/* Semesters Loop inside the Year */}
+                                            <div className="flex flex-col gap-4">
+                                                {yearBlock.semesters.map((semester, semesterIndex) => (
+                                                    <div key={semesterIndex} className="border border-gray-200 bg-gray-50/40 rounded-xl p-3">
+                                                        <div className="flex items-center justify-between mb-3 border-b border-gray-100 pb-2">
+                                                            <div className="flex items-center gap-2 flex-1">
+                                                                <label className="text-gray-500 font-semibold flex-shrink-0" style={{ fontSize: '0.75rem' }}>Semester Name</label>
+                                                                <input
+                                                                    type="text"
+                                                                    className="flex-1 rounded-full border border-gray-200 bg-white px-3 py-1 text-sm shadow-sm focus:outline-none focus:border-[#008AE6] focus:ring-1 focus:ring-[#008AE6] max-w-[220px]"
+                                                                    placeholder="e.g. Semester 1"
+                                                                    value={semester.title}
+                                                                    onChange={(e) => updateSemester(yearIndex, semesterIndex, { title: e.target.value })}
+                                                                />
                                                             </div>
-                                                            {isInfoOpen && (
-                                                                <div className="ml-7 flex flex-col gap-1">
-                                                                    <div className="flex items-center rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden focus-within:border-[#008AE6] focus-within:ring-1 focus-within:ring-[#008AE6]">
-                                                                        <input
-                                                                            type="text"
-                                                                            className="flex-1 px-3 py-1.5 text-sm focus:outline-none bg-transparent"
-                                                                            placeholder="Short course information for this module (max 50 words)..."
-                                                                            value={moduleEntry.info}
-                                                                            onChange={(e) => updateModuleInfo(yearIndex, moduleIndex, e.target.value)}
-                                                                        />
-                                                                    </div>
-                                                                    <span className={`text-right ${infoWordCount >= 50 ? 'text-amber-600' : 'text-gray-400'}`} style={{ fontSize: '0.65rem' }}>{infoWordCount}/50 words</span>
-                                                                </div>
+                                                            {yearBlock.semesters.length > 1 && (
+                                                                <button type="button" className="text-red-500 hover:text-red-700 p-1 bg-white border border-gray-200 rounded-full shadow-sm ml-2 transition-colors" title="Remove Semester" onClick={() => removeSemester(yearIndex, semesterIndex)}>
+                                                                    <Trash2 size={14} />
+                                                                </button>
                                                             )}
                                                         </div>
-                                                    );
-                                                })}
+
+                                                        {/* Modules inner loop */}
+                                                        <div className="flex flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar" style={{ maxHeight: 300 }}>
+                                                            {semester.modules.map((moduleEntry, moduleIndex) => {
+                                                                const infoKey = activeModuleTab ? moduleInfoKey(activeModuleTab, yearIndex, semesterIndex, moduleIndex) : '';
+                                                                const isInfoOpen = expandedModuleInfo.has(infoKey);
+                                                                const infoWordCount = moduleEntry.info.trim() === '' ? 0 : moduleEntry.info.trim().split(/\s+/).length;
+                                                                
+                                                                return (
+                                                                    <div key={moduleIndex} className="flex flex-col gap-1.5">
+                                                                        <div className="flex gap-2 items-center">
+                                                                            <label className="flex-shrink-0 flex items-center justify-center cursor-pointer" title="Add additional details (Info & Credit Hours)">
+                                                                                <input
+                                                                                    type="checkbox"
+                                                                                    className="cursor-pointer accent-[#008AE6]"
+                                                                                    checked={isInfoOpen}
+                                                                                    onChange={() => toggleModuleInfoVisible(yearIndex, semesterIndex, moduleIndex)}
+                                                                                />
+                                                                            </label>
+                                                                            <div className="flex items-center flex-1 rounded-full border border-gray-200 bg-white shadow-sm overflow-hidden focus-within:border-[#008AE6] focus-within:ring-1 focus-within:ring-[#008AE6]">
+                                                                                <span className="bg-gray-50 text-gray-400 px-3 py-1.5 text-sm border-r border-gray-200">{moduleIndex + 1}.</span>
+                                                                                <input type="text" className="flex-1 px-3 py-1.5 text-sm focus:outline-none bg-transparent" placeholder="Module Name..." value={moduleEntry.name} onChange={(e) => updateModuleField(yearIndex, semesterIndex, moduleIndex, 'name', e.target.value)} />
+                                                                            </div>
+
+                                                                            {isInfoOpen && (
+                                                                                <div className="flex items-center w-24 sm:w-28 flex-shrink-0 rounded-full border border-gray-200 bg-white shadow-sm overflow-hidden focus-within:border-[#008AE6] focus-within:ring-1 focus-within:ring-[#008AE6]" title="Credit Hours">
+                                                                                    <span className="bg-gray-50 text-gray-500 px-2 sm:px-2.5 py-1.5 text-xs font-semibold border-r border-gray-200">Cr.</span>
+                                                                                    <input type="text" className="w-full px-2 py-1.5 text-sm focus:outline-none bg-transparent text-center" placeholder="e.g. 3" value={moduleEntry.creditHours} onChange={(e) => updateModuleField(yearIndex, semesterIndex, moduleIndex, 'creditHours', e.target.value)} />
+                                                                                </div>
+                                                                            )}
+
+                                                                            {semester.modules.length > 1 && (
+                                                                                <button type="button" className="rounded-full border border-gray-200 shadow-sm text-red-500 bg-white hover:bg-red-50 px-2.5 flex-shrink-0 transition-colors py-1.5" onClick={() => removeModuleLine(yearIndex, semesterIndex, moduleIndex)}><X size={14} /></button>
+                                                                            )}
+                                                                        </div>
+                                                                        {isInfoOpen && (
+                                                                            <div className="ml-7 flex flex-col gap-1">
+                                                                                <div className="flex items-center rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden focus-within:border-[#008AE6] focus-within:ring-1 focus-within:ring-[#008AE6]">
+                                                                                    <input
+                                                                                        type="text"
+                                                                                        className="flex-1 px-3 py-1.5 text-sm focus:outline-none bg-transparent"
+                                                                                        placeholder="Short course information for this module (max 50 words)..."
+                                                                                        value={moduleEntry.info}
+                                                                                        onChange={(e) => updateModuleInfo(yearIndex, semesterIndex, moduleIndex, e.target.value)}
+                                                                                    />
+                                                                                </div>
+                                                                                <span className={`text-right ${infoWordCount >= 50 ? 'text-amber-600' : 'text-gray-400'}`} style={{ fontSize: '0.65rem' }}>{infoWordCount}/50 words</span>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                        <button type="button" className="inline-flex items-center gap-1 rounded-full border border-gray-300 text-gray-600 px-3 py-1 mt-2 bg-white shadow-sm hover:bg-gray-50 transition-colors" style={{ fontSize: '0.75rem' }} onClick={() => addModuleLine(yearIndex, semesterIndex)}>
+                                                            <Plus size={12} /> Add Module Subject
+                                                        </button>
+                                                    </div>
+                                                ))}
                                             </div>
-                                            <button type="button" className="inline-flex items-center gap-1 rounded-full border border-gray-300 text-gray-600 px-3 py-1 mt-2 hover:bg-gray-50 transition-colors" style={{ fontSize: '0.75rem' }} onClick={() => addModuleLine(yearIndex)}>
-                                                <Plus size={12} /> Add Module Subject
-                                            </button>
+
+                                            {/* Add New Semester Button */}
+                                            <div className="mt-4 pt-3 border-t border-gray-100 flex justify-start">
+                                                <button type="button" className="inline-flex items-center gap-1.5 rounded-full bg-[#008AE6]/10 text-[#008AE6] hover:bg-[#008AE6]/20 px-4 py-1.5 text-sm font-medium transition-colors" onClick={() => addSemester(yearIndex)}>
+                                                    <Plus size={14} /> Add Another Semester
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -1147,7 +1276,7 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                 <style>{`
                     .spin { animation: spin 1s linear infinite; }
                     @keyframes spin { 100% { transform: rotate(360deg); } }
-                    .custom-scrollbar::-webkit-scrollbar { height: 6px; }
+                    .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
                     .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
                     .custom-scrollbar::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
                     .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
