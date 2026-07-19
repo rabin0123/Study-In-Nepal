@@ -43,7 +43,6 @@ class CourseDetailController extends Controller
      */
     public function create(): Response
     {
-        
         return Inertia::render('university/course/create');
     }
 
@@ -57,7 +56,7 @@ class CourseDetailController extends Controller
         $validated = $request->validate([
             'course_name'                                  => 'required|string|max:255',
             'summary'                                      => 'nullable|string',
-            'careers'                                      => 'nullable|string', // Replaced careers array with HTML string
+            'careers'                                      => 'nullable|string', 
             
             'fees'                                         => 'nullable|array',
             'fees.*.year'                                  => 'required_with:fees|integer|min:1',
@@ -72,8 +71,9 @@ class CourseDetailController extends Controller
             'institutions.*.year_wise_modules.*.year'      => 'required_with:institutions.*.year_wise_modules|integer|min:1',
             'institutions.*.year_wise_modules.*.title'     => 'nullable|string|max:255',
             'institutions.*.year_wise_modules.*.modules'   => 'nullable|array',
-            'institutions.*.year_wise_modules.*.modules.*.name' => 'required|string|max:255',
-            'institutions.*.year_wise_modules.*.modules.*.info' => 'nullable|string|max:500',
+            'institutions.*.year_wise_modules.*.modules.*.name'         => 'required|string|max:255',
+            'institutions.*.year_wise_modules.*.modules.*.info'         => 'nullable|string|max:500',
+            'institutions.*.year_wise_modules.*.modules.*.credit_hours' => 'nullable|string|max:100', // <-- ADDED CREDIT HOURS
         ]);
 
         // 2. Check for duplicate entries (same course, university, and college) in the database
@@ -133,7 +133,7 @@ class CourseDetailController extends Controller
     /**
      * Public detail page.
      */
-      public function show($uuid): Response
+    public function show($uuid): Response
     {
         // 1. Find the CourseDetail using the UUID (throws 404 if not found)
         $courseDetail = CourseDetail::where('uuid', $uuid)->firstOrFail();
@@ -152,7 +152,6 @@ class CourseDetailController extends Controller
         ]);
     }
     
-   
     /**
      * Show edit form for a single Course Detail.
      */
@@ -169,25 +168,26 @@ class CourseDetailController extends Controller
     public function update(Request $request, CourseDetail $courseDetail): JsonResponse
     {
         $validated = $request->validate([
-            'university_name'                   => 'sometimes|required|string|max:255',
-            'college_name'                      => 'sometimes|required|string|max:255',
-            'course_name'                       => 'sometimes|required|string|max:255',
+            'university_name'                           => 'sometimes|required|string|max:255',
+            'college_name'                              => 'sometimes|required|string|max:255',
+            'course_name'                               => 'sometimes|required|string|max:255',
 
-            'summary'                           => 'nullable|string',
-            'careers'                           => 'nullable|string',
+            'summary'                                   => 'nullable|string',
+            'careers'                                   => 'nullable|string',
 
-            'year_wise_modules'                 => 'nullable|array',
-            'year_wise_modules.*.year'          => 'required_with:year_wise_modules|integer|min:1',
-            'year_wise_modules.*.title'         => 'nullable|string|max:255',
-            'year_wise_modules.*.modules'       => 'nullable|array',
-            'year_wise_modules.*.modules.*.name'=> 'required|string|max:255',
-            'year_wise_modules.*.modules.*.info'=> 'nullable|string|max:500',
+            'year_wise_modules'                         => 'nullable|array',
+            'year_wise_modules.*.year'                  => 'required_with:year_wise_modules|integer|min:1',
+            'year_wise_modules.*.title'                 => 'nullable|string|max:255',
+            'year_wise_modules.*.modules'               => 'nullable|array',
+            'year_wise_modules.*.modules.*.name'        => 'required|string|max:255',
+            'year_wise_modules.*.modules.*.info'        => 'nullable|string|max:500',
+            'year_wise_modules.*.modules.*.credit_hours'=> 'nullable|string|max:100', // <-- ADDED CREDIT HOURS
 
-            'fees'                              => 'nullable|array',
-            'fees.*.year'                       => 'required_with:fees|integer|min:1',
-            'fees.*.amount'                     => 'nullable|string|max:100',
-            'fees.*.currency'                   => 'nullable|string|max:10',
-            'fees.*.note'                       => 'nullable|string|max:255',
+            'fees'                                      => 'nullable|array',
+            'fees.*.year'                               => 'required_with:fees|integer|min:1',
+            'fees.*.amount'                             => 'nullable|string|max:100',
+            'fees.*.currency'                           => 'nullable|string|max:10',
+            'fees.*.note'                               => 'nullable|string|max:255',
         ]);
 
         $courseDetail->update($validated);
@@ -207,5 +207,4 @@ class CourseDetailController extends Controller
 
         return redirect()->back()->with('success', 'Course details deleted successfully.');
     }
-    
 }
