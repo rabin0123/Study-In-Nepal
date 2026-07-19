@@ -133,7 +133,7 @@ class CourseDetailController extends Controller
     /**
      * Public detail page.
      */
-    public function show($uuid):JsonResponse
+    public function show($uuid): Response
     {
         // 1. Find the CourseDetail using the UUID (throws 404 if not found)
         $courseDetail = CourseDetail::where('uuid', $uuid)->firstOrFail();
@@ -146,7 +146,7 @@ class CourseDetailController extends Controller
             ->where('University', $courseDetail->university_name)
             ->first();
 
-     return response()->json([
+        return Inertia::render('university/course/show', [
             'university'   => $university, 
             'courseDetail' => $courseDetail,
         ]);
