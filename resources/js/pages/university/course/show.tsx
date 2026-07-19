@@ -32,17 +32,11 @@ function sortByYear<T extends { year: number }>(items: T[] | null | undefined): 
     return [...items].sort((a, b) => a.year - b.year);
 }
 
-// Modules may come through as either a legacy flat string (just a name) or
-// the newer {name, info} object. Normalize to a consistent shape so the
-// rendering logic doesn't need to branch everywhere.
 function normalizeModuleEntry(m: string | ModuleEntry): ModuleEntry {
     if (typeof m === 'string') return { name: m, info: null };
     return { name: m.name, info: m.info ?? null };
 }
 
-// Defensive unwrap: if `careers` ever comes through as a raw JSON string like
-// `{"html": "<h2>...</h2>"}` instead of the plain HTML string, pull the HTML
-// back out so the page still renders correctly instead of showing raw JSON.
 function normalizeCareersData(careers: string | string[] | null | undefined): string | string[] | null {
     if (!careers) return null;
 
@@ -55,7 +49,7 @@ function normalizeCareersData(careers: string | string[] | null | undefined): st
                     return parsed.html;
                 }
             } catch {
-                // not valid JSON, fall through and use the raw string as-is
+                // not valid JSON, fall through
             }
         }
         return careers;
@@ -69,7 +63,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
     const fees = sortByYear(courseDetail.fees);
     const careersData = normalizeCareersData(courseDetail.careers);
 
-    // Memoize the sections array so we can safely use it in our useEffect observer
     const sections = useMemo(() => {
         return [
             { id: 'overview', label: 'Overview', show: Boolean(courseDetail.summary) },
@@ -83,7 +76,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
         return modules.length > 0 ? modules[0].year : 1;
     });
 
-    // New state to track the active section for the sticky sub-navigation
     const [activeSection, setActiveSection] = useState<string>('');
 
     const jumpTo = (id: string) => {
@@ -93,22 +85,22 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
         window.scrollTo({ top, behavior: 'smooth' });
     };
 
-    // States for logos
     const [univLogo, setUnivLogo] = useState<string | null | undefined>(courseDetail.university?.university_logo_url);
     const [collegeLogo, setCollegeLogo] = useState<string | null | undefined>(null);
+    const [intake, setIntake] = useState<string | null | undefined>(courseDetail.university?.Intake);
+    const [location, setLocation] = useState<string | null | undefined>(courseDetail.university?.Location);
+    const [level, setLevel] = useState<string | null | undefined>(courseDetail.university?.level || 'Postgraduate');
 
-    // Fetch logos from the API
     useEffect(() => {
         let isMounted = true;
 
-        const fetchLogos = async () => {
+        const fetchDetails = async () => {
             try {
                 const res = await fetch('https://www.admin.studyinnepal.com/api/university');
                 const data = await res.json();
 
                 if (!isMounted) return;
 
-                // Attempt to match exact university AND college
                 const exactMatch = data.find(
                     (item: any) =>
                         item.University === courseDetail.university_name &&
@@ -118,40 +110,45 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 if (exactMatch) {
                     if (exactMatch.university_logo_url) setUnivLogo(exactMatch.university_logo_url);
                     if (exactMatch.college_logo_url) setCollegeLogo(exactMatch.college_logo_url);
+                    if (exactMatch.Intake) setIntake(exactMatch.Intake);
+                    if (exactMatch.Location) setLocation(exactMatch.Location);
+                    if (exactMatch.Level || exactMatch.level) setLevel(exactMatch.Level || exactMatch.level);
                 } else {
-                    // Fallback to partial matching if exactly matching both fails
                     const univMatch = data.find((item: any) => item.University === courseDetail.university_name);
                     const colMatch = data.find((item: any) => item.College === courseDetail.college_name);
 
                     if (univMatch?.university_logo_url) setUnivLogo(univMatch.university_logo_url);
                     if (colMatch?.college_logo_url) setCollegeLogo(colMatch.college_logo_url);
+
+                    const fallbackIntake = colMatch?.Intake || univMatch?.Intake;
+                    const fallbackLocation = colMatch?.Location || univMatch?.Location;
+                    const fallbackLevel = colMatch?.Level || colMatch?.level || univMatch?.Level || univMatch?.level;
+
+                    if (fallbackIntake) setIntake(fallbackIntake);
+                    if (fallbackLocation) setLocation(fallbackLocation);
+                    if (fallbackLevel) setLevel(fallbackLevel);
                 }
             } catch (err) {
-                console.error('Failed to fetch university API data for logos:', err);
+                console.error('Failed to fetch university API data for details:', err);
             }
         };
 
-        fetchLogos();
+        fetchDetails();
 
         return () => {
             isMounted = false;
         };
     }, [courseDetail.university_name, courseDetail.college_name]);
 
-    // Intersection Observer to highlight active navigation link based on scroll position
     useEffect(() => {
         const observer = new IntersectionObserver(
             (entries) => {
                 entries.forEach((entry) => {
-                    // Make the section active when it comes into our defined threshold
                     if (entry.isIntersecting) {
                         setActiveSection(entry.target.id);
                     }
                 });
             },
-            // rootMargin logic: 
-            // -100px accounts for the sticky header height
-            // -60% ensures the bottom sections don't trigger until they are well into the viewport
             { rootMargin: '-100px 0px -60% 0px', threshold: 0 }
         );
 
@@ -176,7 +173,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     }}
                 />
 
-                {/* Top-left container for Breadcrumbs and University Name */}
                 <div className="gcu-hero-top-left">
                     <div className="gcu-hero-university">
                         {univLogo && (
@@ -189,34 +185,45 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 <div className="gcu-wrap">
                     <div className="gcu-banner-info">
                         <div className="gcu-banner-info__wrap">
-                            <span className="gcu-banner-info__award">{courseDetail.university?.level || 'Postgraduate'}</span>
+                            
+                            {/* Flex container to push Level to left and Intake to right */}
+                            <div className="gcu-banner-top-row">
+                                <span className="gcu-banner-info__award">{level}</span>
+                                
+                                {intake && (
+                                    <span className="gcu-banner-info__intake">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="gcu-svg-icon">
+                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                                        </svg>
+                                        Intake: {intake}
+                                    </span>
+                                )}
+                            </div>
+
                             <div className="gcu-banner-info__title">{courseDetail.course_name}</div>
+                            
                             <div className="gcu-banner-info__meta">
                                 <div className="gcu-banner-info__tagline">
                                     {collegeLogo && (
                                         <img src={collegeLogo} alt={courseDetail.college_name} className="gcu-banner-college-logo" />
                                     )}
-                                    <span>{courseDetail.college_name}</span>
+                                    <div className="gcu-banner-college-details">
+                                        <span className="gcu-banner-college-name">{courseDetail.college_name}</span>
+                                        {location && (
+                                            <span className="gcu-banner-college-location">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="gcu-svg-icon">
+                                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                                    <circle cx="12" cy="10" r="3"></circle>
+                                                </svg>
+                                                {location}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                            <ul className="gcu-banner-info__list">
-                                {courseDetail.university?.Intake && (
-                                    <li>
-                                        <span className="gcu-icon" aria-hidden="true">
-                                            arrow_circle_up
-                                        </span>
-                                        Intake: {courseDetail.university.Intake}
-                                    </li>
-                                )}
-                                {courseDetail.university?.Location && (
-                                    <li>
-                                        <span className="gcu-icon" aria-hidden="true">
-                                            watch_later
-                                        </span>
-                                        Location: {courseDetail.university.Location}
-                                    </li>
-                                )}
-                            </ul>
                         </div>
                     </div>
                 </div>
@@ -256,7 +263,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     </section>
                 )}
 
-                {/* What you will study (Black Card Scheme) */}
                 {modules.length > 0 && (
                     <section id="study" className="gcu-panel scheme--black-card">
                         <div className="gcu-wrap">
@@ -309,7 +315,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     </section>
                 )}
 
-                {/* Fees and funding */}
                 {fees.length > 0 && (
                     <section id="fees" className="gcu-panel gcu-wrap">
                         <div className="gcu-row">
@@ -352,7 +357,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     </section>
                 )}
 
-                {/* Career Prospectus (Mild Black Background with Background Image) */}
                 <section
                     id="careers"
                     className="gcu-panel scheme--mild-black-bg"
@@ -454,7 +458,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     pointer-events: none;
                 }
 
-                /* Hero Top Left Container */
                 .gcu-hero-top-left {
                     position: absolute;
                     top: 0;
@@ -473,7 +476,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     padding-right: 40px;
                 }
 
-                /* University Name in Top Left */
                 .gcu-hero-university {
                     display: flex;
                     align-items: center;
@@ -513,6 +515,17 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     border-radius: 24px;
                     max-width: 100%;
                 }
+
+                /* Layout for the Level and Intake tags */
+                .gcu-banner-top-row {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 12px;
+                    flex-wrap: wrap;
+                    gap: 10px;
+                }
+
                 .gcu-banner-info__award {
                     display: inline-block;
                     background: rgba(255, 255, 255, 0.2);
@@ -522,8 +535,20 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     text-transform: uppercase;
                     font-weight: 700;
                     letter-spacing: 0.05em;
-                    margin-bottom: 12px;
                 }
+
+                .gcu-banner-info__intake {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    background: rgba(255, 255, 255, 0.15);
+                    padding: 4px 14px;
+                    border-radius: 999px;
+                    color: var(--color-white);
+                }
+
                 .gcu-banner-info__title {
                     font-size: 2.3rem;
                     font-weight: 800;
@@ -533,18 +558,18 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: #dae4f3;
                     word-wrap: break-word;
                 }
+
                 .gcu-banner-info__meta {
                     margin-bottom: 24px;
                 }
+
                 .gcu-banner-info__tagline {
-                    font-size: 1.1rem;
-                    font-weight: 600;
-                    opacity: 0.95;
                     display: flex;
                     align-items: center;
                     gap: 14px;
                     flex-wrap: wrap;
                 }
+
                 .gcu-banner-college-logo {
                     width: 50px;
                     height: 50px;
@@ -555,25 +580,32 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     flex-shrink: 0;
                 }
 
-                .gcu-banner-info__list {
-                    list-style: none;
+                .gcu-banner-college-details {
                     display: flex;
-                    flex-wrap: wrap;
-                    gap: 20px;
-                    border-top: 1px solid rgba(255, 255, 255, 0.15);
-                    padding-top: 20px;
-                    font-size: 0.88rem;
-                    font-weight: 600;
+                    flex-direction: column;
+                    justify-content: center;
                 }
-                .gcu-banner-info__list li {
+
+                .gcu-banner-college-name {
+                    font-size: 1.1rem;
+                    font-weight: 700;
+                    line-height: 1.2;
+                }
+
+                .gcu-banner-college-location {
+                    font-size: 0.85rem;
+                    font-weight: 500;
+                    color: rgba(255, 255, 255, 0.8);
                     display: flex;
                     align-items: center;
-                    gap: 8px;
+                    gap: 6px;
+                    margin-top: 4px;
                 }
-                .gcu-icon {
-                    font-size: 0.95rem;
-                    opacity: 0.8;
+
+                .gcu-svg-icon {
                     display: inline-block;
+                    vertical-align: middle;
+                    flex-shrink: 0;
                 }
 
                 .gcu-subnav {
@@ -586,13 +618,13 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     overflow-x: hidden;
                 }
                 .gcu-subnav__list {
-    list-style: none;
-    display: flex;
-    justify-content: center;
-    gap: 24px;
-    overflow-x: auto;
-    scrollbar-width: none;
-}
+                    list-style: none;
+                    display: flex;
+                    justify-content: center;
+                    gap: 24px;
+                    overflow-x: auto;
+                    scrollbar-width: none;
+                }
                 .gcu-subnav__list::-webkit-scrollbar { display: none; }
                 .gcu-subnav__link {
                     background: none;
@@ -611,8 +643,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: var(--color-skyblue);
                     border-bottom-color: var(--color-border);
                 }
-                
-                /* Active state CSS targeting .is-active */
                 .gcu-subnav__link.is-active,
                 .gcu-subnav__link:focus, 
                 .gcu-subnav__link:active {
@@ -633,7 +663,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 }
                 .gcu-panel:last-of-type { border-bottom: none; }
 
-                /* BLACK CARD STYLING FOR "WHAT YOU WILL STUDY" */
                 .gcu-panel.scheme--black-card {
                     background-color: var(--color-black);
                     color: var(--color-white);
@@ -674,7 +703,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: var(--color-black);
                 }
 
-                /* CAREERS SECTION - MILD BLACK BG WITH IMAGE */
                 .gcu-panel.scheme--mild-black-bg {
                     background-color: #1e293b;
                     background-size: cover;
@@ -788,7 +816,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     text-align: left;
                     transition: background 0.15s;
                 }
-                /* Only rows with expandable info are clickable/hoverable */
                 .gcu-module-row.has-info .gcu-module-row__head {
                     cursor: pointer;
                 }
@@ -857,9 +884,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: var(--color-muted-text);
                 }
 
-                /* ============================================================
-                   Default HTML content styling (Overview panel — light bg)
-                   ============================================================ */
                 .gcu-html-content {
                     font-size: 1.05rem;
                     line-height: 1.75;
@@ -933,11 +957,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     justify-content: center;
                 }
 
-                /* ============================================================
-                   Careers panel HTML content — dark bg overrides
-                   (compact pill tags instead of tall boxed cards, so the
-                   ~90-item career list is scannable instead of enormous)
-                   ============================================================ */
                 .gcu-panel.scheme--mild-black-bg .gcu-html-content {
                     color: rgba(255, 255, 255, 0.9);
                 }
@@ -1070,9 +1089,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
     );
 }
 
-// Renders a single module row. The expand arrow and click-to-open behavior
-// only appear when `info` has real content — modules with no info are shown
-// as a plain, non-interactive row (no arrow, no expand).
 function ModuleAccordion({ name, info }: { name: string; info?: string | null }) {
     const hasInfo = Boolean(info && info.trim() !== '');
     const [open, setOpen] = useState(false);

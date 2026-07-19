@@ -72,13 +72,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])->name('roles.edit');
 
     // Courses
-    Route::inertia('/courses', 'courses/coursesearch')->name('courses');
-    Route::get('/courses/{university}', [CourseDetailController::class, 'show'])->name('courses.show');
-    Route::get('/course/resolve', [CourseDetailController::class, 'resolve'])->name('course.resolve');
+    Route::inertia('/courses', 'university/course/coursesearch')->name('courses');
+    Route::get('/courses/{uuid}', [CourseDetailController::class, 'show'])->name('courses.show');
     Route::get('/course/create', [CourseDetailController::class, 'create'])->name('create');
-    Route::get('/course/{courseDetail:uuid}', [CourseDetailController::class, 'show'])->name('show');
-
-    // Course Details CRUD
     Route::get('/course-details', [CourseDetailController::class, 'index'])->name('index');
     Route::post('/course-details', [CourseDetailController::class, 'store'])->name('store');
     Route::get('/course-details/{courseDetail:uuid}/edit', [CourseDetailController::class, 'edit'])->name('edit');

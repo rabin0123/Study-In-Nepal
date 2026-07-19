@@ -7,10 +7,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        {{-- Restore the saved MaterialM theme (data-bs-theme) before paint,
-             so refresh never flashes light-then-dark or vice versa.
-             app.init.js re-applies the same value later; this just gets
-             it on screen before the browser paints anything. --}}
+        
         <script>
             (function () {
                 try {
