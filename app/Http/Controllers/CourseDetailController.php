@@ -146,7 +146,7 @@ class CourseDetailController extends Controller
             ->where('University', $courseDetail->university_name)
             ->first();
 
-        return Inertia::render('university/course/show', [
+     return response()->json([
             'university'   => $university, 
             'courseDetail' => $courseDetail,
         ]);
