@@ -706,7 +706,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
     margin-left: auto;
     margin-right: 20px;
     font-size: 12px;
-    font-weight: normal;
+    font-weight: semibold;
 }
 
                 .gcu-panel.scheme--mild-black-bg {
