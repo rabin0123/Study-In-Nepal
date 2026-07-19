@@ -1,5 +1,4 @@
 import { Head } from '@inertiajs/react';
-import { CreditCard } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 
 type ModuleEntry = { name: string; info?: string | null };
@@ -22,7 +21,6 @@ type Props = {
             id: number;
             level?: string;
             Intake?: string;
-            credit_hours?: string;
             Location?: string;
             university_logo_url?: string | null;
         } | null;
@@ -123,7 +121,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     if (colMatch?.college_logo_url) setCollegeLogo(colMatch.college_logo_url);
 
                     const fallbackIntake = colMatch?.Intake || univMatch?.Intake;
-                    const credit_hours = colMatch?.credit_hours || univMatch?.credit_hours;
                     const fallbackLocation = colMatch?.Location || univMatch?.Location;
                     const fallbackLevel = colMatch?.Level || colMatch?.level || univMatch?.Level || univMatch?.level;
 
@@ -287,8 +284,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                                     className={`gcu-tab-header-btn ${activeTab === yearBlock.year ? 'is-active' : ''}`}
                                                     onClick={() => setActiveTab(yearBlock.year)}
                                                 >
-                                                    {yearBlock.title || 'yearBlock.credit_hours'|| `Year ${yearBlock.year}`}
-                                                    
+                                                    {yearBlock.title || `Year ${yearBlock.year}`}
                                                 </button>
                                             ))}
                                         </div>
@@ -300,7 +296,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                             return (
                                                 <div key={yearBlock.year} className="gcu-accordion-navigation">
                                                     {yearBlock.title && modules.length === 1 && (
-                                                        <h3 className="gcu-single-year-title">{yearBlock.title, yearsBlock.credit_hours}</h3>
+                                                        <h3 className="gcu-single-year-title">{yearBlock.title}</h3>
                                                     )}
                                                     {yearBlock.modules && yearBlock.modules.length > 0 ? (
                                                         yearBlock.modules
