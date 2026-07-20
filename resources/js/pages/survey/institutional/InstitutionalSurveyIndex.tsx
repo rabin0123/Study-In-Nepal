@@ -200,7 +200,7 @@ const primaryBtn: React.CSSProperties = {
   boxShadow: `0 4px 14px ${PRIMARY}35`,
 };
 
-const API_BASE = "/api/institutional-surveys";
+const API_BASE = "/api";
 
 // ── Individual Record Detail Modal ──
 interface ResponseModalProps { response: HeiSurveyRow; onClose: () => void }
@@ -344,7 +344,7 @@ export default function InstitutionalReadinessSurveyDashboard() {
 
     // 1. Fetch main submission records
     try {
-      const rRes = await fetch(`${API_BASE}?per_page=500`);
+      const rRes = await fetch(`${API_BASE}/institutional-surveys?per_page=500`);
       if (rRes.ok) {
         const rData = await rRes.json();
         const raw: Record<string, unknown>[] = rData?.data?.data ?? rData?.data ?? [];
@@ -359,7 +359,7 @@ export default function InstitutionalReadinessSurveyDashboard() {
 
     // 2. Fetch stats independently so routing issues don't crash the table
     try {
-      const sRes = await fetch(`${API_BASE}/stats`);
+      const sRes = await fetch(`${API_BASE}/institutional-surveys/stats`);
       if (sRes.ok) {
         const sData = await sRes.json();
         setStats((sData?.data as StatsData) || null);
