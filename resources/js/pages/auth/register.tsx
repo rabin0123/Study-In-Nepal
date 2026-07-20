@@ -220,7 +220,7 @@ export default function Register({ passwordRules }: Props) {
                                                             <span className="visually-hidden">Loading...</span>
                                                         </div>
                                                     ) : (
-                                                        <span className="iconify" data-icon="lucide:arrow-right" style={{ fontSize: "1.25rem", color: "white" }}></span>
+                                                      <ArrowRight size={20} color="white" />
                                                     )}
                                                 </div>
                                             </button>
