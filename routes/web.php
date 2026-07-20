@@ -132,7 +132,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Institutional Surveys API
         Route::get('/institutional-surveys', [InstitutionalSurveyController::class, 'index']);
-        Route::get('/institutional-surveys/stats', [InstitutionalReadinessSurveyController::class, 'stats']);
+        Route::get('/institutional-surveys/stats', [InstitutionalSurveyController::class, 'stats']);
         Route::post('/institutional-surveys', [InstitutionalSurveyController::class, 'store']);
         Route::delete('/institutional-surveys/{id}', [InstitutionalSurveyController::class, 'destroy']);
 
