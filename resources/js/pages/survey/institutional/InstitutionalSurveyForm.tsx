@@ -391,7 +391,7 @@ export default function InstitutionalReadinessSurveyForm() {
         accepted_confidentiality: form.accepted_confidentiality ? 1 : 0
       };
 
-      const response = await fetch("/api/institutional-readiness-surveys", {
+      const response = await fetch("/api/institutional-surveys", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify(payload),
