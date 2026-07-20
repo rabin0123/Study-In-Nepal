@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\InstitutionalReadinessSurvey;
+use App\Models\InstitutionalSurvey;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 
-class InstitutionalReadinessSurveyController extends Controller
+class InstitutionalSurveyController extends Controller
 {
     /**
      * Display a listing of institutional readiness (HEI) survey submissions.
@@ -16,7 +16,7 @@ class InstitutionalReadinessSurveyController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = InstitutionalReadinessSurvey::query();
+            $query = InstitutionalSurvey::query();
 
             // Dynamic search
             if ($request->has('search') && !empty($request->search)) {
@@ -48,14 +48,14 @@ class InstitutionalReadinessSurveyController extends Controller
 
             // Safely assemble metrics depending on column availability
             $metrics = [
-                'total_submissions' => InstitutionalReadinessSurvey::count(),
+                'total_submissions' => InstitutionalSurvey::count(),
             ];
 
             if (Schema::hasColumn('institutional_readiness_surveys', 'overall_readiness')) {
-                $metrics['highly_ready'] = InstitutionalReadinessSurvey::where('overall_readiness', 'Highly Ready')->count();
+                $metrics['highly_ready'] = InstitutionalSurvey::where('overall_readiness', 'Highly Ready')->count();
             }
             if (Schema::hasColumn('institutional_readiness_surveys', 'interested_in_study_nepal')) {
-                $metrics['interested_in_study_nepal'] = InstitutionalReadinessSurvey::where('interested_in_study_nepal', 'Yes')->count();
+                $metrics['interested_in_study_nepal'] = InstitutionalSurvey::where('interested_in_study_nepal', 'Yes')->count();
             }
 
             return response()->json([
@@ -130,7 +130,7 @@ class InstitutionalReadinessSurveyController extends Controller
         }
 
         try {
-            $survey = InstitutionalReadinessSurvey::create($validator->validated());
+            $survey = InstitutionalSurvey::create($validator->validated());
 
             return response()->json([
                 'success' => true,
@@ -158,13 +158,13 @@ class InstitutionalReadinessSurveyController extends Controller
                 if (!Schema::hasColumn('institutional_readiness_surveys', $column)) {
                     return [];
                 }
-                return InstitutionalReadinessSurvey::select($column, DB::raw('count(*) as count'))
+                return InstitutionalSurvey::select($column, DB::raw('count(*) as count'))
                     ->whereNotNull($column)
                     ->groupBy($column)
                     ->get();
             };
 
-            $stats['total'] = InstitutionalReadinessSurvey::count();
+            $stats['total'] = InstitutionalSurvey::count();
 
             $stats['by_readiness'] = $aggregate('overall_readiness');
             $stats['by_office'] = $aggregate('has_international_office');
@@ -192,7 +192,7 @@ class InstitutionalReadinessSurveyController extends Controller
     public function destroy($id)
     {
         try {
-            $survey = InstitutionalReadinessSurvey::findOrFail($id);
+            $survey = InstitutionalSurvey::findOrFail($id);
             $survey->delete();
 
             return response()->json([
