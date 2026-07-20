@@ -2,68 +2,60 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\InstitutionalSurvey;
+use App\Models\InstitutionalReadinessSurvey;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 
-class InstitutionalSurveyController extends Controller
+class InstitutionalReadinessSurveyController extends Controller
 {
     /**
-     * Display a listing of institutional survey submissions.
-     * Modified to allow returning all entries or dynamically paginating based on the requ
+     * Display a listing of institutional readiness (HEI) survey submissions.
      */
-
     public function index(Request $request)
     {
         try {
-            $query = InstitutionalSurvey::query();
+            $query = InstitutionalReadinessSurvey::query();
 
-            // Dynamic search compatible with both schemas (HEI or Agency)
+            // Dynamic search
             if ($request->has('search') && !empty($request->search)) {
                 $search = $request->search;
                 $query->where(function ($q) use ($search) {
-                    if (Schema::hasColumn('institutional_surveys', 'institution_name')) {
+                    if (Schema::hasColumn('institutional_readiness_surveys', 'institution_name')) {
                         $q->where('institution_name', 'like', '%' . $search . '%')
-                          ->orWhere('email', 'like', '%' . $search . '%');
-                    }
-                    if (Schema::hasColumn('institutional_surveys', 'agency_name')) {
-                        $q->orWhere('agency_name', 'like', '%' . $search . '%')
-                          ->orWhere('agency_email', 'like', '%' . $search . '%');
+                          ->orWhere('institution_email', 'like', '%' . $search . '%')
+                          ->orWhere('university_affiliation', 'like', '%' . $search . '%');
                     }
                 });
             }
 
-            // Optional filter for Province or other fields
-            if ($request->has('province') && !empty($request->province) && Schema::hasColumn('institutional_surveys', 'province')) {
-                $query->where('province', 'like', '%' . $request->province . '%');
+            // Optional filter for overall readiness or other fields
+            if ($request->has('overall_readiness') && !empty($request->overall_readiness) && Schema::hasColumn('institutional_readiness_surveys', 'overall_readiness')) {
+                $query->where('overall_readiness', $request->overall_readiness);
             }
 
             // Determine if we show everything or paginate
             $perPage = $request->input('per_page');
 
             if ($perPage === 'all' || $request->has('all')) {
-                // Return everything from the database
                 $surveys = $query->orderBy('created_at', 'desc')->get();
             } elseif (is_numeric($perPage)) {
-                // Paginate based on the frontend request (e.g. per_page=500)
                 $surveys = $query->orderBy('created_at', 'desc')->paginate((int) $perPage);
             } else {
-                // Fallback to standard pagination
                 $surveys = $query->orderBy('created_at', 'desc')->paginate(15);
             }
 
             // Safely assemble metrics depending on column availability
             $metrics = [
-                'total_submissions' => InstitutionalSurvey::count(),
+                'total_submissions' => InstitutionalReadinessSurvey::count(),
             ];
 
-            if (Schema::hasColumn('institutional_surveys', 'likelihood_official_partner')) {
-                $metrics['very_likely_partners'] = InstitutionalSurvey::where('likelihood_official_partner', 'Very Likely')->count();
+            if (Schema::hasColumn('institutional_readiness_surveys', 'overall_readiness')) {
+                $metrics['highly_ready'] = InstitutionalReadinessSurvey::where('overall_readiness', 'Highly Ready')->count();
             }
-            if (Schema::hasColumn('institutional_surveys', 'interested_in_partnering')) {
-                $metrics['interested_in_partnering'] = InstitutionalSurvey::where('interested_in_partnering', 'Yes')->count();
+            if (Schema::hasColumn('institutional_readiness_surveys', 'interested_in_study_nepal')) {
+                $metrics['interested_in_study_nepal'] = InstitutionalReadinessSurvey::where('interested_in_study_nepal', 'Yes')->count();
             }
 
             return response()->json([
@@ -88,62 +80,43 @@ class InstitutionalSurveyController extends Controller
     {
         // Simple helper array-to-string format for Laravel text storage
         $input = $request->all();
-        
+
         // Convert array inputs to strings if database schema expects string storage
-        foreach (['challenges', 'academic_programs', 'encouraging_factors', 'priority_markets', 'readiness_ratings'] as $field) {
+        foreach (['barriers', 'support_types', 'academic_disciplines'] as $field) {
             if (isset($input[$field]) && is_array($input[$field])) {
                 $input[$field] = json_encode($input[$field]);
             }
         }
 
         $validator = Validator::make($input, [
-            // Agency Profile
-            'agency_name' => 'required|string|max:255',
-            'agency_email' => 'required|email|max:255',
-            'agency_phone' => 'required|string|max:50',
-            'province' => 'required|string|max:255',
-            'years_in_operation' => 'required|string|max:100',
+            // Institutional Information
+            'institution_name' => 'required|string|max:255',
+            'university_affiliation' => 'required|string|max:255',
+            'institution_email' => 'required|email|max:255',
+            'institution_phone' => 'required|string|max:50',
 
-            // Recruitment Experience
-            'recruitment_type' => 'required|string|max:150',
-            'local_students_recruited' => 'nullable|integer|min:0',
-            'international_students_recruited' => 'nullable|integer|min:0',
-            'aware_of_commissions' => 'required|string|in:Yes,No,Not Sure',
-            'interested_in_partnering' => 'required|string|in:Yes,No,Maybe',
-            'currently_represents_institution' => 'required|string|in:Yes,No',
-            'represented_institutions' => 'nullable|string|max:1000',
+            // Institutional Readiness
+            'has_international_office' => 'required|string|in:Yes,No,Under Development',
+            'currently_enrolling_international' => 'required|string|in:Yes,No',
+            'international_students_enrolled' => 'nullable|integer|min:0',
+            'has_internationalization_strategy' => 'required|string|in:Yes,Under Development,No',
+            'has_active_partnerships' => 'required|string|in:Yes,No',
+            'overall_readiness' => 'required|string|in:Highly Ready,Moderately Ready,Needs Improvement,Not Ready',
+            'faculty_prepared' => 'required|string|in:Yes,Somewhat,No',
+            'infrastructure_adequacy' => 'required|string|in:Fully Adequate,Partially Adequate,Inadequate,Not Available',
 
-            // Agency Readiness
-            'readiness_ratings' => 'nullable',
+            // Challenges & Policy Environment
+            'barriers' => 'nullable',
+            'barriers_other_text' => 'nullable|string|max:1000',
+            'policy_support_level' => 'required|string|in:Adequately Supportive,Partially Supportive,Not Supportive',
 
-            // Challenges & Training
-            'challenges' => 'nullable',
-            'challenges_other_text' => 'nullable|string|max:1000',
-            'interested_in_training' => 'required|string|in:Yes,No,Maybe',
-
-            // Academic Programs
-            'academic_programs' => 'nullable',
-            'academic_programs_other_text' => 'nullable|string|max:1000',
-
-            // Promotion & Support
-            'b2b_portal_useful' => 'required|string|in:Yes,No,Not Sure',
-            'encouraging_factors' => 'nullable',
-            'encouraging_factors_other_text' => 'nullable|string|max:1000',
-            'interested_in_events' => 'required|string|in:Yes,No,Maybe',
-
-            // Market Focus
-            'priority_markets' => 'nullable',
-            'priority_markets_other_text' => 'nullable|string|max:1000',
-
-            // Commission & Partnership
-            'minimum_commission' => 'required|string|max:255',
-            'annual_recruitment_capacity' => 'required|string|max:100',
-            'likelihood_official_partner' => 'required|string|in:Very Unlikely,Unlikely,Neutral,Likely,Very Likely',
-
-            // Recommendations
-            'top_recommendations' => 'nullable|string|max:2000',
-            'willing_future_participation' => 'required|string|in:Yes,No',
-            'contact_details' => 'nullable|string|max:255',
+            // Future Priorities
+            'support_types' => 'nullable',
+            'support_types_other_text' => 'nullable|string|max:1000',
+            'academic_disciplines' => 'nullable',
+            'academic_disciplines_other_text' => 'nullable|string|max:1000',
+            'interested_in_study_nepal' => 'required|string|in:Yes,Maybe,No',
+            'policy_reform_recommendation' => 'nullable|string|max:2000',
 
             'accepted_confidentiality' => 'required|accepted',
         ]);
@@ -157,7 +130,7 @@ class InstitutionalSurveyController extends Controller
         }
 
         try {
-            $survey = InstitutionalSurvey::create($validator->validated());
+            $survey = InstitutionalReadinessSurvey::create($validator->validated());
 
             return response()->json([
                 'success' => true,
@@ -181,24 +154,24 @@ class InstitutionalSurveyController extends Controller
         try {
             $stats = [];
 
-            // Helper to safely fetch grouped counts if columns exist
             $aggregate = function ($column) {
-                if (!Schema::hasColumn('institutional_surveys', $column)) {
+                if (!Schema::hasColumn('institutional_readiness_surveys', $column)) {
                     return [];
                 }
-                return InstitutionalSurvey::select($column, DB::raw('count(*) as count'))
+                return InstitutionalReadinessSurvey::select($column, DB::raw('count(*) as count'))
                     ->whereNotNull($column)
                     ->groupBy($column)
                     ->get();
             };
 
-            $stats['total'] = InstitutionalSurvey::count();
-            
-            // Checks columns for both potential database configurations
+            $stats['total'] = InstitutionalReadinessSurvey::count();
+
             $stats['by_readiness'] = $aggregate('overall_readiness');
-            $stats['by_enrolling'] = $aggregate('enrolling_intl_students');
-            $stats['by_office'] = $aggregate('has_intl_office');
-            $stats['by_interest'] = $aggregate('interest_to_associate');
+            $stats['by_office'] = $aggregate('has_international_office');
+            $stats['by_enrolling'] = $aggregate('currently_enrolling_international');
+            $stats['by_interest'] = $aggregate('interested_in_study_nepal');
+            $stats['by_infrastructure'] = $aggregate('infrastructure_adequacy');
+            $stats['by_policy_support'] = $aggregate('policy_support_level');
 
             return response()->json([
                 'success' => true,
@@ -219,7 +192,7 @@ class InstitutionalSurveyController extends Controller
     public function destroy($id)
     {
         try {
-            $survey = InstitutionalSurvey::findOrFail($id);
+            $survey = InstitutionalReadinessSurvey::findOrFail($id);
             $survey->delete();
 
             return response()->json([
