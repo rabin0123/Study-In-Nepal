@@ -5,7 +5,7 @@ import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
-
+import { ArrowRight } from 'lucide-react';
 import PhoneInput from 'react-phone-number-input';
 import { parsePhoneNumber } from 'react-phone-number-input';
 import en from 'react-phone-number-input/locale/en';
