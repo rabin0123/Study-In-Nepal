@@ -357,7 +357,21 @@ export default function InstitutionalReadinessSurveyDashboard() {
       console.error("Submissions load error:", err);
     }
 
-      }, []);
+    // 2. Fetch stats independently so routing issues don't crash the table
+    try {
+      const sRes = await fetch(`${API_BASE}/institutional-surveys/stats`);
+      if (sRes.ok) {
+        const sData = await sRes.json();
+        setStats((sData?.data as StatsData) || null);
+      } else {
+        console.warn("The stats route returned a non-200 state, returning clientside fallback metrics.");
+      }
+    } catch (err) {
+      console.warn("Stats API was unavailable, fallback stats logic used instead.", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
