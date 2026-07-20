@@ -9,46 +9,50 @@ const DARK = "#0a0a0a";
 const SURFACE = "#F8FAFB";
 
 // ── option constants ──
-const PROVINCES = ["Koshi", "Madhesh", "Bagmati", "Gandaki", "Lumbini", "Karnali", "Sudurpashchim"];
-const YEARS_OPTIONS = ["Less than 1 year", "1–3 years", "4–7 years", "8–10 years", "More than 10 years"];
-const RECRUITMENT_TYPES = ["Local (Domestic Students)", "International Students", "Both Local and International Students", "No"];
-const YES_NO_NOTSURE = ["Yes", "No", "Not Sure"];
-const YES_NO_MAYBE = ["Yes", "No", "Maybe"];
+const INTL_OFFICE_STATUS = ["Yes", "No", "Under Development"];
 const YES_NO = ["Yes", "No"];
-const LIKERT = ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"];
-const READINESS_STATEMENTS = [
-  "Nepal has strong potential as an international study destination.",
-  "My agency's existing network could recruit students for Nepal.",
-  "Promoting Nepal would not conflict with our existing business.",
-  "My agency is willing to promote Study Nepal alongside our current destinations.",
-];
-const CHALLENGES_OPTIONS = ["Limited international awareness", "Visa and immigration procedures", "Lack of institutional marketing", "Other"];
-const ACADEMIC_PROGRAMS = [
-  "Medical Education (MBBS, BDS, Nursing, Public Health, Allied Health Sciences)",
-  "Tourism & Hospitality",
-  "Buddhist & Himalayan Studies",
-  "Mountaineering Studies",
-  "Agriculture & Natural Sciences",
-  "Volunteering with Studies",
-  "Short-term / Exchange Programs",
+const STRATEGY_STATUS = ["Yes", "Under Development", "No"];
+const READINESS_LEVELS = ["Highly Ready", "Moderately Ready", "Needs Improvement", "Not Ready"];
+const FACULTY_READINESS = ["Yes", "Somewhat", "No"];
+const INFRASTRUCTURE_LEVELS = ["Fully Adequate", "Partially Adequate", "Inadequate", "Not Available"];
+const BARRIERS_OPTIONS = [
+  "Government Policies and Regulations",
+  "Visa and Immigration Procedures",
+  "Limited International Partnerships",
+  "Institutional Infrastructure",
+  "Financial Resources",
+  "International Marketing and Promotion",
+  "Faculty Capacity",
+  "Student Support Services",
+  "Lack of Global Recognition",
   "Other",
 ];
-const ENCOURAGING_FACTORS = [
-  "MoU/Direct Partnership with Nepalese Higher Education Institutions",
-  "Access to the Study Nepal B2B Portal",
-  "Attractive Commission Structure",
-  "Faster Admission and Visa Support",
-  "Joint Education Fairs & B2B Meetings",
+const POLICY_SUPPORT_LEVELS = ["Adequately Supportive", "Partially Supportive", "Not Supportive"];
+const SUPPORT_TYPES = [
+  "International Marketing and Branding",
+  "International Student Recruitment",
+  "International Academic Partnerships",
+  "Capacity Building and Staff Training",
+  "Policy Advocacy",
+  "Research and Data Support",
+  "International Conferences and Networking Events",
+  "Digital Student Recruitment Platform",
   "Other",
 ];
-const PRIORITY_MARKETS = [
-  "India", "Bangladesh", "Sri Lanka", "Pakistan", "Bhutan", "Maldives",
-  "Myanmar", "Thailand", "Vietnam", "Indonesia", "African Countries",
-  "Central Asia", "Middle East", "Europe", "North America", "Other",
+const ACADEMIC_DISCIPLINES = [
+  "Medicine and Health Sciences",
+  "Engineering and Technology",
+  "Business and Management",
+  "Information Technology",
+  "Agriculture and Veterinary Sciences",
+  "Tourism and Hospitality",
+  "Buddhist Studies",
+  "Sanskrit, Nepali Language and Cultural Studies",
+  "Development Studies",
+  "Environmental Studies",
+  "Other",
 ];
-const COMMISSION_BANDS = ["Less than NPR 50,000", "NPR 50,000 – 75,000", "NPR 75,000 – 100,000", "More than NPR 100,000", "Depends on the institution/program"];
-const CAPACITY_BANDS = ["1–10", "11–25", "26–50", "51–100", "More than 100"];
-const LIKELIHOOD_OPTIONS = ["Very Unlikely", "Unlikely", "Neutral", "Likely", "Very Likely"];
+const YES_MAYBE_NO = ["Yes", "Maybe", "No"];
 
 // ── interfaces ──
 
@@ -58,135 +62,69 @@ interface CheckboxGroupProps { name: string; options: string[]; value: string[];
 interface TextInputProps { placeholder?: string; value: string; onChange: (val: string) => void; type?: string; min?: number }
 interface TextAreaProps { placeholder?: string; value: string; onChange: (val: string) => void; rows?: number }
 interface QuestionLabelProps { number: number; text: string; required?: boolean; hint?: string }
-interface LikertTableProps { rows: string[]; value: Record<string, string>; onChange: (row: string, col: string) => void }
-interface DropdownSelectProps { options: string[]; value: string; onChange: (val: string) => void; placeholder?: string }
 
 interface SurveyFormState {
-  agency_name: string;
-  agency_email: string;
-  agency_phone: string;
-  province: string;
-  years_in_operation: string;
-  recruitment_type: string;
-  local_students_recruited: string;
-  international_students_recruited: string;
-  aware_of_commissions: string;
-  interested_in_partnering: string;
-  currently_represents_institution: string;
-  represented_institutions: string;
-  readiness_ratings: Record<string, string>;
-  challenges: string[];
-  challenges_other_text: string;
-  interested_in_training: string;
-  academic_programs: string[];
-  academic_programs_other_text: string;
-  b2b_portal_useful: string;
-  encouraging_factors: string[];
-  encouraging_factors_other_text: string;
-  interested_in_events: string;
-  priority_markets: string[];
-  priority_markets_other_text: string;
-  minimum_commission: string;
-  annual_recruitment_capacity: string;
-  likelihood_official_partner: string;
-  top_recommendations: string;
-  willing_future_participation: string;
-  contact_details: string;
+  institution_name: string;
+  university_affiliation: string;
+  institution_email: string;
+  institution_phone: string;
+  has_international_office: string;
+  currently_enrolling_international: string;
+  international_students_enrolled: string;
+  has_internationalization_strategy: string;
+  has_active_partnerships: string;
+  overall_readiness: string;
+  faculty_prepared: string;
+  infrastructure_adequacy: string;
+  barriers: string[];
+  barriers_other_text: string;
+  policy_support_level: string;
+  support_types: string[];
+  support_types_other_text: string;
+  academic_disciplines: string[];
+  academic_disciplines_other_text: string;
+  interested_in_study_nepal: string;
+  policy_reform_recommendation: string;
   accepted_confidentiality: boolean;
 }
 
-// ── UI Components with Enhanced Spacing ──
+// ── UI Components (shared styling language) ──
 
 function SectionHeader({ number, title }: SectionHeaderProps) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "1.25rem", margin: "2.5rem 0 2rem" }}>
-      <span style={{ 
-        fontFamily: "'Castoro Titling', serif", 
-        color: PRIMARY, 
-        fontSize: "2.25rem", 
-        fontWeight: "700", 
-        lineHeight: 1, 
-        minWidth: 40 
+      <span style={{
+        fontFamily: "'Castoro Titling', serif",
+        color: PRIMARY,
+        fontSize: "2.25rem",
+        fontWeight: "700",
+        lineHeight: 1,
+        minWidth: 40
       }}>
         {String(number).padStart(2, "0")}
       </span>
       <div style={{ flex: 1, height: 1.5, background: `${PRIMARY}20` }} />
-      <h2 style={{ 
-        fontFamily: "'Castoro Titling', serif", 
-        fontSize: "0.8rem", 
-        letterSpacing: "0.22em", 
-        textTransform: "uppercase", 
-        color: DARK, 
-        fontWeight: "700", 
-        whiteSpace: "nowrap" 
+      <h2 style={{
+        fontFamily: "'Castoro Titling', serif",
+        fontSize: "0.8rem",
+        letterSpacing: "0.22em",
+        textTransform: "uppercase",
+        color: DARK,
+        fontWeight: "700",
+        whiteSpace: "nowrap"
       }}>{title}</h2>
       <div style={{ flex: 1, height: 1.5, background: `${PRIMARY}20` }} />
     </div>
   );
 }
 
-function DropdownSelect({ options, value, onChange, placeholder = "Select option" }: DropdownSelectProps) {
-  return (
-    <div style={{ position: "relative", width: "100%", marginTop: "0.75rem" }}>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        style={{
-          width: "100%",
-          border: `1.5px solid #e2e8f0`,
-          borderRadius: "0.75rem",
-          padding: "0.85rem 2.5rem 0.85rem 1.25rem",
-          fontFamily: "Rajdhani, sans-serif",
-          fontSize: "0.95rem",
-          fontWeight: "600",
-          color: value ? DARK : "#94a3b8",
-          background: "white",
-          outline: "none",
-          boxSizing: "border-box",
-          transition: "all 0.2s ease",
-          cursor: "pointer",
-          WebkitAppearance: "none",
-          appearance: "none",
-        }}
-        onFocus={(e) => {
-          e.currentTarget.style.borderColor = PRIMARY;
-          e.currentTarget.style.boxShadow = `0 0 0 3px ${PRIMARY}15`;
-        }}
-        onBlur={(e) => {
-          e.currentTarget.style.borderColor = "#e2e8f0";
-          e.currentTarget.style.boxShadow = "none";
-        }}
-      >
-        <option value="" disabled hidden>{placeholder}</option>
-        {options.map((opt) => (
-          <option key={opt} value={opt} style={{ color: DARK }}>{opt}</option>
-        ))}
-      </select>
-      <div style={{
-        position: "absolute",
-        right: "1.25rem",
-        top: "50%",
-        transform: "translateY(-50%)",
-        pointerEvents: "none",
-        color: "#94a3b8",
-        display: "flex",
-        alignItems: "center"
-      }}>
-        <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
-      </div>
-    </div>
-  );
-}
-
 function RadioGroup({ name, options, value, onChange, columns = 2 }: RadioGroupProps) {
   return (
-    <div style={{ 
-      display: "grid", 
-      gridTemplateColumns: `repeat(${columns}, 1fr)`, 
-      gap: "0.75rem 1.25rem", 
-      marginTop: "0.75rem" 
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: `repeat(${columns}, 1fr)`,
+      gap: "0.75rem 1.25rem",
+      marginTop: "0.75rem"
     }}>
       {options.map((opt) => (
         <label key={opt} style={{
@@ -216,11 +154,11 @@ function CheckboxGroup({ name, options, value, onChange, columns = 2, maxSelect 
     onChange(next);
   };
   return (
-    <div style={{ 
-      display: "grid", 
-      gridTemplateColumns: `repeat(${columns}, 1fr)`, 
-      gap: "0.75rem 1.25rem", 
-      marginTop: "0.75rem" 
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: `repeat(${columns}, 1fr)`,
+      gap: "0.75rem 1.25rem",
+      marginTop: "0.75rem"
     }}>
       {options.map((opt) => {
         const disabled = !value.includes(opt) && !!maxSelect && value.length >= maxSelect;
@@ -314,41 +252,6 @@ function QuestionLabel({ number, text, required, hint }: QuestionLabelProps) {
   );
 }
 
-function LikertTable({ rows, value, onChange }: LikertTableProps) {
-  return (
-    <div style={{ overflowX: "auto", marginTop: "1rem", borderRadius: "0.75rem", border: "1px solid #e2e8f0" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
-        <thead>
-          <tr>
-            <th style={{ ...thStyle, textAlign: "left", width: "40%" }}>Statement</th>
-            {LIKERT.map((col) => (
-              <th key={col} style={{ ...thStyle, textAlign: "center", fontSize: "0.68rem" }}>{col}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, ri) => (
-            <tr key={row} style={{ background: ri % 2 === 0 ? "white" : "#f8fafc", transition: "background 0.2s" }}>
-              <td style={{ ...tdStyle, fontWeight: "600", color: "#334155", padding: "1rem" }}>{row}</td>
-              {LIKERT.map((col) => (
-                <td key={col} style={{ ...tdStyle, textAlign: "center", padding: "1rem" }}>
-                  <input
-                    type="radio"
-                    name={`likert-${row}`}
-                    checked={value[row] === col}
-                    onChange={() => onChange(row, col)}
-                    style={{ accentColor: PRIMARY, width: 18, height: 18, cursor: "pointer" }}
-                  />
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 function PhoneNumberField({ value, onChange }: { value: string; onChange: (val: string) => void }) {
   return (
     <div className="survey-phone-field">
@@ -396,45 +299,24 @@ function PhoneNumberField({ value, onChange }: { value: string; onChange: (val: 
   );
 }
 
-const thStyle: CSSProperties = {
-  fontFamily: "Rajdhani, sans-serif", fontSize: "0.75rem", fontWeight: "700",
-  letterSpacing: "0.12em", textTransform: "uppercase", color: "white",
-  background: PRIMARY, padding: "0.85rem 1rem", borderBottom: `2px solid ${PRIMARY}`,
-};
-
-const tdStyle: CSSProperties = {
-  fontFamily: "Rajdhani, sans-serif", fontSize: "0.88rem", padding: "0.85rem 1rem",
-  borderBottom: "1px solid #e2e8f0", color: "#475569",
-};
-
-const grid2: CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" };
-
-const helperText: CSSProperties = {
-  fontFamily: "Rajdhani, sans-serif", fontSize: "0.75rem", color: "#64748b",
-  fontWeight: "700", marginBottom: "0.5rem", letterSpacing: "0.1em",
-};
-
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // ── Main Component ──
-export default function AgencyReadinessSurveyForm() {
+export default function InstitutionalReadinessSurveyForm() {
   const [step, setStep] = useState<"form" | "success">("form");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   const initialFormState: SurveyFormState = {
-    agency_name: "", agency_email: "", agency_phone: "", province: "", years_in_operation: "",
-    recruitment_type: "", local_students_recruited: "", international_students_recruited: "",
-    aware_of_commissions: "", interested_in_partnering: "",
-    currently_represents_institution: "", represented_institutions: "",
-    readiness_ratings: {},
-    challenges: [], challenges_other_text: "", interested_in_training: "",
-    academic_programs: [], academic_programs_other_text: "",
-    b2b_portal_useful: "", encouraging_factors: [], encouraging_factors_other_text: "",
-    interested_in_events: "",
-    priority_markets: [], priority_markets_other_text: "",
-    minimum_commission: "", annual_recruitment_capacity: "", likelihood_official_partner: "",
-    top_recommendations: "", willing_future_participation: "", contact_details: "",
+    institution_name: "", university_affiliation: "", institution_email: "", institution_phone: "",
+    has_international_office: "", currently_enrolling_international: "", international_students_enrolled: "",
+    has_internationalization_strategy: "", has_active_partnerships: "", overall_readiness: "",
+    faculty_prepared: "", infrastructure_adequacy: "",
+    barriers: [], barriers_other_text: "",
+    policy_support_level: "",
+    support_types: [], support_types_other_text: "",
+    academic_disciplines: [], academic_disciplines_other_text: "",
+    interested_in_study_nepal: "", policy_reform_recommendation: "",
     accepted_confidentiality: false,
   };
 
@@ -443,18 +325,12 @@ export default function AgencyReadinessSurveyForm() {
   const set = <K extends keyof SurveyFormState>(key: K, val: SurveyFormState[K]) =>
     setForm((f) => ({ ...f, [key]: val }));
 
-  const setReadiness = (statement: string, val: string) =>
-    setForm((f) => ({ ...f, readiness_ratings: { ...f.readiness_ratings, [statement]: val } }));
-
   const resetForm = () => { setForm(initialFormState); setStep("form"); };
 
-  const showRepresentedInstitutions = form.currently_represents_institution === "Yes";
-  const showChallengesOther = form.challenges.includes("Other");
-  const showAcademicOther = form.academic_programs.includes("Other");
-  const showEncouragingOther = form.encouraging_factors.includes("Other");
-  const showMarketsOther = form.priority_markets.includes("Other");
-  const showContactDetails = form.willing_future_participation === "Yes";
-  const showRecruitmentCounts = form.recruitment_type !== "No" && form.recruitment_type !== "";
+  const showBarriersOther = form.barriers.includes("Other");
+  const showSupportTypesOther = form.support_types.includes("Other");
+  const showDisciplinesOther = form.academic_disciplines.includes("Other");
+  const showEnrolledCount = form.currently_enrolling_international === "Yes";
 
   const fail = (message: string) => {
     setError(message);
@@ -462,56 +338,40 @@ export default function AgencyReadinessSurveyForm() {
   };
 
   const handleSubmit = async () => {
-    if (!form.agency_name.trim() || !form.agency_email.trim() || !form.agency_phone || !form.province || !form.years_in_operation) {
-      fail("Please fill in all required fields in Agency Profile (Name, Email, Phone, Province, Years in Operation).");
+    if (!form.institution_name.trim() || !form.university_affiliation.trim() || !form.institution_email.trim() || !form.institution_phone) {
+      fail("Please fill in all required fields in Institutional Information (Name, University Affiliation, Email, Contact No.).");
       return;
     }
-    if (!EMAIL_PATTERN.test(form.agency_email.trim())) {
-      fail("Please enter a valid email address for the agency.");
+    if (!EMAIL_PATTERN.test(form.institution_email.trim())) {
+      fail("Please enter a valid email address for the institution.");
       return;
     }
-    if (!form.recruitment_type || !form.aware_of_commissions || !form.interested_in_partnering || !form.currently_represents_institution) {
-      fail("Please complete all required questions in the Recruitment Experience section.");
+    if (!form.has_international_office || !form.currently_enrolling_international) {
+      fail("Please complete all required questions in the Institutional Readiness section.");
       return;
     }
-    if (showRepresentedInstitutions && !form.represented_institutions.trim()) {
-      fail("Please specify which institution(s) your agency represents.");
+    if (!form.has_internationalization_strategy || !form.has_active_partnerships || !form.overall_readiness || !form.faculty_prepared || !form.infrastructure_adequacy) {
+      fail("Please complete all required questions in the Institutional Readiness section.");
       return;
     }
-    if (showChallengesOther && !form.challenges_other_text.trim()) {
-      fail('Please specify your "Other" challenge in the Challenges & Training section.');
+    if (showBarriersOther && !form.barriers_other_text.trim()) {
+      fail('Please specify your "Other" barrier in the Challenges & Policy Environment section.');
       return;
     }
-    if (!form.interested_in_training) {
-      fail("Please answer whether you'd be interested in Study Nepal Product Training.");
+    if (!form.policy_support_level) {
+      fail("Please answer the government policy support question.");
       return;
     }
-    if (showAcademicOther && !form.academic_programs_other_text.trim()) {
-      fail('Please specify your "Other" academic program in the Academic Programs section.');
+    if (showSupportTypesOther && !form.support_types_other_text.trim()) {
+      fail('Please specify your "Other" support type in the Future Priorities section.');
       return;
     }
-    if (!form.b2b_portal_useful || !form.interested_in_events) {
-      fail("Please complete all required questions in the Promotion & Support section.");
+    if (showDisciplinesOther && !form.academic_disciplines_other_text.trim()) {
+      fail('Please specify your "Other" academic discipline in the Future Priorities section.');
       return;
     }
-    if (showEncouragingOther && !form.encouraging_factors_other_text.trim()) {
-      fail('Please specify your "Other" encouraging factor in the Promotion & Support section.');
-      return;
-    }
-    if (showMarketsOther && !form.priority_markets_other_text.trim()) {
-      fail('Please specify your "Other" market in the Market Focus section.');
-      return;
-    }
-    if (!form.minimum_commission || !form.annual_recruitment_capacity || !form.likelihood_official_partner) {
-      fail("Please complete all required questions in the Commission & Partnership section.");
-      return;
-    }
-    if (!form.willing_future_participation) {
-      fail("Please answer whether you'd be willing to participate in future Study Nepal activities.");
-      return;
-    }
-    if (showContactDetails && !form.contact_details.trim()) {
-      fail("Please provide your contact details so we can follow up.");
+    if (!form.interested_in_study_nepal) {
+      fail("Please answer whether your institution would be interested in associating with the Study in Nepal initiative.");
       return;
     }
     if (!form.accepted_confidentiality) {
@@ -524,15 +384,14 @@ export default function AgencyReadinessSurveyForm() {
     try {
       const payload = {
         ...form,
-        agency_name: form.agency_name.trim(),
-        agency_email: form.agency_email.trim(),
-        represented_institutions: form.represented_institutions.trim(),
-        local_students_recruited: form.local_students_recruited ? parseInt(form.local_students_recruited, 10) : null,
-        international_students_recruited: form.international_students_recruited ? parseInt(form.international_students_recruited, 10) : null,
+        institution_name: form.institution_name.trim(),
+        university_affiliation: form.university_affiliation.trim(),
+        institution_email: form.institution_email.trim(),
+        international_students_enrolled: form.international_students_enrolled ? parseInt(form.international_students_enrolled, 10) : null,
         accepted_confidentiality: form.accepted_confidentiality ? 1 : 0
       };
-      
-      const response = await fetch("/api/institutional-surveys", {
+
+      const response = await fetch("/api/institutional-readiness-surveys", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify(payload),
@@ -582,16 +441,16 @@ export default function AgencyReadinessSurveyForm() {
             color: "white", fontWeight: "400", lineHeight: 1.3, letterSpacing: "0.06em",
             textTransform: "uppercase", marginBottom: "1.5rem",
           }}>
-            Education Agency<br />
+            Internationalization Readiness<br />
             <span style={{ background: `linear-gradient(90deg, ${PRIMARY}, ${AMBER})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-              Partner Readiness Survey
+              Survey of Nepalese HEIs
             </span>
           </h1>
           <p style={{ color: "rgba(255,255,255,0.68)", fontSize: "0.95rem", fontWeight: "500", lineHeight: 1.9, letterSpacing: "0.04em", maxWidth: 640, margin: "0 auto 2rem" }}>
-            This survey assesses the readiness, capacity, and willingness of education consultancy
-            agencies to recruit students into Nepalese higher education institutions. Findings will
-            support evidence-based policies, partnership models, product training, marketing
-            strategies, and incentive mechanisms for Nepal's international education ecosystem.
+            This survey assesses the readiness, capacity, and policy environment of Nepalese higher
+            education institutions to attract, enroll, and support international students. Findings will
+            support evidence-based policies, capacity building, and strategic priorities for Nepal's
+            international education ecosystem.
           </p>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "2rem", flexWrap: "wrap" }}>
             <span style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "rgba(255,255,255,0.5)", fontSize: "0.78rem", fontWeight: "700", letterSpacing: "0.15em", textTransform: "uppercase" }}>
@@ -615,213 +474,137 @@ export default function AgencyReadinessSurveyForm() {
         )}
 
         {[
-          /* ─────────────────────── SECTION A: Agency Profile ─────────────────────── */
+          /* ─────────────────────── SECTION A: Institutional Information ─────────────────────── */
           <div key="A">
-            <SectionHeader number="A" title="Agency Profile" />
-            
+            <SectionHeader number="A" title="Institutional Information" />
+
             <div style={{ display: "flex", flexDirection: "column", gap: "2.25rem" }}>
               <div>
-                <QuestionLabel number={1} text="Name of Agency" required />
-                <TextInput placeholder="Your agency's name" value={form.agency_name} onChange={(v) => set("agency_name", v)} />
+                <QuestionLabel number={1} text="Name of Institution" required />
+                <TextInput placeholder="Your institution's name" value={form.institution_name} onChange={(v) => set("institution_name", v)} />
               </div>
 
               <div>
-                <QuestionLabel number={2} text="Agency Email Address" required />
-                <TextInput type="email" placeholder="agency@example.com" value={form.agency_email} onChange={(v) => set("agency_email", v)} />
+                <QuestionLabel number={2} text="University Affiliation" required />
+                <TextInput placeholder="Affiliating university" value={form.university_affiliation} onChange={(v) => set("university_affiliation", v)} />
               </div>
 
               <div>
-                <QuestionLabel number={3} text="Contact Number" required hint="Include country code" />
-                <PhoneNumberField value={form.agency_phone} onChange={(v) => set("agency_phone", v)} />
+                <QuestionLabel number={3} text="Email" required />
+                <TextInput type="email" placeholder="institution@example.com" value={form.institution_email} onChange={(v) => set("institution_email", v)} />
               </div>
 
               <div>
-                <QuestionLabel number={4} text="Province" required />
-                {/* Custom functional dropdown replaces old Radio buttons */}
-                <DropdownSelect options={PROVINCES} value={form.province} onChange={(v) => set("province", v)} placeholder="Select your Province" />
-              </div>
-
-              <div>
-                <QuestionLabel number={5} text="Number of Years in Operation" required />
-                <RadioGroup name="years_in_operation" options={YEARS_OPTIONS} value={form.years_in_operation} onChange={(v) => set("years_in_operation", v)} columns={2} />
+                <QuestionLabel number={4} text="Contact No." required hint="Include country code" />
+                <PhoneNumberField value={form.institution_phone} onChange={(v) => set("institution_phone", v)} />
               </div>
             </div>
           </div>,
 
-          /* ─────────────────────── SECTION B: Recruitment Experience ─────────────────────── */
+          /* ─────────────────────── SECTION B: Institutional Readiness ─────────────────────── */
           <div key="B">
-            <SectionHeader number="B" title="Recruitment Experience" />
+            <SectionHeader number="B" title="Institutional Readiness" />
 
             <div style={{ display: "flex", flexDirection: "column", gap: "2.25rem" }}>
               <div>
-                <QuestionLabel number={6} text="Have you ever recruited students for Nepal?" required />
-                <RadioGroup name="recruitment_type" options={RECRUITMENT_TYPES} value={form.recruitment_type} onChange={(v) => set("recruitment_type", v)} columns={1} />
+                <QuestionLabel number={5} text="Does your institution have a dedicated International Relations or International Office responsible for international activities?" required />
+                <RadioGroup name="has_international_office" options={INTL_OFFICE_STATUS} value={form.has_international_office} onChange={(v) => set("has_international_office", v)} columns={3} />
               </div>
 
-              {showRecruitmentCounts && (
+              <div>
+                <QuestionLabel number={6} text="Is your institution currently enrolling international students?" required />
+                <RadioGroup name="currently_enrolling_international" options={YES_NO} value={form.currently_enrolling_international} onChange={(v) => set("currently_enrolling_international", v)} columns={2} />
+              </div>
+
+              {showEnrolledCount && (
                 <div style={{ animation: "fadeIn 0.2s ease" }}>
-                  <QuestionLabel number={7} text="Approximately how many students has your agency recruited during the past three years?" />
-                  <div style={grid2}>
-                    <div>
-                      <p style={helperText}>LOCAL STUDENTS</p>
-                      <TextInput type="number" min={0} placeholder="0" value={form.local_students_recruited} onChange={(v) => set("local_students_recruited", v)} />
-                    </div>
-                    <div>
-                      <p style={helperText}>INTERNATIONAL STUDENTS</p>
-                      <TextInput type="number" min={0} placeholder="0" value={form.international_students_recruited} onChange={(v) => set("international_students_recruited", v)} />
-                    </div>
-                  </div>
+                  <QuestionLabel number={7} text="Approximately how many international students are currently enrolled?" />
+                  <TextInput type="number" min={0} placeholder="0" value={form.international_students_enrolled} onChange={(v) => set("international_students_enrolled", v)} />
                 </div>
               )}
 
               <div>
-                <QuestionLabel number={8} text="Are you aware that Nepalese higher education institutions provide recruitment commissions and incentives?" required />
-                <RadioGroup name="aware_of_commissions" options={YES_NO_NOTSURE} value={form.aware_of_commissions} onChange={(v) => set("aware_of_commissions", v)} columns={3} />
+                <QuestionLabel number={8} text="Does your institution have a formal internationalization strategy, policy, or strategic plan?" required />
+                <RadioGroup name="has_internationalization_strategy" options={STRATEGY_STATUS} value={form.has_internationalization_strategy} onChange={(v) => set("has_internationalization_strategy", v)} columns={3} />
               </div>
 
               <div>
-                <QuestionLabel number={9} text="Would your agency be interested in partnering with Nepalese higher education institutions?" required />
-                <RadioGroup name="interested_in_partnering" options={YES_NO_MAYBE} value={form.interested_in_partnering} onChange={(v) => set("interested_in_partnering", v)} columns={3} />
+                <QuestionLabel number={9} text="Does your institution maintain active international academic partnerships or Memoranda of Understanding (MoUs) with foreign universities or organizations?" required />
+                <RadioGroup name="has_active_partnerships" options={YES_NO} value={form.has_active_partnerships} onChange={(v) => set("has_active_partnerships", v)} columns={2} />
               </div>
 
               <div>
-                <QuestionLabel number={10} text="Do you currently represent any higher education institution of Nepal?" required />
-                <RadioGroup name="currently_represents_institution" options={YES_NO} value={form.currently_represents_institution} onChange={(v) => set("currently_represents_institution", v)} columns={2} />
-                {showRepresentedInstitutions && (
-                  <div style={{ marginTop: "1rem", animation: "fadeIn 0.2s ease" }}>
-                    <TextInput placeholder="Please specify the institution(s)..." value={form.represented_institutions} onChange={(v) => set("represented_institutions", v)} />
-                  </div>
-                )}
+                <QuestionLabel number={10} text="How would you assess your institution's overall readiness to attract, enroll, and support international students?" required />
+                <RadioGroup name="overall_readiness" options={READINESS_LEVELS} value={form.overall_readiness} onChange={(v) => set("overall_readiness", v)} columns={2} />
+              </div>
+
+              <div>
+                <QuestionLabel number={11} text="Are your faculty members prepared to teach culturally diverse international classrooms?" required />
+                <RadioGroup name="faculty_prepared" options={FACULTY_READINESS} value={form.faculty_prepared} onChange={(v) => set("faculty_prepared", v)} columns={3} />
+              </div>
+
+              <div>
+                <QuestionLabel number={12} text="Does your institution have adequate infrastructure and student support services for international students (e.g., accommodation, orientation, counseling, visa support, and English-language support)?" required />
+                <RadioGroup name="infrastructure_adequacy" options={INFRASTRUCTURE_LEVELS} value={form.infrastructure_adequacy} onChange={(v) => set("infrastructure_adequacy", v)} columns={2} />
               </div>
             </div>
           </div>,
 
-          /* ─────────────────────── SECTION C: Agency Readiness ─────────────────────── */
+          /* ─────────────────────── SECTION C: Challenges & Policy Environment ─────────────────────── */
           <div key="C">
-            <SectionHeader number="C" title="Agency Readiness" />
-            <div>
-              <QuestionLabel number={11} text="Please indicate your level of agreement with the following statements." />
-              <LikertTable rows={READINESS_STATEMENTS} value={form.readiness_ratings} onChange={setReadiness} />
+            <SectionHeader number="C" title="Challenges & Policy Environment" />
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "2.25rem" }}>
+              <div>
+                <QuestionLabel number={13} text="What are the three most significant barriers preventing your institution from expanding international student enrollment?" hint="Select up to three" />
+                <CheckboxGroup name="barriers" options={BARRIERS_OPTIONS} value={form.barriers} onChange={(v) => set("barriers", v)} columns={2} maxSelect={3} />
+                {showBarriersOther && (
+                  <div style={{ marginTop: "1rem", animation: "fadeIn 0.2s ease" }}>
+                    <TextInput placeholder="Please specify..." value={form.barriers_other_text} onChange={(v) => set("barriers_other_text", v)} />
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <QuestionLabel number={14} text="To what extent do you believe current government policies support the internationalization of higher education in Nepal?" required />
+                <RadioGroup name="policy_support_level" options={POLICY_SUPPORT_LEVELS} value={form.policy_support_level} onChange={(v) => set("policy_support_level", v)} columns={1} />
+              </div>
             </div>
           </div>,
 
-          /* ─────────────────────── SECTION D: Challenges & Training ─────────────────────── */
+          /* ─────────────────────── SECTION D: Future Priorities ─────────────────────── */
           <div key="D">
-            <SectionHeader number="D" title="Challenges & Training" />
+            <SectionHeader number="D" title="Future Priorities" />
 
             <div style={{ display: "flex", flexDirection: "column", gap: "2.25rem" }}>
               <div>
-                <QuestionLabel number={12} text="What are the biggest challenges in promoting Nepal as a study destination?" hint="Select up to three" />
-                <CheckboxGroup name="challenges" options={CHALLENGES_OPTIONS} value={form.challenges} onChange={(v) => set("challenges", v)} columns={2} maxSelect={3} />
-                {showChallengesOther && (
+                <QuestionLabel number={15} text="What types of support would your institution expect from the Study in Nepal initiative?" hint="Select all that apply" />
+                <CheckboxGroup name="support_types" options={SUPPORT_TYPES} value={form.support_types} onChange={(v) => set("support_types", v)} columns={1} />
+                {showSupportTypesOther && (
                   <div style={{ marginTop: "1rem", animation: "fadeIn 0.2s ease" }}>
-                    <TextInput placeholder="Please specify..." value={form.challenges_other_text} onChange={(v) => set("challenges_other_text", v)} />
+                    <TextInput placeholder="Please specify..." value={form.support_types_other_text} onChange={(v) => set("support_types_other_text", v)} />
                   </div>
                 )}
               </div>
 
               <div>
-                <QuestionLabel number={13} text="Would you be interested in receiving official Study Nepal Product Training?" required />
-                <RadioGroup name="interested_in_training" options={YES_NO_MAYBE} value={form.interested_in_training} onChange={(v) => set("interested_in_training", v)} columns={3} />
-              </div>
-            </div>
-          </div>,
-
-          /* ─────────────────────── SECTION E: Academic Programs ─────────────────────── */
-          <div key="E">
-            <SectionHeader number="E" title="Academic Programs" />
-            <div>
-              <QuestionLabel number={14} text="Which academic programs do you believe have the greatest potential to attract international students to Nepal?" hint="Select all that apply" />
-              <CheckboxGroup name="academic_programs" options={ACADEMIC_PROGRAMS} value={form.academic_programs} onChange={(v) => set("academic_programs", v)} columns={1} />
-              {showAcademicOther && (
-                <div style={{ marginTop: "1rem", animation: "fadeIn 0.2s ease" }}>
-                  <TextInput placeholder="Please specify..." value={form.academic_programs_other_text} onChange={(v) => set("academic_programs_other_text", v)} />
-                </div>
-              )}
-            </div>
-          </div>,
-
-          /* ─────────────────────── SECTION F: Promotion & Support ─────────────────────── */
-          <div key="F">
-            <SectionHeader number="F" title="Promotion & Support" />
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "2.25rem" }}>
-              <div>
-                <QuestionLabel number={15} text="Would a centralized Study Nepal B2B Portal (institutions, programs, scholarships, admissions, application tracking, and agent resources) be useful for your agency?" required />
-                <RadioGroup name="b2b_portal_useful" options={YES_NO_NOTSURE} value={form.b2b_portal_useful} onChange={(v) => set("b2b_portal_useful", v)} columns={3} />
-              </div>
-
-              <div>
-                <QuestionLabel number={16} text="What factors would encourage your agency to actively promote Study Nepal?" hint="Select all that apply" />
-                <CheckboxGroup name="encouraging_factors" options={ENCOURAGING_FACTORS} value={form.encouraging_factors} onChange={(v) => set("encouraging_factors", v)} columns={1} />
-                {showEncouragingOther && (
+                <QuestionLabel number={16} text="Which academic disciplines at your institution have the greatest potential to attract international students?" hint="Select all that apply" />
+                <CheckboxGroup name="academic_disciplines" options={ACADEMIC_DISCIPLINES} value={form.academic_disciplines} onChange={(v) => set("academic_disciplines", v)} columns={1} />
+                {showDisciplinesOther && (
                   <div style={{ marginTop: "1rem", animation: "fadeIn 0.2s ease" }}>
-                    <TextInput placeholder="Please specify..." value={form.encouraging_factors_other_text} onChange={(v) => set("encouraging_factors_other_text", v)} />
+                    <TextInput placeholder="Please specify..." value={form.academic_disciplines_other_text} onChange={(v) => set("academic_disciplines_other_text", v)} />
                   </div>
                 )}
               </div>
 
               <div>
-                <QuestionLabel number={17} text="Would your agency be interested in participating in upcoming Study Nepal events (B2B meetings, education fairs, roadshows, webinars, and networking programs)?" required />
-                <RadioGroup name="interested_in_events" options={YES_NO_MAYBE} value={form.interested_in_events} onChange={(v) => set("interested_in_events", v)} columns={3} />
-              </div>
-            </div>
-          </div>,
-
-          /* ─────────────────────── SECTION G: Market Focus ─────────────────────── */
-          <div key="G">
-            <SectionHeader number="G" title="Market Focus" />
-            <div>
-              <QuestionLabel number={19} text="If your agency recruits international students, which markets would you prioritize for Study Nepal?" hint="Select all that apply" />
-              <CheckboxGroup name="priority_markets" options={PRIORITY_MARKETS} value={form.priority_markets} onChange={(v) => set("priority_markets", v)} columns={2} />
-              {showMarketsOther && (
-                <div style={{ marginTop: "1rem", animation: "fadeIn 0.2s ease" }}>
-                  <TextInput placeholder="Please specify..." value={form.priority_markets_other_text} onChange={(v) => set("priority_markets_other_text", v)} />
-                </div>
-              )}
-            </div>
-          </div>,
-
-          /* ─────────────────────── SECTION H: Commission & Partnership ─────────────────────── */
-          <div key="H">
-            <SectionHeader number="H" title="Commission & Partnership" />
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "2.25rem" }}>
-              <div>
-                <QuestionLabel number={20} text="What minimum commission per successfully enrolled student would motivate your agency to recruit students for Nepal?" required />
-                <RadioGroup name="minimum_commission" options={COMMISSION_BANDS} value={form.minimum_commission} onChange={(v) => set("minimum_commission", v)} columns={1} />
+                <QuestionLabel number={17} text="Would your institution be interested in associating with the Study in Nepal initiative to promote the internationalization of higher education in Nepal?" required />
+                <RadioGroup name="interested_in_study_nepal" options={YES_MAYBE_NO} value={form.interested_in_study_nepal} onChange={(v) => set("interested_in_study_nepal", v)} columns={3} />
               </div>
 
               <div>
-                <QuestionLabel number={21} text="How many international students could your agency realistically recruit to Nepal each year if adequate institutional support, training, and attractive incentives were available?" required />
-                <RadioGroup name="annual_recruitment_capacity" options={CAPACITY_BANDS} value={form.annual_recruitment_capacity} onChange={(v) => set("annual_recruitment_capacity", v)} columns={2} />
-              </div>
-
-              <div>
-                <QuestionLabel number={22} text="How likely is your agency to become an Official Study Nepal Recruitment Partner?" required />
-                <RadioGroup name="likelihood_official_partner" options={LIKELIHOOD_OPTIONS} value={form.likelihood_official_partner} onChange={(v) => set("likelihood_official_partner", v)} columns={3} />
-              </div>
-            </div>
-          </div>,
-
-          /* ─────────────────────── SECTION I: Recommendations ─────────────────────── */
-          <div key="I">
-            <SectionHeader number="I" title="Recommendations" />
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "2.25rem" }}>
-              <div>
-                <QuestionLabel number={23} text="In your opinion, what are the top three actions needed to make Nepal a preferred destination for international students?" />
-                <TextArea placeholder="Share your top three recommendations..." value={form.top_recommendations} onChange={(v) => set("top_recommendations", v)} rows={4} />
-              </div>
-
-              <div>
-                <QuestionLabel number={24} text="Would you be willing to participate in future Study Nepal consultations, pilot projects, training programs, or B2B networking activities?" required />
-                <RadioGroup name="willing_future_participation" options={YES_NO} value={form.willing_future_participation} onChange={(v) => set("willing_future_participation", v)} columns={2} />
-                {showContactDetails && (
-                  <div style={{ marginTop: "1rem", animation: "fadeIn 0.2s ease" }}>
-                    <TextInput placeholder="Your contact details (email or phone)..." value={form.contact_details} onChange={(v) => set("contact_details", v)} />
-                  </div>
-                )}
+                <QuestionLabel number={18} text="In your opinion, what is the single most important policy reform needed to make Nepal a more attractive destination for international students?" />
+                <TextArea placeholder="Share your recommendation..." value={form.policy_reform_recommendation} onChange={(v) => set("policy_reform_recommendation", v)} rows={4} />
               </div>
             </div>
           </div>,
@@ -917,9 +700,9 @@ export default function AgencyReadinessSurveyForm() {
             </h2>
 
             <p style={{ fontFamily: "Rajdhani, sans-serif", fontSize: "1rem", fontWeight: "600", color: "#475569", lineHeight: 1.8 }}>
-              Thank you for completing the Study Nepal Campaign Agency Readiness Survey. Your responses
-              will help shape partnership models, training programs, and incentive structures for
-              Nepal's international education ecosystem.
+              Thank you for completing the Internationalization Readiness Survey of Nepalese Higher
+              Education Institutions. Your responses will help shape policy reform, capacity building,
+              and strategic priorities for Nepal's international education ecosystem.
             </p>
 
             <button
