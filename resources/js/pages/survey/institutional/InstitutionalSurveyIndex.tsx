@@ -200,7 +200,7 @@ const primaryBtn: React.CSSProperties = {
   boxShadow: `0 4px 14px ${PRIMARY}35`,
 };
 
-const API_BASE = "/api/institutional-readiness-surveys";
+const API_BASE = "/api/institutional-surveys";
 
 // ── Individual Record Detail Modal ──
 interface ResponseModalProps { response: HeiSurveyRow; onClose: () => void }
