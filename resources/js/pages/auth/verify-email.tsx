@@ -2,7 +2,6 @@ import { Form, Head } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { logout } from '@/routes';
-import { ArrowRight } from 'lucide-react';
 import { send } from '@/routes/verification';
 
 export default function VerifyEmail({ status }: { status?: string }) {
