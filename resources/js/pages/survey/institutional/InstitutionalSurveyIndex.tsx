@@ -13,38 +13,29 @@ fontLink.href = "https://fonts.googleapis.com/css2?family=Castoro+Titling&family
 document.head.appendChild(fontLink);
 
 // ── Types Matching Your Form Fields ──
-interface AgencySurveyRow {
+interface HeiSurveyRow {
   id: number;
-  agency_name: string;
-  agency_email: string;
-  agency_phone: string;
-  province: string;
-  years_in_operation: string;
-  recruitment_type: string;
-  local_students_recruited: string | number | null;
-  international_students_recruited: string | number | null;
-  aware_of_commissions: string;
-  interested_in_partnering: string;
-  currently_represents_institution: string;
-  represented_institutions: string;
-  readiness_ratings: Record<string, string> | string;
-  challenges: string[] | string;
-  challenges_other_text: string;
-  interested_in_training: string;
-  academic_programs: string[] | string;
-  academic_programs_other_text: string;
-  b2b_portal_useful: string;
-  encouraging_factors: string[] | string;
-  encouraging_factors_other_text: string;
-  interested_in_events: string;
-  priority_markets: string[] | string;
-  priority_markets_other_text: string;
-  minimum_commission: string;
-  annual_recruitment_capacity: string;
-  likelihood_official_partner: string;
-  top_recommendations: string;
-  willing_future_participation: string;
-  contact_details: string;
+  institution_name: string;
+  university_affiliation: string;
+  institution_email: string;
+  institution_phone: string;
+  has_international_office: string;
+  currently_enrolling_international: string;
+  international_students_enrolled: string | number | null;
+  has_internationalization_strategy: string;
+  has_active_partnerships: string;
+  overall_readiness: string;
+  faculty_prepared: string;
+  infrastructure_adequacy: string;
+  barriers: string[] | string;
+  barriers_other_text: string;
+  policy_support_level: string;
+  support_types: string[] | string;
+  support_types_other_text: string;
+  academic_disciplines: string[] | string;
+  academic_disciplines_other_text: string;
+  interested_in_study_nepal: string;
+  policy_reform_recommendation: string;
   accepted_confidentiality: boolean | number | string;
   created_at: string;
   updated_at: string;
@@ -52,46 +43,42 @@ interface AgencySurveyRow {
 
 interface StatsData {
   total?: number;
-  by_likelihood?: Array<Record<string, unknown>>;
-  by_partnering?: Array<Record<string, unknown>>;
-  by_province?: Array<Record<string, unknown>>;
-  by_years?: Array<Record<string, unknown>>;
+  by_readiness?: Array<Record<string, unknown>>;
+  by_office?: Array<Record<string, unknown>>;
+  by_enrolling?: Array<Record<string, unknown>>;
+  by_interest?: Array<Record<string, unknown>>;
+  by_infrastructure?: Array<Record<string, unknown>>;
+  by_policy_support?: Array<Record<string, unknown>>;
 }
 
 interface StatItem { label: string; count: number }
 
 // ── Sanitize DB Values (Decodes JSON strings returned by Laravel) ──
-function sanitizeRow(raw: Record<string, unknown>): AgencySurveyRow {
+function sanitizeRow(raw: Record<string, unknown>): HeiSurveyRow {
   const clean: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(raw)) {
     if (/^\d+\./.test(k)) continue;
     clean[k] = v;
   }
-  
-  // JSON Decode fields if serialized on the database backend
-  const arrayKeys: (keyof AgencySurveyRow)[] = ["challenges", "academic_programs", "encouraging_factors", "priority_markets"];
+
+  const arrayKeys: (keyof HeiSurveyRow)[] = ["barriers", "support_types", "academic_disciplines"];
   for (const key of arrayKeys) {
     if (typeof clean[key] === "string") {
       try { clean[key] = JSON.parse(clean[key] as string); } catch { /* fallback to string */ }
     }
   }
 
-  if (typeof clean.readiness_ratings === "string") {
-    try { clean.readiness_ratings = JSON.parse(clean.readiness_ratings as string); } catch { /* fallback to string/object */ }
-  }
-
-  return clean as unknown as AgencySurveyRow;
+  return clean as unknown as HeiSurveyRow;
 }
 
 // ── Dynamic Badges & Layout Colors ──
-const LIKELIHOOD_COLORS: Record<string, string> = {
-  "Very Likely": "#10b981",
-  "Likely": PRIMARY,
-  "Neutral": AMBER,
-  "Unlikely": "#f97316",
-  "Very Unlikely": "#ef4444",
+const READINESS_COLORS: Record<string, string> = {
+  "Highly Ready": "#10b981",
+  "Moderately Ready": PRIMARY,
+  "Needs Improvement": AMBER,
+  "Not Ready": "#ef4444",
 };
-const likelihoodColor = (l: string): string => LIKELIHOOD_COLORS[l] ?? "#94a3b8";
+const readinessColor = (l: string): string => READINESS_COLORS[l] ?? "#94a3b8";
 
 const INTEREST_COLORS: Record<string, string> = {
   "Yes": "#10b981",
@@ -172,7 +159,7 @@ const MiniBar = ({ label, count, total, color = PRIMARY }: MiniBarProps) => {
 };
 
 // ── Smart Flat CSV export ──
-function toCSV(rows: AgencySurveyRow[]): string {
+function toCSV(rows: HeiSurveyRow[]): string {
   if (!rows.length) return "";
   const flattenObj = (obj: Record<string, unknown>, prefix = ""): Record<string, string> =>
     Object.entries(obj).reduce<Record<string, string>>((acc, [k, v]) => {
@@ -191,7 +178,7 @@ function toCSV(rows: AgencySurveyRow[]): string {
   return [headers.map(esc).join(","), ...flat.map((r) => headers.map((h) => esc(r[h] ?? "")).join(","))].join("\n");
 }
 
-function downloadCSV(rows: AgencySurveyRow[], filename: string): void {
+function downloadCSV(rows: HeiSurveyRow[], filename: string): void {
   const blob = new Blob([toCSV(rows)], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a"); a.href = url; a.download = filename; a.click();
@@ -213,15 +200,14 @@ const primaryBtn: React.CSSProperties = {
   boxShadow: `0 4px 14px ${PRIMARY}35`,
 };
 
-const API_BASE = "/api/institutional-surveys";
+const API_BASE = "/api/institutional-readiness-surveys";
 
 // ── Individual Record Detail Modal ──
-interface ResponseModalProps { response: AgencySurveyRow; onClose: () => void }
+interface ResponseModalProps { response: HeiSurveyRow; onClose: () => void }
 function ResponseModal({ response: r, onClose }: ResponseModalProps) {
-  const challenges = joinList(r.challenges);
-  const programs   = joinList(r.academic_programs);
-  const factors    = joinList(r.encouraging_factors);
-  const markets    = joinList(r.priority_markets);
+  const barriers    = joinList(r.barriers);
+  const supportTypes = joinList(r.support_types);
+  const disciplines  = joinList(r.academic_disciplines);
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(10,10,10,0.55)", backdropFilter: "blur(6px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}
@@ -233,96 +219,65 @@ function ResponseModal({ response: r, onClose }: ResponseModalProps) {
 
         <div style={{ display: "flex", alignItems: "flex-start", gap: "1rem", marginBottom: "0.5rem" }}>
           <div style={{ width: 44, height: 44, borderRadius: "50%", background: `${PRIMARY}15`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <svg width="20" height="20" fill="none" stroke={PRIMARY} strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+            <svg width="20" height="20" fill="none" stroke={PRIMARY} strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.42A12.083 12.083 0 0121 17.5m-9-3.5v7m0-7L5.84 10.58A12.083 12.083 0 003 17.5" /></svg>
           </div>
           <div>
-            <h2 style={{ fontFamily: "'Castoro Titling', serif", fontSize: "1.3rem", color: DARK, margin: 0, textTransform: "uppercase", letterSpacing: "0.05em" }}>{r.agency_name}</h2>
+            <h2 style={{ fontFamily: "'Castoro Titling', serif", fontSize: "1.3rem", color: DARK, margin: 0, textTransform: "uppercase", letterSpacing: "0.05em" }}>{r.institution_name}</h2>
             <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.4rem", flexWrap: "wrap" }}>
-              <Badge text={r.province} color={PRIMARY} />
-              <Badge text={r.years_in_operation} color="#8b5cf6" />
-              {r.likelihood_official_partner && <Badge text={`Partner Intent: ${r.likelihood_official_partner}`} color={likelihoodColor(r.likelihood_official_partner)} />}
+              <Badge text={r.university_affiliation} color={PRIMARY} />
+              {r.overall_readiness && <Badge text={r.overall_readiness} color={readinessColor(r.overall_readiness)} />}
               {r.created_at && <span style={{ fontFamily: "Rajdhani, sans-serif", fontSize: "0.68rem", color: "#94a3b8", fontWeight: "600", alignSelf: "center" }}>{new Date(r.created_at).toLocaleString()}</span>}
             </div>
           </div>
         </div>
 
-        <SectionHeader number="1" title="Agency Profile" />
-        <FieldRow label="Official Agency Name" value={r.agency_name} />
-        <FieldRow label="Official Contact Email" value={r.agency_email} />
-        <FieldRow label="Contact Number" value={r.agency_phone} />
-        <FieldRow label="Province Location" value={r.province} />
-        <FieldRow label="Years in Operation" value={r.years_in_operation} />
+        <SectionHeader number="1" title="Institutional Information" />
+        <FieldRow label="Name of Institution" value={r.institution_name} />
+        <FieldRow label="University Affiliation" value={r.university_affiliation} />
+        <FieldRow label="Email" value={r.institution_email} />
+        <FieldRow label="Contact No." value={r.institution_phone} />
 
-        <SectionHeader number="2" title="Recruitment Experience" />
-        <FieldRow label="Recruits Students for Nepal?" value={r.recruitment_type} />
-        <FieldRow label="Past 3 Years Local Recruits" value={r.local_students_recruited} />
-        <FieldRow label="Past 3 Years Intl. Recruits" value={r.international_students_recruited} />
-        <FieldRow label="Aware of Institution Commission?" value={r.aware_of_commissions} />
-        <FieldRow label="Wants to Partner with HEIs?" value={r.interested_in_partnering} />
-        <FieldRow label="Currently Represents Nepalese HEIs?" value={r.currently_represents_institution} />
-        {r.currently_represents_institution === "Yes" && (
-          <FieldRow label="Institutions Represented" value={r.represented_institutions} />
+        <SectionHeader number="2" title="Institutional Readiness" />
+        <FieldRow label="Dedicated International Office?" value={r.has_international_office} />
+        <FieldRow label="Currently Enrolling Intl. Students?" value={r.currently_enrolling_international} />
+        {r.currently_enrolling_international === "Yes" && (
+          <FieldRow label="Intl. Students Currently Enrolled" value={r.international_students_enrolled} />
         )}
+        <FieldRow label="Formal Internationalization Strategy?" value={r.has_internationalization_strategy} />
+        <FieldRow label="Active Intl. Partnerships / MoUs?" value={r.has_active_partnerships} />
+        <FieldRow label="Overall Readiness Assessment" value={r.overall_readiness} />
+        <FieldRow label="Faculty Prepared for Diverse Classrooms?" value={r.faculty_prepared} />
+        <FieldRow label="Infrastructure & Support Services Adequacy" value={r.infrastructure_adequacy} />
 
-        <SectionHeader number="3" title="Agency Readiness Ratings" />
-        {r.readiness_ratings && typeof r.readiness_ratings === "object" ? (
-          Object.entries(r.readiness_ratings).map(([statement, rating]) => (
-            <div key={statement} style={{ display: "flex", justifyContent: "space-between", gap: "1rem", padding: "0.5rem 0", borderBottom: "1px solid #f8fafc" }}>
-              <span style={{ fontFamily: "Rajdhani, sans-serif", fontSize: "0.8rem", fontWeight: "600", color: "#64748b" }}>{statement}</span>
-              <span style={{ fontFamily: "Rajdhani, sans-serif", fontSize: "0.8rem", fontWeight: "700", color: PRIMARY }}>{rating}</span>
-            </div>
-          ))
-        ) : (
-          <FieldRow label="Ratings Provided" value={typeof r.readiness_ratings === "string" ? r.readiness_ratings : "—"} />
+        <SectionHeader number="3" title="Challenges & Policy Environment" />
+        <FieldRow label="Barriers to Expanding Enrollment" value={barriers} />
+        {r.barriers_other_text && (
+          <FieldRow label="Other Barriers Specified" value={r.barriers_other_text} />
         )}
+        <FieldRow label="Government Policy Support Level" value={r.policy_support_level} />
 
-        <SectionHeader number="4" title="Challenges & Training" />
-        <FieldRow label="Promotion Challenges" value={challenges} />
-        {r.challenges_other_text && (
-          <FieldRow label="Other Challenges Specified" value={r.challenges_other_text} />
+        <SectionHeader number="4" title="Future Priorities" />
+        <FieldRow label="Support Expected from Study in Nepal" value={supportTypes} />
+        {r.support_types_other_text && (
+          <FieldRow label="Other Support Types Specified" value={r.support_types_other_text} />
         )}
-        <FieldRow label="Interested in Product Training?" value={r.interested_in_training} />
-
-        <SectionHeader number="5" title="Academic Programs Potential" />
-        <FieldRow label="Programs with Highest Potential" value={programs} />
-        {r.academic_programs_other_text && (
-          <FieldRow label="Other Programs Specified" value={r.academic_programs_other_text} />
+        <FieldRow label="Academic Disciplines with Greatest Potential" value={disciplines} />
+        {r.academic_disciplines_other_text && (
+          <FieldRow label="Other Disciplines Specified" value={r.academic_disciplines_other_text} />
         )}
+        <FieldRow label="Interested in Study in Nepal Initiative?" value={r.interested_in_study_nepal} />
 
-        <SectionHeader number="6" title="Promotion & Support" />
-        <FieldRow label="Centralized B2B Portal Useful?" value={r.b2b_portal_useful} />
-        <FieldRow label="Encouraging Factors to Promote" value={factors} />
-        {r.encouraging_factors_other_text && (
-          <FieldRow label="Other Factors Specified" value={r.encouraging_factors_other_text} />
-        )}
-        <FieldRow label="Wants to Attend B2B Events?" value={r.interested_in_events} />
-
-        <SectionHeader number="7" title="Market Focus Focus" />
-        <FieldRow label="Priority Recruitment Markets" value={markets} />
-        {r.priority_markets_other_text && (
-          <FieldRow label="Other Priority Markets" value={r.priority_markets_other_text} />
-        )}
-
-        <SectionHeader number="8" title="Commission & Partnerships" />
-        <FieldRow label="Minimum Commission Target" value={r.minimum_commission} />
-        <FieldRow label="Annual Student Target Potential" value={r.annual_recruitment_capacity} />
-        <FieldRow label="Partner Likelihood Tier" value={r.likelihood_official_partner} />
-
-        <SectionHeader number="9" title="Recommendations & Compliance" />
-        {r.top_recommendations && (
+        <SectionHeader number="5" title="Recommendations & Compliance" />
+        {r.policy_reform_recommendation && (
           <div style={{ marginBottom: "1rem", padding: "0.85rem 1rem", background: "#f8fafc", borderRadius: "0.75rem", border: "1px solid #e2e8f0" }}>
-            <div style={{ fontFamily: "Rajdhani, sans-serif", fontSize: "0.68rem", fontWeight: "700", letterSpacing: "0.18em", textTransform: "uppercase", color: "#94a3b8", marginBottom: "0.4rem" }}>Top Three Actions Recommended</div>
-            <p style={{ fontFamily: "Rajdhani, sans-serif", fontSize: "0.88rem", fontWeight: "600", color: "#374151", margin: 0, lineHeight: 1.7 }}>{r.top_recommendations}</p>
+            <div style={{ fontFamily: "Rajdhani, sans-serif", fontSize: "0.68rem", fontWeight: "700", letterSpacing: "0.18em", textTransform: "uppercase", color: "#94a3b8", marginBottom: "0.4rem" }}>Most Important Policy Reform Needed</div>
+            <p style={{ fontFamily: "Rajdhani, sans-serif", fontSize: "0.88rem", fontWeight: "600", color: "#374151", margin: 0, lineHeight: 1.7 }}>{r.policy_reform_recommendation}</p>
           </div>
-        )}
-        <FieldRow label="Willing Future Consultations?" value={r.willing_future_participation} />
-        {r.willing_future_participation === "Yes" && (
-          <FieldRow label="Provided Contact Details" value={r.contact_details} />
         )}
         <FieldRow label="Confidentiality Notice Accepted?" value={yesNo(r.accepted_confidentiality)} />
 
         <div style={{ marginTop: "1.5rem", paddingTop: "1.25rem", borderTop: "1px solid #f1f5f9", display: "flex", justifyContent: "flex-end" }}>
-          <button onClick={() => downloadCSV([r], `agency-${r.id}.csv`)} style={primaryBtn}>↓ Export Agency CSV</button>
+          <button onClick={() => downloadCSV([r], `institution-${r.id}.csv`)} style={primaryBtn}>↓ Export Institution CSV</button>
         </div>
       </div>
     </div>
@@ -331,29 +286,29 @@ function ResponseModal({ response: r, onClose }: ResponseModalProps) {
 
 // ── Hover-Reveal Action Row ──
 interface ResponseRowProps {
-  r: AgencySurveyRow;
+  r: HeiSurveyRow;
   index: number;
-  onView: (r: AgencySurveyRow) => void;
+  onView: (r: HeiSurveyRow) => void;
   onDelete: (id: number) => void;
 }
 function ResponseRow({ r, index, onView, onDelete }: ResponseRowProps) {
   const [hovered, setHovered] = useState(false);
   return (
     <div
-      style={{ display: "grid", gridTemplateColumns: "1.8fr 1fr 1fr 1fr 1fr 1.2fr 72px", padding: "0.85rem 1.25rem", background: hovered ? `${PRIMARY}07` : index % 2 === 0 ? "white" : "#fafcfe", borderBottom: "1px solid #f1f5f9", cursor: "pointer", transition: "background 0.15s", alignItems: "center" }}
+      style={{ display: "grid", gridTemplateColumns: "1.8fr 1.2fr 1fr 1fr 1fr 1.2fr 72px", padding: "0.85rem 1.25rem", background: hovered ? `${PRIMARY}07` : index % 2 === 0 ? "white" : "#fafcfe", borderBottom: "1px solid #f1f5f9", cursor: "pointer", transition: "background 0.15s", alignItems: "center" }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={() => onView(r)}
     >
       <div>
-        <div style={{ fontFamily: "Rajdhani, sans-serif", fontSize: "0.88rem", fontWeight: "700", color: DARK }}>{r.agency_name}</div>
+        <div style={{ fontFamily: "Rajdhani, sans-serif", fontSize: "0.88rem", fontWeight: "700", color: DARK }}>{r.institution_name}</div>
         {r.created_at && <div style={{ fontFamily: "Rajdhani, sans-serif", fontSize: "0.68rem", color: "#94a3b8", fontWeight: "600" }}>{new Date(r.created_at).toLocaleDateString()}</div>}
       </div>
-      <span style={{ fontFamily: "Rajdhani, sans-serif", fontSize: "0.8rem", fontWeight: "600", color: "#374151" }}>{r.province || "—"}</span>
-      <span style={{ fontFamily: "Rajdhani, sans-serif", fontSize: "0.8rem", fontWeight: "600", color: "#64748b" }}>{r.years_in_operation}</span>
-      <span style={{ fontFamily: "Rajdhani, sans-serif", fontSize: "0.75rem", fontWeight: "600", color: "#64748b" }}>{r.agency_email}</span>
-      <span style={{ fontFamily: "Rajdhani, sans-serif", fontSize: "0.72rem", fontWeight: "700", color: PRIMARY }}>{r.recruitment_type}</span>
-      <div>{r.likelihood_official_partner ? <Badge text={r.likelihood_official_partner} color={likelihoodColor(r.likelihood_official_partner)} /> : <span style={{ color: "#cbd5e1" }}>—</span>}</div>
+      <span style={{ fontFamily: "Rajdhani, sans-serif", fontSize: "0.8rem", fontWeight: "600", color: "#374151" }}>{r.university_affiliation || "—"}</span>
+      <span style={{ fontFamily: "Rajdhani, sans-serif", fontSize: "0.8rem", fontWeight: "600", color: "#64748b" }}>{r.currently_enrolling_international}</span>
+      <span style={{ fontFamily: "Rajdhani, sans-serif", fontSize: "0.75rem", fontWeight: "600", color: "#64748b" }}>{r.institution_email}</span>
+      <span style={{ fontFamily: "Rajdhani, sans-serif", fontSize: "0.72rem", fontWeight: "700", color: PRIMARY }}>{r.has_international_office}</span>
+      <div>{r.overall_readiness ? <Badge text={r.overall_readiness} color={readinessColor(r.overall_readiness)} /> : <span style={{ color: "#cbd5e1" }}>—</span>}</div>
       <div style={{ display: "flex", gap: "0.35rem", opacity: hovered ? 1 : 0, transition: "opacity 0.18s" }} onClick={(e) => e.stopPropagation()}>
         <button title="View Details" onClick={() => onView(r)} style={{ background: `${PRIMARY}12`, border: "none", borderRadius: "0.45rem", width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
           <svg width="13" height="13" fill="none" stroke={PRIMARY} strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
@@ -367,15 +322,15 @@ function ResponseRow({ r, index, onView, onDelete }: ResponseRowProps) {
 }
 
 // ── Main Dashboard Panel ──
-export default function InstitutionalSurveyDashboard() {
-  const [responses, setResponses] = useState<AgencySurveyRow[]>([]);
+export default function InstitutionalReadinessSurveyDashboard() {
+  const [responses, setResponses] = useState<HeiSurveyRow[]>([]);
   const [stats, setStats]         = useState<StatsData | null>(null);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState("");
-  const [selected, setSelected]   = useState<AgencySurveyRow | null>(null);
+  const [selected, setSelected]   = useState<HeiSurveyRow | null>(null);
   const [search, setSearch]       = useState("");
-  const [filterProvince, setFilterProvince] = useState("");
-  const [filterLikelihood, setFilterLikelihood] = useState("");
+  const [filterReadiness, setFilterReadiness] = useState("");
+  const [filterInterest, setFilterInterest] = useState("");
   const [page, setPage]           = useState(1);
   const [activeTab, setActiveTab] = useState<"responses" | "stats">("responses");
   const [deleteId, setDeleteId]   = useState<number | null>(null);
@@ -384,9 +339,9 @@ export default function InstitutionalSurveyDashboard() {
 
   // ── Resilient Data Fetching Process ──
   const fetchAll = useCallback(async () => {
-    setLoading(true); 
+    setLoading(true);
     setError("");
-    
+
     // 1. Fetch main submission records
     try {
       const rRes = await fetch(`${API_BASE}?per_page=500`);
@@ -423,19 +378,19 @@ export default function InstitutionalSurveyDashboard() {
   // ── Dynamic Frontend Query Filtering ──
   const filtered = responses.filter((r) => {
     const q = search.toLowerCase();
-    const matchQ   = !q || r.agency_name?.toLowerCase().includes(q) || r.province?.toLowerCase().includes(q) || r.agency_email?.toLowerCase().includes(q);
-    const matchProvince = !filterProvince || r.province === filterProvince;
-    const matchLikelihood = !filterLikelihood || r.likelihood_official_partner === filterLikelihood;
-    return matchQ && matchProvince && matchLikelihood;
+    const matchQ = !q || r.institution_name?.toLowerCase().includes(q) || r.university_affiliation?.toLowerCase().includes(q) || r.institution_email?.toLowerCase().includes(q);
+    const matchReadiness = !filterReadiness || r.overall_readiness === filterReadiness;
+    const matchInterest = !filterInterest || r.interested_in_study_nepal === filterInterest;
+    return matchQ && matchReadiness && matchInterest;
   });
 
-  const isFiltered = !!(search || filterProvince || filterLikelihood);
+  const isFiltered = !!(search || filterReadiness || filterInterest);
   const pages      = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   const exportLabel  = isFiltered ? `Export Filtered (${filtered.length})` : `Export All (${responses.length})`;
   const exportTarget = isFiltered ? filtered : responses;
-  const exportFile   = isFiltered ? "filtered-agencies.csv" : "all-agencies.csv";
+  const exportFile   = isFiltered ? "filtered-institutions.csv" : "all-institutions.csv";
 
   const handleDelete = async (id: number) => {
     try {
@@ -449,14 +404,14 @@ export default function InstitutionalSurveyDashboard() {
   const total = responses.length;
 
   // ── Clientside Aggregators for Analytics Fallbacks ──
-  const freqMap = (key: keyof AgencySurveyRow): Record<string, number> =>
+  const freqMap = (key: keyof HeiSurveyRow): Record<string, number> =>
     responses.reduce<Record<string, number>>((acc, r) => {
       const v = r[key] as string;
       if (v) acc[v] = (acc[v] || 0) + 1;
       return acc;
     }, {});
 
-  const freqMapMulti = (key: keyof AgencySurveyRow): Record<string, number> =>
+  const freqMapMulti = (key: keyof HeiSurveyRow): Record<string, number> =>
     responses.reduce<Record<string, number>>((acc, r) => {
       const v = r[key] as string[] | string | undefined;
       const arr = Array.isArray(v) ? v : v ? [v] : [];
@@ -472,7 +427,7 @@ export default function InstitutionalSurveyDashboard() {
   const resolveArr = (
     apiArr: Array<Record<string, unknown>> | undefined,
     labelKey: string,
-    fallbackKey: keyof AgencySurveyRow
+    fallbackKey: keyof HeiSurveyRow
   ): StatItem[] => {
     if (apiArr?.length) {
       return apiArr
@@ -482,17 +437,17 @@ export default function InstitutionalSurveyDashboard() {
     return toStatArr(freqMap(fallbackKey));
   };
 
-  const likelihoodArr  = resolveArr(stats?.by_likelihood, "likelihood_official_partner", "likelihood_official_partner");
-  const provinceArr    = resolveArr(stats?.by_province, "province", "province");
-  const yearsArr       = resolveArr(stats?.by_years, "years_in_operation", "years_in_operation");
-  const partnerArr     = resolveArr(stats?.by_partnering, "interested_in_partnering", "interested_in_partnering");
+  const readinessArr    = resolveArr(stats?.by_readiness, "overall_readiness", "overall_readiness");
+  const officeArr       = resolveArr(stats?.by_office, "has_international_office", "has_international_office");
+  const enrollingArr    = resolveArr(stats?.by_enrolling, "currently_enrolling_international", "currently_enrolling_international");
+  const interestArr     = resolveArr(stats?.by_interest, "interested_in_study_nepal", "interested_in_study_nepal");
+  const infrastructureArr = resolveArr(stats?.by_infrastructure, "infrastructure_adequacy", "infrastructure_adequacy");
+  const policySupportArr  = resolveArr(stats?.by_policy_support, "policy_support_level", "policy_support_level");
 
-  const recruitmentTypeArr = toStatArr(freqMap("recruitment_type"));
-  const minimumCommArr     = toStatArr(freqMap("minimum_commission"));
-  const challengesArr      = toStatArr(freqMapMulti("challenges")).slice(0, 8);
-  const programArr         = toStatArr(freqMapMulti("academic_programs")).slice(0, 8);
-  const supportArr         = toStatArr(freqMapMulti("encouraging_factors")).slice(0, 8);
-  const marketsArr         = toStatArr(freqMapMulti("priority_markets")).slice(0, 8);
+  const barriersArr    = toStatArr(freqMapMulti("barriers")).slice(0, 8);
+  const supportArr     = toStatArr(freqMapMulti("support_types")).slice(0, 8);
+  const disciplinesArr = toStatArr(freqMapMulti("academic_disciplines")).slice(0, 8);
+  const partnershipsArr = toStatArr(freqMap("has_active_partnerships"));
 
   return (
     <div style={{ minHeight: "100vh", background: SURFACE, fontFamily: "Rajdhani, sans-serif" }}>
@@ -507,7 +462,7 @@ export default function InstitutionalSurveyDashboard() {
           <div>
             <span style={{ fontFamily: "Rajdhani, sans-serif", fontSize: "0.65rem", fontWeight: "700", letterSpacing: "0.3em", textTransform: "uppercase", color: AMBER }}>Study In Nepal — Campaign Executive</span>
             <h1 style={{ fontFamily: "'Castoro Titling', serif", fontSize: "clamp(1.2rem, 3vw, 1.9rem)", color: "white", margin: "0.25rem 0 0", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-              Agency Partner{" "}
+              Institutional{" "}
               <span style={{ background: `linear-gradient(90deg, ${PRIMARY}, ${AMBER})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Readiness</span>
             </h1>
           </div>
@@ -534,7 +489,7 @@ export default function InstitutionalSurveyDashboard() {
               fontFamily: "Rajdhani, sans-serif", fontSize: "0.72rem", fontWeight: "700",
               letterSpacing: "0.15em", textTransform: "uppercase", cursor: "pointer",
               boxShadow: activeTab === t ? `0 4px 14px ${PRIMARY}40` : "none", transition: "all 0.2s",
-            }}>{t === "responses" ? `Consultancy Agencies (${total})` : "Aggregated Insights"}</button>
+            }}>{t === "responses" ? `Institutions (${total})` : "Aggregated Insights"}</button>
           ))}
         </div>
       </div>
@@ -557,23 +512,23 @@ export default function InstitutionalSurveyDashboard() {
           /* ── ANALYTICS VIEW ── */
           <div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
-              <StatCard label="Surveyed Consultancies" value={total} sub="Total partner agencies" color={PRIMARY} />
-              <StatCard label="Highly Likely Partners" value={responses.filter((r) => r.likelihood_official_partner === "Very Likely").length} sub="Official partnership goals" color="#10b981" />
-              <StatCard label="Domestic & Intl" value={responses.filter((r) => r.recruitment_type === "Both Local and International Students").length} sub="Broad scope consultancies" color={AMBER} />
-              <StatCard label="Willing to Associate" value={`${total ? Math.round((responses.filter((r) => r.interested_in_partnering === "Yes").length / total) * 100) : 0}%`} sub="Target partner percentage" color="#8b5cf6" />
+              <StatCard label="Surveyed Institutions" value={total} sub="Total HEIs assessed" color={PRIMARY} />
+              <StatCard label="Highly Ready" value={responses.filter((r) => r.overall_readiness === "Highly Ready").length} sub="Fully prepared institutions" color="#10b981" />
+              <StatCard label="Enrolling Intl. Students" value={responses.filter((r) => r.currently_enrolling_international === "Yes").length} sub="Active international enrollment" color={AMBER} />
+              <StatCard label="Interested in Study Nepal" value={`${total ? Math.round((responses.filter((r) => r.interested_in_study_nepal === "Yes").length / total) * 100) : 0}%`} sub="Willing to associate" color="#8b5cf6" />
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" }}>
               {[
-                { title: "Likelihood to Become Official Partner", arr: likelihoodArr,  colorFn: (l: string) => likelihoodColor(l) },
-                { title: "Willingness to Partner with HEIs",       arr: partnerArr,     colorFn: (l: string) => interestColor(l) },
-                { title: "Years in Operation Spectrum",             arr: yearsArr,       colorFn: (_l: string) => "#8b5cf6" },
-                { title: "Consultancy Geographic Region",          arr: provinceArr,    colorFn: (_l: string) => PRIMARY },
-                { title: "Recruitment Student Focus Type",         arr: recruitmentTypeArr, colorFn: (_l: string) => AMBER },
-                { title: "Minimum Commission Expectations",        arr: minimumCommArr, colorFn: (_l: string) => "#059669" },
-                { title: "Primary Hurdle Obstacles in Promotion",   arr: challengesArr,  colorFn: (_l: string) => "#f97316" },
-                { title: "Academic Programs with Best Scope",      arr: programArr,     colorFn: (_l: string) => "#10b981" },
-                { title: "Encouraging Promoting Incentive Elements", arr: supportArr,     colorFn: (_l: string) => "#8b5cf6" },
-                { title: "Targeted Priority Source Markets",       arr: marketsArr,     colorFn: (_l: string) => "#0ea5e9" },
+                { title: "Overall Readiness Assessment",             arr: readinessArr,      colorFn: (l: string) => readinessColor(l) },
+                { title: "Interest in Study Nepal Initiative",       arr: interestArr,       colorFn: (l: string) => interestColor(l) },
+                { title: "Dedicated International Office Status",   arr: officeArr,         colorFn: (_l: string) => "#8b5cf6" },
+                { title: "Currently Enrolling Intl. Students",       arr: enrollingArr,      colorFn: (_l: string) => PRIMARY },
+                { title: "Infrastructure & Support Adequacy",        arr: infrastructureArr, colorFn: (_l: string) => AMBER },
+                { title: "Government Policy Support Perception",     arr: policySupportArr,  colorFn: (_l: string) => "#059669" },
+                { title: "Active Intl. Partnerships / MoUs",         arr: partnershipsArr,   colorFn: (_l: string) => "#f97316" },
+                { title: "Top Barriers to Enrollment Expansion",     arr: barriersArr,       colorFn: (_l: string) => "#ef4444" },
+                { title: "Expected Support from Study Nepal",        arr: supportArr,        colorFn: (_l: string) => "#8b5cf6" },
+                { title: "Academic Disciplines with Best Potential", arr: disciplinesArr,    colorFn: (_l: string) => "#0ea5e9" },
               ].map(({ title, arr, colorFn }) => (
                 <div key={title} style={{ background: "white", borderRadius: "1rem", padding: "1.5rem", border: `1px solid ${PRIMARY}12`, boxShadow: `0 2px 12px ${PRIMARY}05` }}>
                   <div style={{ fontFamily: "Rajdhani, sans-serif", fontSize: "0.68rem", fontWeight: "700", letterSpacing: "0.2em", textTransform: "uppercase", color: "#94a3b8", marginBottom: "1rem" }}>{title}</div>
@@ -595,23 +550,23 @@ export default function InstitutionalSurveyDashboard() {
                 <svg width="14" height="14" fill="none" stroke="#94a3b8" strokeWidth="2" viewBox="0 0 24 24" style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
                   <circle cx="11" cy="11" r="8" /><path strokeLinecap="round" d="m21 21-4.35-4.35" />
                 </svg>
-                <input placeholder="Search agency, province, email…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                <input placeholder="Search institution, affiliation, email…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                   style={{ width: "100%", border: "1.5px solid #e5e7eb", borderRadius: "999px", padding: "0.6rem 1rem 0.6rem 2.4rem", fontFamily: "Rajdhani, sans-serif", fontSize: "0.82rem", fontWeight: "600", color: DARK, background: "white", outline: "none", boxSizing: "border-box" }}
                 />
               </div>
-              
-              <select value={filterProvince} onChange={(e) => { setFilterProvince(e.target.value); setPage(1); }} style={{ border: "1.5px solid #e5e7eb", borderRadius: "999px", padding: "0.6rem 1rem", fontFamily: "Rajdhani, sans-serif", fontSize: "0.78rem", fontWeight: "700", color: filterProvince ? PRIMARY : "#94a3b8", background: "white", outline: "none", cursor: "pointer" }}>
-                <option value="">All Provinces</option>
-                {["Koshi", "Madhesh", "Bagmati", "Gandaki", "Lumbini", "Karnali", "Sudurpashchim"].map((p) => <option key={p} value={p}>{p}</option>)}
+
+              <select value={filterReadiness} onChange={(e) => { setFilterReadiness(e.target.value); setPage(1); }} style={{ border: "1.5px solid #e5e7eb", borderRadius: "999px", padding: "0.6rem 1rem", fontFamily: "Rajdhani, sans-serif", fontSize: "0.78rem", fontWeight: "700", color: filterReadiness ? PRIMARY : "#94a3b8", background: "white", outline: "none", cursor: "pointer" }}>
+                <option value="">All Readiness Levels</option>
+                {["Highly Ready", "Moderately Ready", "Needs Improvement", "Not Ready"].map((lvl) => <option key={lvl} value={lvl}>{lvl}</option>)}
               </select>
 
-              <select value={filterLikelihood} onChange={(e) => { setFilterLikelihood(e.target.value); setPage(1); }} style={{ border: "1.5px solid #e5e7eb", borderRadius: "999px", padding: "0.6rem 1rem", fontFamily: "Rajdhani, sans-serif", fontSize: "0.78rem", fontWeight: "700", color: filterLikelihood ? PRIMARY : "#94a3b8", background: "white", outline: "none", cursor: "pointer" }}>
-                <option value="">Partner Likelihood</option>
-                {["Very Likely", "Likely", "Neutral", "Unlikely", "Very Unlikely"].map((lvl) => <option key={lvl} value={lvl}>{lvl}</option>)}
+              <select value={filterInterest} onChange={(e) => { setFilterInterest(e.target.value); setPage(1); }} style={{ border: "1.5px solid #e5e7eb", borderRadius: "999px", padding: "0.6rem 1rem", fontFamily: "Rajdhani, sans-serif", fontSize: "0.78rem", fontWeight: "700", color: filterInterest ? PRIMARY : "#94a3b8", background: "white", outline: "none", cursor: "pointer" }}>
+                <option value="">Study Nepal Interest</option>
+                {["Yes", "Maybe", "No"].map((v) => <option key={v} value={v}>{v}</option>)}
               </select>
 
               {isFiltered && (
-                <button onClick={() => { setSearch(""); setFilterProvince(""); setFilterLikelihood(""); setPage(1); }}
+                <button onClick={() => { setSearch(""); setFilterReadiness(""); setFilterInterest(""); setPage(1); }}
                   style={{ border: "1.5px solid #fca5a5", background: "#fef2f2", color: "#dc2626", borderRadius: "999px", padding: "0.5rem 1rem", fontFamily: "Rajdhani, sans-serif", fontSize: "0.72rem", fontWeight: "700", letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}>
                   ✕ Clear Filters
                 </button>
@@ -624,8 +579,8 @@ export default function InstitutionalSurveyDashboard() {
 
             {/* Grid Table */}
             <div style={{ background: "white", borderRadius: "1rem 1rem 0 0", border: `1px solid ${PRIMARY}15`, boxShadow: `0 2px 12px ${PRIMARY}05`, overflow: "hidden" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1.8fr 1fr 1fr 1fr 1fr 1.2fr 72px", padding: "0.75rem 1.25rem", background: `linear-gradient(90deg, ${DARK}, #0f172a)` }}>
-                {["Agency Name", "Province", "Operation Length", "Contact Email", "Recruitment Focus", "Official Partner Intent", ""].map((h, hi) => (
+              <div style={{ display: "grid", gridTemplateColumns: "1.8fr 1.2fr 1fr 1fr 1fr 1.2fr 72px", padding: "0.75rem 1.25rem", background: `linear-gradient(90deg, ${DARK}, #0f172a)` }}>
+                {["Institution Name", "University Affiliation", "Enrolling Intl.", "Contact Email", "Intl. Office", "Overall Readiness", ""].map((h, hi) => (
                   <span key={hi} style={{ fontFamily: "Rajdhani, sans-serif", fontSize: "0.65rem", fontWeight: "700", letterSpacing: "0.18em", textTransform: "uppercase", color: h ? "rgba(255,255,255,0.55)" : "transparent" }}>{h || "."}</span>
                 ))}
               </div>
