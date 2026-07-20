@@ -394,7 +394,7 @@ export default function InstitutionalReadinessSurveyDashboard() {
 
   const handleDelete = async (id: number) => {
     try {
-      await fetch(`${API_BASE}/${id}`, { method: "DELETE" });
+      await fetch(`${API_BASE}/institutional-surveys/${id}`, { method: "DELETE" });
       setResponses((prev) => prev.filter((r) => r.id !== id));
       setDeleteId(null);
       if (selected?.id === id) setSelected(null);
