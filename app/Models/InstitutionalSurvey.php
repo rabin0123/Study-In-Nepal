@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class InstitutionalSurvey extends Model
+class InstitutionalReadinessSurvey extends Model
 {
     use HasFactory;
 
@@ -15,36 +15,35 @@ class InstitutionalSurvey extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'agency_name',
-        'agency_email',
-        'agency_phone',
-        'province',
-        'years_in_operation',
-        'recruitment_type',
-        'local_students_recruited',
-        'international_students_recruited',
-        'aware_of_commissions',
-        'interested_in_partnering',
-        'currently_represents_institution',
-        'represented_institutions',
-        'readiness_ratings',
-        'challenges',
-        'challenges_other_text',
-        'interested_in_training',
-        'academic_programs',
-        'academic_programs_other_text',
-        'b2b_portal_useful',
-        'encouraging_factors',
-        'encouraging_factors_other_text',
-        'interested_in_events',
-        'priority_markets',
-        'priority_markets_other_text',
-        'minimum_commission',
-        'annual_recruitment_capacity',
-        'likelihood_official_partner',
-        'top_recommendations',
-        'willing_future_participation',
-        'contact_details',
+        // Institutional Information
+        'institution_name',
+        'university_affiliation',
+        'institution_email',
+        'institution_phone',
+
+        // Institutional Readiness
+        'has_international_office',
+        'currently_enrolling_international',
+        'international_students_enrolled',
+        'has_internationalization_strategy',
+        'has_active_partnerships',
+        'overall_readiness',
+        'faculty_prepared',
+        'infrastructure_adequacy',
+
+        // Challenges & Policy Environment
+        'barriers',
+        'barriers_other_text',
+        'policy_support_level',
+
+        // Future Priorities
+        'support_types',
+        'support_types_other_text',
+        'academic_disciplines',
+        'academic_disciplines_other_text',
+        'interested_in_study_nepal',
+        'policy_reform_recommendation',
+
         'accepted_confidentiality',
     ];
 
@@ -54,11 +53,10 @@ class InstitutionalSurvey extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'readiness_ratings' => 'array',
-        'challenges' => 'array',
-        'academic_programs' => 'array',
-        'encouraging_factors' => 'array',
-        'priority_markets' => 'array',
+        'barriers' => 'array',
+        'support_types' => 'array',
+        'academic_disciplines' => 'array',
+        'international_students_enrolled' => 'integer',
         'accepted_confidentiality' => 'boolean',
     ];
 }
