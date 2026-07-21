@@ -122,7 +122,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/universities/{id}', [UniversityApiControler::class, 'destroy']);
         Route::get('/university/export', [UniversityApiControler::class, 'export']);
         Route::post('/university/import', [UniversityApiControler::class, 'import']);
-        Route::get('/university/filter-options', [App\Http\Controllers\UniversityApiControler::class, 'filterOptions']);
+        Route::get('/university/filter-options', [UniversityApiControler::class, 'filterOptions']);
         
 
         // Survey API
