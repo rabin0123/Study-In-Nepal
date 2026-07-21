@@ -485,7 +485,7 @@ export default function CourseSearch() {
         {loading ? (
           <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 64, textAlign: "center", color: TEXT_MUTED, display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
             <SpinnerIcon />
-            Loading the first 200 programs…
+            Loading programs…
           </div>
         ) : displayRows.length === 0 ? (
           <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 64, textAlign: "center", color: TEXT_MUTED }}>
