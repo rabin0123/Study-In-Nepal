@@ -11,32 +11,7 @@ use Illuminate\Support\Facades\Cache;
 
 class UniversityApiControler extends Controller
 {
-    /**
-     * GET /api/university
-     *
-     * Was: University::leftJoin(...)->get() — pulled all 5000+ joined rows
-     * on every request, with no limit, no search, no filters. That's the
-     * slow load.
-     *
-     * Now: same join (needed for course_detail_uuid), but paginated with a
-     * cursor, and search/filters are pushed into the SQL so the DB only
-     * returns the rows actually needed for the current page.
-     *
-     * Query params:
-     *   search        string   - matches University, Course, College, Location, stream
-     *   level[]       string[]
-     *   stream[]      string[]
-     *   course[]      string[]
-     *   university[]  string[]
-     *   college[]     string[]
-     *   location[]    string[]
-     *   cursor        string   - opaque cursor from previous response's next_cursor
-     *   limit         int      - frontend sends 200 for the first page, then a
-     *                            smaller page size (e.g. 40) for subsequent loads
-     *
-     * Response:
-     *   { data: [...], next_cursor: string|null, has_more: bool }
-     */
+    
     public function index(Request $request): JsonResponse
     {
         $limit = (int) $request->query('limit', 200);
