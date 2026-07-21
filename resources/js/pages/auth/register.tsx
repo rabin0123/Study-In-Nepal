@@ -5,7 +5,7 @@ import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
-import { ArrowRight } from 'lucide-react';
+import { Iconify } from '@iconify/react';
 import PhoneInput from 'react-phone-number-input';
 import { parsePhoneNumber } from 'react-phone-number-input';
 import en from 'react-phone-number-input/locale/en';
@@ -220,7 +220,7 @@ export default function Register({ passwordRules }: Props) {
                                                             <span className="visually-hidden">Loading...</span>
                                                         </div>
                                                     ) : (
-                                                      <ArrowRight size={20} color="white" />
+                                                      <Iconify size={20} color="white" />
                                                     )}
                                                 </div>
                                             </button>
