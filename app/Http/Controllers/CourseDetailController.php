@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CourseDetail;
-use App\Models\University; 
+use App\Models\University;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
@@ -48,38 +48,43 @@ class CourseDetailController extends Controller
 
     /**
      * Store a newly created resource in storage.
-     * Updated to handle multiple institutions sharing the same course mapping and prevent duplicate entries.
+     * Handles multiple institutions sharing the same course mapping, each
+     * with its OWN modules and OWN fees (fees are no longer shared across
+     * institutions — different colleges under the same course can charge
+     * different tuition).
      */
     public function store(Request $request): JsonResponse
     {
-        // 1. Validate the new multi-institution payload (Updated to include Semesters)
+        // 1. Validate the multi-institution payload. `fees` now lives under
+        //    each institution instead of at the top level.
         $validated = $request->validate([
-            'course_name'                                                            => 'required|string|max:255',
-            'summary'                                                                => 'nullable|string',
-            'careers'                                                                => 'nullable|string', 
-            
-            'fees'                                                                   => 'nullable|array',
-            'fees.*.year'                                                            => 'required_with:fees|integer|min:1',
-            'fees.*.amount'                                                          => 'nullable|string|max:100',
-            'fees.*.currency'                                                        => 'nullable|string|max:10',
-            'fees.*.note'                                                            => 'nullable|string|max:255',
-            
+            'course_name' => 'required|string|max:255',
+            'summary'     => 'nullable|string',
+            'careers'     => 'nullable|string',
+
             'institutions'                                                           => 'required|array|min:1',
             'institutions.*.university_name'                                         => 'required|string|max:255',
             'institutions.*.college_name'                                            => 'required|string|max:255',
-            
+
             // Year -> Semester -> Module Validation
             'institutions.*.year_wise_modules'                                       => 'nullable|array',
             'institutions.*.year_wise_modules.*.year'                                => 'required_with:institutions.*.year_wise_modules|integer|min:1',
             'institutions.*.year_wise_modules.*.title'                               => 'nullable|string|max:255',
-            
+
             'institutions.*.year_wise_modules.*.semesters'                           => 'nullable|array',
             'institutions.*.year_wise_modules.*.semesters.*.title'                   => 'nullable|string|max:255',
-            
+
             'institutions.*.year_wise_modules.*.semesters.*.modules'                 => 'nullable|array',
             'institutions.*.year_wise_modules.*.semesters.*.modules.*.name'         => 'required|string|max:255',
             'institutions.*.year_wise_modules.*.semesters.*.modules.*.info'         => 'nullable|string|max:500',
             'institutions.*.year_wise_modules.*.semesters.*.modules.*.credit_hours' => 'nullable|string|max:100',
+
+            // Fees — now per institution.
+            'institutions.*.fees'                                                    => 'nullable|array',
+            'institutions.*.fees.*.year'                                             => 'required_with:institutions.*.fees|integer|min:1',
+            'institutions.*.fees.*.amount'                                           => 'nullable|string|max:100',
+            'institutions.*.fees.*.currency'                                         => 'nullable|string|max:10',
+            'institutions.*.fees.*.note'                                             => 'nullable|string|max:255',
         ]);
 
         // 2. Check for duplicate entries (same course, university, and college) in the database
@@ -109,18 +114,19 @@ class CourseDetailController extends Controller
 
         $firstCreated = null;
 
-        // 4. Loop through each selected institution and create a CourseDetail record
+        // 4. Loop through each selected institution and create a CourseDetail
+        //    record with its own modules AND its own fees.
         DB::transaction(function () use ($validated, &$firstCreated) {
             foreach ($validated['institutions'] as $inst) {
                 $courseDetail = CourseDetail::create([
                     'course_name'       => $validated['course_name'],
                     'summary'           => $validated['summary'] ?? null,
                     'careers'           => $validated['careers'] ?? null,
-                    'fees'              => $validated['fees'] ?? null,
-                    
+
                     'university_name'   => $inst['university_name'],
                     'college_name'      => $inst['college_name'],
                     'year_wise_modules' => $inst['year_wise_modules'] ?? null,
+                    'fees'              => $inst['fees'] ?? null,
                 ]);
 
                 // Store the first one to return in the JSON response
@@ -153,11 +159,11 @@ class CourseDetailController extends Controller
             ->first();
 
         return Inertia::render('university/course/show', [
-            'university'   => $university, 
+            'university'   => $university,
             'courseDetail' => $courseDetail,
         ]);
     }
-    
+
     /**
      * Show edit form for a single Course Detail.
      */
@@ -169,7 +175,9 @@ class CourseDetailController extends Controller
     }
 
     /**
-     * Update a SINGLE existing resource in storage.
+     * Update a SINGLE existing resource in storage. `fees` here still
+     * belongs to just this one (university, college) row — that's already
+     * correct at the DB level since each CourseDetail row is one institution.
      */
     public function update(Request $request, CourseDetail $courseDetail): JsonResponse
     {
@@ -185,10 +193,10 @@ class CourseDetailController extends Controller
             'year_wise_modules'                                       => 'nullable|array',
             'year_wise_modules.*.year'                                => 'required_with:year_wise_modules|integer|min:1',
             'year_wise_modules.*.title'                               => 'nullable|string|max:255',
-            
+
             'year_wise_modules.*.semesters'                           => 'nullable|array',
             'year_wise_modules.*.semesters.*.title'                   => 'nullable|string|max:255',
-            
+
             'year_wise_modules.*.semesters.*.modules'                 => 'nullable|array',
             'year_wise_modules.*.semesters.*.modules.*.name'          => 'required|string|max:255',
             'year_wise_modules.*.semesters.*.modules.*.info'          => 'nullable|string|max:500',
@@ -219,5 +227,3 @@ class CourseDetailController extends Controller
         return redirect()->back()->with('success', 'Course details deleted successfully.');
     }
 }
-
-

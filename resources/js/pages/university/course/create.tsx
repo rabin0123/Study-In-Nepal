@@ -31,7 +31,7 @@ interface CourseDetailRecord {
     college_name: string;
     summary: string | null;
     careers: string | null;
-    year_wise_modules: any[] | null; 
+    year_wise_modules: any[] | null;
     fees: YearFee[] | null;
 }
 
@@ -52,10 +52,10 @@ function csrfToken(): string {
 }
 
 function defaultYearModules(): YearModule[] {
-    return [{ 
-        year: 1, 
-        title: 'Year 1', 
-        semesters: [{ title: 'Semester 1', modules: [{ name: '', info: '', creditHours: '' }] }] 
+    return [{
+        year: 1,
+        title: 'Year 1',
+        semesters: [{ title: 'Semester 1', modules: [{ name: '', info: '', creditHours: '' }] }]
     }];
 }
 
@@ -67,12 +67,12 @@ function normalizeYearModules(raw: any[] | null | undefined): YearModule[] {
             semesters = y.semesters.map((s: any) => ({
                 title: s.title || '',
                 modules: (s.modules ?? []).map((m: any) =>
-                    typeof m === 'string' 
-                        ? { name: m, info: '', creditHours: '' } 
-                        : { 
-                            name: m.name ?? '', 
-                            info: m.info ?? '', 
-                            creditHours: m.creditHours ?? m.credit_hours ?? '' 
+                    typeof m === 'string'
+                        ? { name: m, info: '', creditHours: '' }
+                        : {
+                            name: m.name ?? '',
+                            info: m.info ?? '',
+                            creditHours: m.creditHours ?? m.credit_hours ?? ''
                           }
                 )
             }));
@@ -81,12 +81,12 @@ function normalizeYearModules(raw: any[] | null | undefined): YearModule[] {
             semesters = [{
                 title: 'Semester 1',
                 modules: (y.modules ?? []).map((m: any) =>
-                    typeof m === 'string' 
-                        ? { name: m, info: '', creditHours: '' } 
-                        : { 
-                            name: m.name ?? '', 
-                            info: m.info ?? '', 
-                            creditHours: m.creditHours ?? m.credit_hours ?? '' 
+                    typeof m === 'string'
+                        ? { name: m, info: '', creditHours: '' }
+                        : {
+                            name: m.name ?? '',
+                            info: m.info ?? '',
+                            creditHours: m.creditHours ?? m.credit_hours ?? ''
                           }
                 )
             }];
@@ -103,12 +103,22 @@ function defaultYearFee(): YearFee[] {
     return [{ year: 1, amount: '', currency: '', note: '' }];
 }
 
+function normalizeYearFees(raw: YearFee[] | null | undefined): YearFee[] {
+    if (!raw || raw.length === 0) return defaultYearFee();
+    return raw.map((f) => ({
+        year: f.year,
+        amount: f.amount ?? '',
+        currency: f.currency ?? '',
+        note: f.note ?? '',
+    }));
+}
+
 function instKey(university: string, college: string): string {
     return `${university}|||${college}`;
 }
 
 // ---------------------------------------------------------------------------
-// 1. ComboboxInput 
+// 1. ComboboxInput
 // ---------------------------------------------------------------------------
 function ComboboxInput({
     placeholder, value, onChange, options, disabled, error
@@ -486,7 +496,7 @@ function RichTextEditor({ value, onChange, placeholder, error }: { value: string
 }
 
 // ----------------------------------------------------------------------
-// Main Component 
+// Main Component
 // ----------------------------------------------------------------------
 export default function CourseDetailsForm({ courseDetail }: { courseDetail?: CourseDetailRecord | null }) {
     const isEditMode = !!courseDetail;
@@ -510,8 +520,17 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
             [savedInstKey]: normalizeYearModules(courseDetail?.year_wise_modules ?? null),
         };
     });
+
+    // ── Fees are now per-institution, same shape as yearModulesByInst ──
+    const [feesByInst, setFeesByInst] = useState<Record<string, YearFee[]>>(() => {
+        if (!savedInstKey) return {};
+        return {
+            [savedInstKey]: normalizeYearFees(courseDetail?.fees ?? null),
+        };
+    });
+
     const [activeModuleTab, setActiveModuleTab] = useState<string | null>(savedInstKey);
-    
+
     const [expandedModuleInfo, setExpandedModuleInfo] = useState<Set<string>>(() => {
         const seed = new Set<string>();
         if (savedInstKey) {
@@ -529,7 +548,7 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
     });
 
     const moduleInfoKey = (instKey: string, yearIndex: number, semesterIndex: number, moduleIndex: number) => `${instKey}:${yearIndex}:${semesterIndex}:${moduleIndex}`;
-    
+
     const toggleModuleInfoVisible = (yearIndex: number, semesterIndex: number, moduleIndex: number) => {
         if (!activeModuleTab) return;
         const key = moduleInfoKey(activeModuleTab, yearIndex, semesterIndex, moduleIndex);
@@ -538,11 +557,11 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         if (isCurrentlyOpen) {
             setYearModulesByInst((prev) => ({
                 ...prev,
-                [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? { 
-                    ...y, 
+                [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? {
+                    ...y,
                     semesters: y.semesters.map((s, si) => si === semesterIndex ? {
                         ...s,
-                        modules: s.modules.map((m, mi) => (mi === moduleIndex ? { ...m, info: '', creditHours: '' } : m)) 
+                        modules: s.modules.map((m, mi) => (mi === moduleIndex ? { ...m, info: '', creditHours: '' } : m))
                     } : s)
                 } : y)
             }));
@@ -555,10 +574,6 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
             return next;
         });
     };
-
-    const [courseFees, setCourseFees] = useState<YearFee[]>(
-        () => (courseDetail?.fees && courseDetail.fees.length > 0 ? courseDetail.fees : defaultYearFee())
-    );
 
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -592,17 +607,27 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
 
     const uniqueCourses = useMemo(() => Array.from(new Set(masterData.map((item) => item.Course).filter(Boolean))), [masterData]);
 
+    // ── FIX: build a truly unique (University + College) list for this course ──
+    // Using a composite key guards against colleges sharing a name across
+    // universities AND against universities offering the course at more
+    // than one college. If colleges are still getting dropped after this,
+    // the collapse is happening upstream in the /api/universities response
+    // itself (e.g. a DISTINCT/GROUP BY over the wrong columns there).
     const masterInstitutionsForCourse = useMemo(() => {
         if (!courseName) return [];
-        const matches = masterData.filter((d) => d.Course?.toLowerCase() === courseName.toLowerCase());
+        const wantedCourse = courseName.trim().toLowerCase();
+        const matches = masterData.filter((d) => (d.Course ?? '').trim().toLowerCase() === wantedCourse);
         const unique = new Map<string, InstitutionOption>();
         matches.forEach((m) => {
-            if (m.University && m.College) {
-                const key = instKey(m.University, m.College);
-                if (!unique.has(key)) unique.set(key, { key, label: m.College, subLabel: m.University });
-            }
+            const uni = (m.University ?? '').trim();
+            const col = (m.College ?? '').trim();
+            if (!uni || !col) return;
+            const key = instKey(uni, col);
+            if (!unique.has(key)) unique.set(key, { key, label: col, subLabel: uni });
         });
-        return Array.from(unique.values());
+        return Array.from(unique.values()).sort((a, b) =>
+            a.subLabel.localeCompare(b.subLabel) || a.label.localeCompare(b.label)
+        );
     }, [masterData, courseName]);
 
     const savedInstitutionOptions = useMemo<InstitutionOption[]>(() => {
@@ -642,6 +667,12 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
             selectedInstKeys.forEach((key) => { next[key] = prev[key] ?? defaultYearModules(); });
             return next;
         });
+        // ── Keep feesByInst in sync with selected institutions, same as modules ──
+        setFeesByInst((prev) => {
+            const next: Record<string, YearFee[]> = {};
+            selectedInstKeys.forEach((key) => { next[key] = prev[key] ?? defaultYearFee(); });
+            return next;
+        });
         setActiveModuleTab((prevActive) => (prevActive && selectedInstKeys.includes(prevActive) ? prevActive : selectedInstKeys.length > 0 ? selectedInstKeys[0] : null));
     }, [selectedInstKeys]);
 
@@ -650,12 +681,12 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
     // -- Module Handlers --
     const addYear = () => {
         if (!activeModuleTab) return;
-        setYearModulesByInst((prev) => ({ 
-            ...prev, 
+        setYearModulesByInst((prev) => ({
+            ...prev,
             [activeModuleTab]: [
-                ...prev[activeModuleTab], 
+                ...prev[activeModuleTab],
                 { year: nextYear(prev[activeModuleTab]), title: '', semesters: [{ title: 'Semester 1', modules: [{ name: '', info: '', creditHours: '' }] }] }
-            ] 
+            ]
         }));
     };
     const removeYear = (index: number) => {
@@ -666,14 +697,14 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         if (!activeModuleTab) return;
         setYearModulesByInst((prev) => ({ ...prev, [activeModuleTab]: prev[activeModuleTab].map((y, i) => (i === index ? { ...y, ...patch } : y)) }));
     };
-    
+
     // -- Semester Handlers --
     const addSemester = (yearIndex: number) => {
         if (!activeModuleTab) return;
         setYearModulesByInst((prev) => ({
             ...prev,
             [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? {
-                ...y, 
+                ...y,
                 semesters: [...y.semesters, { title: `Semester ${y.semesters.length + 1}`, modules: [{ name: '', info: '', creditHours: '' }] }]
             } : y)
         }));
@@ -700,28 +731,28 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
     };
     const addModuleLine = (yearIndex: number, semesterIndex: number) => {
         if (!activeModuleTab) return;
-        setYearModulesByInst((prev) => ({ 
-            ...prev, 
+        setYearModulesByInst((prev) => ({
+            ...prev,
             [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? {
                 ...y,
                 semesters: y.semesters.map((s, si) => si === semesterIndex ? {
                     ...s,
                     modules: [...s.modules, { name: '', info: '', creditHours: '' }]
                 } : s)
-            } : y) 
+            } : y)
         }));
     };
     const updateModuleField = (yearIndex: number, semesterIndex: number, moduleIndex: number, field: keyof ModuleEntry, value: string) => {
         if (!activeModuleTab) return;
-        setYearModulesByInst((prev) => ({ 
-            ...prev, 
-            [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? { 
-                ...y, 
+        setYearModulesByInst((prev) => ({
+            ...prev,
+            [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? {
+                ...y,
                 semesters: y.semesters.map((s, si) => si === semesterIndex ? {
                     ...s,
                     modules: s.modules.map((m, mi) => (mi === moduleIndex ? { ...m, [field]: value } : m))
                 } : s)
-            } : y) 
+            } : y)
         }));
     };
     const updateModuleInfo = (yearIndex: number, semesterIndex: number, moduleIndex: number, value: string) => {
@@ -732,15 +763,15 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
     };
     const removeModuleLine = (yearIndex: number, semesterIndex: number, moduleIndex: number) => {
         if (!activeModuleTab) return;
-        setYearModulesByInst((prev) => ({ 
-            ...prev, 
-            [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? { 
-                ...y, 
+        setYearModulesByInst((prev) => ({
+            ...prev,
+            [activeModuleTab]: prev[activeModuleTab].map((y, i) => i === yearIndex ? {
+                ...y,
                 semesters: y.semesters.map((s, si) => si === semesterIndex ? {
                     ...s,
                     modules: s.modules.filter((_, mi) => mi !== moduleIndex)
-                } : s) 
-            } : y) 
+                } : s)
+            } : y)
         }));
     };
     const copyToAllInstitutions = () => {
@@ -753,15 +784,36 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
         });
     };
 
-    // -- Fee Handlers --
+    // -- Fee Handlers (now scoped to activeModuleTab, exactly like modules) --
     const addFeeYear = () => {
-        setCourseFees((prev) => [...prev, { year: nextYear(prev), amount: '', currency: '', note: '' }]);
+        if (!activeModuleTab) return;
+        setFeesByInst((prev) => ({
+            ...prev,
+            [activeModuleTab]: [...(prev[activeModuleTab] ?? []), { year: nextYear(prev[activeModuleTab] ?? []), amount: '', currency: '', note: '' }],
+        }));
     };
     const removeFeeYear = (index: number) => {
-        setCourseFees((prev) => prev.filter((_, i) => i !== index));
+        if (!activeModuleTab) return;
+        setFeesByInst((prev) => ({
+            ...prev,
+            [activeModuleTab]: (prev[activeModuleTab] ?? []).filter((_, i) => i !== index),
+        }));
     };
     const updateFeeYear = (index: number, patch: Partial<YearFee>) => {
-        setCourseFees((prev) => prev.map((f, i) => (i === index ? { ...f, ...patch } : f)));
+        if (!activeModuleTab) return;
+        setFeesByInst((prev) => ({
+            ...prev,
+            [activeModuleTab]: (prev[activeModuleTab] ?? []).map((f, i) => (i === index ? { ...f, ...patch } : f)),
+        }));
+    };
+    const copyFeesToAllInstitutions = () => {
+        if (!activeModuleTab) return;
+        const source = feesByInst[activeModuleTab] ?? [];
+        setFeesByInst((prev) => {
+            const next = { ...prev };
+            selectedInstKeys.forEach((key) => { if (key !== activeModuleTab) next[key] = JSON.parse(JSON.stringify(source)); });
+            return next;
+        });
     };
 
     const cleanModulesFor = (key: string) =>
@@ -771,17 +823,18 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
             semesters: y.semesters.map(s => ({
                 title: s.title.trim() || null,
                 modules: s.modules
-                    .map((m) => ({ 
-                        name: m.name.trim(), 
-                        info: m.info.trim() || null, 
-                        credit_hours: m.creditHours.trim() || null 
+                    .map((m) => ({
+                        name: m.name.trim(),
+                        info: m.info.trim() || null,
+                        credit_hours: m.creditHours.trim() || null
                     }))
                     .filter((m) => m.name !== '')
             })).filter(s => s.modules.length > 0 || s.title)
         }));
 
-    const cleanFees = () =>
-        courseFees.filter((f) => f.year).map((f) => ({
+    // ── cleanFees now takes a key, mirroring cleanModulesFor ──
+    const cleanFeesFor = (key: string) =>
+        (feesByInst[key] ?? []).filter((f) => f.year).map((f) => ({
             year: f.year,
             amount: f.amount.trim() || null,
             currency: f.currency.trim() || null,
@@ -803,7 +856,7 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                 summary: summaryHtml.trim() || null,
                 careers: careersHtml.trim() || null,
                 year_wise_modules: savedInstKey ? cleanModulesFor(savedInstKey) : [],
-                fees: cleanFees(),
+                fees: savedInstKey ? cleanFeesFor(savedInstKey) : [],
             };
 
             const newInstKeys = selectedInstKeys.filter((k) => k !== savedInstKey);
@@ -811,10 +864,14 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                 course_name: courseName.trim(),
                 summary: summaryHtml.trim() || null,
                 careers: careersHtml.trim() || null,
-                fees: cleanFees(),
                 institutions: newInstKeys.map((key) => {
                     const [uni, col] = key.split('|||');
-                    return { university_name: uni, college_name: col, year_wise_modules: cleanModulesFor(key) };
+                    return {
+                        university_name: uni,
+                        college_name: col,
+                        year_wise_modules: cleanModulesFor(key),
+                        fees: cleanFeesFor(key),
+                    };
                 }),
             } : null;
 
@@ -856,7 +913,12 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
 
         const institutionsPayload = selectedInstKeys.map((key) => {
             const [uni, col] = key.split('|||');
-            return { university_name: uni, college_name: col, year_wise_modules: cleanModulesFor(key) };
+            return {
+                university_name: uni,
+                college_name: col,
+                year_wise_modules: cleanModulesFor(key),
+                fees: cleanFeesFor(key),
+            };
         });
 
         const payload = {
@@ -864,7 +926,6 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
             summary: summaryHtml.trim() || null,
             careers: careersHtml.trim() || null,
             institutions: institutionsPayload,
-            fees: cleanFees(),
         };
 
         fetch('/course-details', {
@@ -884,8 +945,8 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                 setSummaryHtml('');
                 setCareersHtml('');
                 setYearModulesByInst({});
+                setFeesByInst({});
                 setActiveModuleTab(null);
-                setCourseFees(defaultYearFee());
             })
             .catch((err) => {
                 console.error('Failed to save course details', err);
@@ -895,6 +956,7 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
     };
 
     const activeYearModules = activeModuleTab ? (yearModulesByInst[activeModuleTab] ?? []) : [];
+    const activeFees = activeModuleTab ? (feesByInst[activeModuleTab] ?? []) : [];
 
     return (
         <div className="max-w-full py-6 px-4 sm:px-6 bg-[#fafafa] min-h-screen">
@@ -1027,6 +1089,37 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                     </div>
                 </div>
 
+                {/* Institution Tabs — shared by Modules (4) and Fees (5) sections below */}
+                {selectedInstKeys.length > 0 && (
+                    <div className="bg-white shadow-sm rounded-xl mb-4 border-0">
+                        <div className="p-3 md:p-4 pb-0">
+                            <h6 className="font-bold mb-2 text-gray-900 flex items-center gap-2 text-sm">
+                                <Building2 size={16} className="text-[#008AE6]" />
+                                Editing details for
+                            </h6>
+                            <ul className="flex flex-nowrap overflow-x-auto pb-3 gap-2 custom-scrollbar">
+                                {selectedInstKeys.map((key) => {
+                                    const info = institutionLookup.get(key);
+                                    const isActive = key === activeModuleTab;
+                                    return (
+                                        <li key={key} className="flex-shrink-0">
+                                            <button
+                                                type="button"
+                                                className={`rounded-full border px-3 py-1.5 text-left flex flex-col transition-colors ${isActive ? 'bg-[#008AE6] border-[#008AE6] shadow-sm text-white' : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50'}`}
+                                                onClick={() => setActiveModuleTab(key)}
+                                                style={{ minWidth: '150px' }}
+                                            >
+                                                <span className="font-semibold block truncate text-sm" style={{ maxWidth: '170px' }}>{info ? info.label : key}</span>
+                                                <span className={`block truncate ${isActive ? 'text-white/70' : 'text-gray-500'}`} style={{ maxWidth: '170px', fontSize: '0.65rem' }}>{info?.subLabel}</span>
+                                            </button>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </div>
+                    </div>
+                )}
+
                 {/* 4. Course Modules */}
                 <div className="bg-white shadow-sm rounded-xl mb-4 border-0">
                     <div className="p-3 md:p-4">
@@ -1060,26 +1153,6 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                             </div>
                         ) : (
                             <>
-                                <ul className="flex flex-nowrap overflow-x-auto pb-1 gap-2 mb-3 custom-scrollbar">
-                                    {selectedInstKeys.map((key) => {
-                                        const info = institutionLookup.get(key);
-                                        const isActive = key === activeModuleTab;
-                                        return (
-                                            <li key={key} className="flex-shrink-0">
-                                                <button
-                                                    type="button"
-                                                    className={`rounded-full border px-3 py-1.5 text-left flex flex-col transition-colors ${isActive ? 'bg-[#008AE6] border-[#008AE6] shadow-sm text-white' : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50'}`}
-                                                    onClick={() => setActiveModuleTab(key)}
-                                                    style={{ minWidth: '150px' }}
-                                                >
-                                                    <span className="font-semibold block truncate text-sm" style={{ maxWidth: '170px' }}>{info ? info.label : key}</span>
-                                                    <span className={`block truncate ${isActive ? 'text-white/70' : 'text-gray-500'}`} style={{ maxWidth: '170px', fontSize: '0.65rem' }}>{info?.subLabel}</span>
-                                                </button>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-
                                 {activeYearModules.map((yearBlock, yearIndex) => (
                                     <div key={yearIndex} className="border border-gray-100 rounded-xl mb-4 bg-white shadow-sm">
                                         <div className="bg-gray-50 border-b border-gray-100 p-2 px-3 flex items-center justify-between rounded-t-xl">
@@ -1133,7 +1206,7 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                                                                 const infoKey = activeModuleTab ? moduleInfoKey(activeModuleTab, yearIndex, semesterIndex, moduleIndex) : '';
                                                                 const isInfoOpen = expandedModuleInfo.has(infoKey);
                                                                 const infoWordCount = moduleEntry.info.trim() === '' ? 0 : moduleEntry.info.trim().split(/\s+/).length;
-                                                                
+
                                                                 return (
                                                                     <div key={moduleIndex} className="flex flex-col gap-1.5">
                                                                         <div className="flex gap-2 items-center">
@@ -1200,24 +1273,33 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                     </div>
                 </div>
 
-                {/* 5. Fees */}
+                {/* 5. Fees — now per-institution, driven by the same activeModuleTab */}
                 <div className="bg-white shadow-sm rounded-xl mb-6 border-0">
                     <div className="p-3 md:p-4">
                         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                             <div>
                                 <h6 className="font-bold mb-1 text-gray-900 flex items-center gap-2 text-sm">
                                     <span className="bg-[#008AE6] text-white rounded-full flex items-center justify-center shadow-sm" style={{ width: 22, height: 22, fontSize: 11 }}>5</span>
-                                    Fee Structure
+                                    Fee Structure (Per Institution)
                                 </h6>
-                                <p className="text-gray-500 text-sm mb-0">Outline the standard estimated tuition. This applies to all selected institutions.</p>
+                                <p className="text-gray-500 text-sm mb-0">Tuition for the selected college — each institution keeps its own fee rows.</p>
                             </div>
 
-                            <button type="button" className="inline-flex items-center gap-1 rounded-full bg-[#008AE6] hover:bg-[#0071bf] text-white shadow-sm px-3 py-1.5 text-sm transition-colors" onClick={addFeeYear}>
-                                <Plus size={14} /> Add Fee Row
-                            </button>
+                            {activeModuleTab && (
+                                <div className="flex gap-2">
+                                    {selectedInstKeys.length > 1 && (
+                                        <button type="button" className="inline-flex items-center gap-1 rounded-full bg-white border border-gray-200 shadow-sm px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors" onClick={copyFeesToAllInstitutions} title="Copy these fees to all selected institutions">
+                                            <Copy size={14} /> <span className="hidden sm:inline">Apply to all</span>
+                                        </button>
+                                    )}
+                                    <button type="button" className="inline-flex items-center gap-1 rounded-full bg-[#008AE6] hover:bg-[#0071bf] text-white shadow-sm px-3 py-1.5 text-sm transition-colors" onClick={addFeeYear}>
+                                        <Plus size={14} /> Add Fee Row
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
-                        {selectedInstKeys.length === 0 ? (
+                        {selectedInstKeys.length === 0 || !activeModuleTab ? (
                             <div className="text-gray-400 p-6 border border-dashed border-gray-300 rounded-xl bg-gray-50 text-center text-sm">
                                 <Coins size={28} className="opacity-25 mb-2 mx-auto" />
                                 No institutions selected.
@@ -1226,11 +1308,11 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                             <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
                                 <div className="mb-3 flex items-center gap-2 text-[#008AE6] bg-[#008AE6]/10 px-3 py-2 rounded-lg text-sm font-medium">
                                     <Info size={14} />
-                                    Applies to: {selectedInstKeys.map((k) => institutionLookup.get(k)?.label).filter(Boolean).join(', ')}
+                                    Applies to: {institutionLookup.get(activeModuleTab)?.label ?? activeModuleTab} ({institutionLookup.get(activeModuleTab)?.subLabel})
                                 </div>
 
-                                {courseFees.map((fee, feeIndex) => (
-                                    <div key={feeIndex} className={`grid grid-cols-12 gap-2 items-end mb-2 pb-2 ${feeIndex < courseFees.length - 1 ? 'border-b border-gray-100' : ''}`}>
+                                {activeFees.map((fee, feeIndex) => (
+                                    <div key={feeIndex} className={`grid grid-cols-12 gap-2 items-end mb-2 pb-2 ${feeIndex < activeFees.length - 1 ? 'border-b border-gray-100' : ''}`}>
                                         <div className="col-span-4 md:col-span-2">
                                             <label className="block text-gray-500 font-semibold mb-1" style={{ fontSize: '0.75rem' }}>Year</label>
                                             <input type="number" min={1} className="w-full rounded-full border border-gray-200 px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:border-[#008AE6] focus:ring-1 focus:ring-[#008AE6]" value={fee.year} onChange={(e) => updateFeeYear(feeIndex, { year: Number(e.target.value) || 1 })} />
@@ -1251,7 +1333,7 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
                                             <input type="text" className="w-full rounded-full border border-gray-200 px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:border-[#008AE6] focus:ring-1 focus:ring-[#008AE6]" placeholder="Tuition" value={fee.note} onChange={(e) => updateFeeYear(feeIndex, { note: e.target.value })} />
                                         </div>
                                         <div className="col-span-2 md:col-span-1 flex justify-end">
-                                            {courseFees.length > 1 ? (
+                                            {activeFees.length > 1 ? (
                                                 <button type="button" className="rounded-full border border-gray-200 shadow-sm text-red-500 bg-white hover:bg-red-50 p-1.5 transition-colors" onClick={() => removeFeeYear(feeIndex)}>
                                                     <Trash2 size={14} />
                                                 </button>
