@@ -1,5 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
-import type { CSSProperties } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 
 // ── Design Tokens (Matching Homepage Aesthetic) ───────────────────────────
 const P = "#008ce3";         // Bright Sky Blue (Primary)
@@ -10,6 +9,10 @@ const BORDER = "#e5e7eb";    // Light border
 const TEXT_MAIN = "#111827"; // Dark Charcoal
 const TEXT_MUTED = "#4b5563"; // Muted Slate
 const TEXT_LIGHT = "#9ca3af"; // Light Gray
+
+const INITIAL_PAGE_SIZE = 200;
+const NEXT_PAGE_SIZE = 40;
+const SEARCH_DEBOUNCE_MS = 300;
 
 // ── Helper to dynamically map stream to actual homepage assets ─────────────
 const getStreamImage = (stream: string, id: number): string => {
@@ -26,10 +29,7 @@ const getStreamImage = (stream: string, id: number): string => {
   if (s.includes("social") || s.includes("ngo") || s.includes("communit")) {
     return "/images/event_walking.png";
   }
-  const fallbackPool = [
-    "/images/event_grad.png",
-    "/images/students_hero.jpg"
-  ];
+  const fallbackPool = ["/images/event_grad.png", "/images/students_hero.jpg"];
   return fallbackPool[id % fallbackPool.length];
 };
 
@@ -97,6 +97,12 @@ const FilterIcon = () => (
   </svg>
 );
 
+const SpinnerIcon = () => (
+  <svg className="spin-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={P} strokeWidth="2.5" strokeLinecap="round">
+    <path d="M12 2a10 10 0 0 1 10 10" />
+  </svg>
+);
+
 // ── Shared Types ───────────────────────────────────────────────────────────
 interface UniversityEntry {
   id: number;
@@ -112,8 +118,21 @@ interface UniversityEntry {
   Amount: string | null;
   Scholarship: string | null;
   requireddocuments: string | null;
-  course_detail_uuid?: string; 
+  course_detail_uuid?: string;
 }
+
+interface FilterOptions {
+  levels: string[];
+  streams: string[];
+  courses: string[];
+  universities: string[];
+  colleges: string[];
+  locations: string[];
+}
+
+const EMPTY_FILTER_OPTIONS: FilterOptions = {
+  levels: [], streams: [], courses: [], universities: [], colleges: [], locations: [],
+};
 
 const validUrl = (url: string | null | undefined): string | null => {
   if (!url) return null;
@@ -231,10 +250,15 @@ function DropdownFilter({ label, options, selected, toggleOption }: { label: str
 // ── Main Page Component ────────────────────────────────────────────────────
 export default function CourseSearch() {
   const [data, setData] = useState<UniversityEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);       // initial 200-row load
+  const [loadingMore, setLoadingMore] = useState(false); // subsequent pages
+  const [hasMore, setHasMore] = useState(true);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+
+  const [rawSearch, setRawSearch] = useState("");   // what's in the input box
+  const [search, setSearch] = useState("");          // debounced value actually sent to the API
   const [searchFocused, setSearchFocused] = useState(false);
-  
+
   const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
   const [selectedStreams, setSelectedStreams] = useState<string[]>([]);
   const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
@@ -242,26 +266,121 @@ export default function CourseSearch() {
   const [selectedColleges, setSelectedColleges] = useState<string[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
 
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>(EMPTY_FILTER_OPTIONS);
+
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const requestIdRef = useRef(0);
+
+  // Debounce the search box → `search`
   useEffect(() => {
-    fetchUniversities();
+    const t = setTimeout(() => setSearch(rawSearch), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [rawSearch]);
+
+  // Fetch the dropdown facets once (cheap, cached server-side; independent of loaded rows)
+  useEffect(() => {
+    fetch("/api/university/filter-options", { headers: { Accept: "application/json" } })
+      .then(res => (res.ok ? res.json() : null))
+      .then(json => {
+        if (!json) return;
+        setFilterOptions({
+          levels: (json.levels || []).map(standardizeLevel).filter(Boolean).sort(),
+          streams: (json.streams || []).map(standardizeName).filter(Boolean).sort(),
+          courses: (json.courses || []).map(standardizeCourse).filter(Boolean).sort(),
+          universities: (json.universities || []).map(standardizeName).filter(Boolean).sort(),
+          colleges: (json.colleges || []).map(standardizeName).filter(Boolean).sort(),
+          locations: (json.locations || []).map(standardizeName).filter(Boolean).sort(),
+        });
+      })
+      .catch(err => console.error("Failed to load filter options", err));
   }, []);
 
-  const fetchUniversities = async () => {
+  const buildQueryParams = useCallback((limit: number, cursor?: string | null) => {
+    const params = new URLSearchParams();
+    params.set("limit", String(limit));
+    if (cursor) params.set("cursor", cursor);
+    if (search) params.set("search", search);
+    selectedLevels.forEach(v => params.append("level[]", v));
+    selectedStreams.forEach(v => params.append("stream[]", v));
+    selectedCourses.forEach(v => params.append("course[]", v));
+    selectedUniversities.forEach(v => params.append("university[]", v));
+    selectedColleges.forEach(v => params.append("college[]", v));
+    selectedLocations.forEach(v => params.append("location[]", v));
+    return params;
+  }, [search, selectedLevels, selectedStreams, selectedCourses, selectedUniversities, selectedColleges, selectedLocations]);
+
+  // Initial load (200 rows) — reruns whenever search or any filter changes
+  useEffect(() => {
+    const myRequestId = ++requestIdRef.current;
+
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setLoading(true);
-    try {
-      const res = await fetch("/api/university", {
-        headers: { "Accept": "application/json" }
+    setHasMore(true);
+    setNextCursor(null);
+
+    const params = buildQueryParams(INITIAL_PAGE_SIZE);
+
+    fetch(`/api/university?${params.toString()}`, {
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    })
+      .then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+      .then(json => {
+        if (myRequestId !== requestIdRef.current) return; // stale response, a newer filter/search superseded it
+        setData(json.data || []);
+        setNextCursor(json.next_cursor ?? null);
+        setHasMore(Boolean(json.has_more));
+      })
+      .catch(err => {
+        if (err.name !== "AbortError") console.error("Failed to load records", err);
+      })
+      .finally(() => {
+        if (myRequestId === requestIdRef.current) setLoading(false);
       });
-      if (res.ok) {
-        const json = await res.json();
-        setData(json.data || json);
-      }
-    } catch (error) {
-      console.error("Failed to load records", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+
+    return () => controller.abort();
+  }, [buildQueryParams]);
+
+  // Load the next page (triggered by scrolling near the bottom)
+  const loadMore = useCallback(() => {
+    if (loading || loadingMore || !hasMore || !nextCursor) return;
+
+    const myRequestId = requestIdRef.current; // must match — bail if a filter/search change happened mid-flight
+    setLoadingMore(true);
+
+    const params = buildQueryParams(NEXT_PAGE_SIZE, nextCursor);
+
+    fetch(`/api/university?${params.toString()}`, { headers: { Accept: "application/json" } })
+      .then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+      .then(json => {
+        if (myRequestId !== requestIdRef.current) return; // filters changed while this was in flight — discard
+        setData(prev => [...prev, ...(json.data || [])]);
+        setNextCursor(json.next_cursor ?? null);
+        setHasMore(Boolean(json.has_more));
+      })
+      .catch(err => console.error("Failed to load more records", err))
+      .finally(() => setLoadingMore(false));
+  }, [loading, loadingMore, hasMore, nextCursor, buildQueryParams]);
+
+  // IntersectionObserver on a sentinel div at the bottom of the list
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) loadMore();
+      },
+      { rootMargin: "400px" } // start fetching before the user hits the very bottom
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loadMore]);
 
   const handleClearFilters = () => {
     setSelectedLevels([]);
@@ -270,80 +389,9 @@ export default function CourseSearch() {
     setSelectedUniversities([]);
     setSelectedColleges([]);
     setSelectedLocations([]);
+    setRawSearch("");
     setSearch("");
   };
-
-  const { filteredData, filterOptions } = useMemo(() => {
-    const q = search.toLowerCase();
-
-    const levelsSet = new Set<string>(selectedLevels);
-    const streamsSet = new Set<string>(selectedStreams);
-    const coursesSet = new Set<string>(selectedCourses);
-    const universitiesSet = new Set<string>(selectedUniversities);
-    const collegesSet = new Set<string>(selectedColleges);
-    const locationsSet = new Set<string>(selectedLocations);
-    
-    const resultData: UniversityEntry[] = [];
-
-    data.forEach(item => {
-      const stdLevel = standardizeLevel(item.level);
-      const stdStream = standardizeName(item.stream);
-      const stdCourse = standardizeCourse(item.Course);
-      const stdUni = standardizeName(item.University);
-      const stdCol = standardizeName(item.College);
-      const stdLoc = standardizeName(item.Location);
-
-      const matchesSearch = !q || (
-        stdUni.toLowerCase().includes(q) ||
-        stdCourse.toLowerCase().includes(q) ||
-        stdLoc.toLowerCase().includes(q) ||
-        stdCol.toLowerCase().includes(q) ||
-        stdStream.toLowerCase().includes(q)
-      );
-
-      const matchesLevel = selectedLevels.length === 0 || selectedLevels.includes(stdLevel);
-      const matchesStream = selectedStreams.length === 0 || selectedStreams.includes(stdStream);
-      const matchesCourse = selectedCourses.length === 0 || selectedCourses.includes(stdCourse);
-      const matchesUni = selectedUniversities.length === 0 || selectedUniversities.includes(stdUni);
-      const matchesCol = selectedColleges.length === 0 || selectedColleges.includes(stdCol);
-      const matchesLoc = selectedLocations.length === 0 || selectedLocations.includes(stdLoc);
-
-      if (matchesSearch && matchesLevel && matchesStream && matchesCourse && matchesUni && matchesCol && matchesLoc) {
-        resultData.push(item);
-      }
-
-      if (matchesSearch && matchesStream && matchesCourse && matchesUni && matchesCol && matchesLoc) {
-        if (stdLevel) levelsSet.add(stdLevel);
-      }
-      if (matchesSearch && matchesLevel && matchesCourse && matchesUni && matchesCol && matchesLoc) {
-        if (stdStream) streamsSet.add(stdStream);
-      }
-      if (matchesSearch && matchesLevel && matchesStream && matchesUni && matchesCol && matchesLoc) {
-        if (stdCourse) coursesSet.add(stdCourse);
-      }
-      if (matchesSearch && matchesLevel && matchesStream && matchesCourse && matchesCol && matchesLoc) {
-        if (stdUni) universitiesSet.add(stdUni);
-      }
-      if (matchesSearch && matchesLevel && matchesStream && matchesCourse && matchesUni && matchesLoc) {
-        if (stdCol) collegesSet.add(stdCol);
-      }
-      if (matchesSearch && matchesLevel && matchesStream && matchesCourse && matchesUni && matchesCol) {
-        if (stdLoc) locationsSet.add(stdLoc);
-      }
-    });
-
-    return {
-      filteredData: resultData,
-      filterOptions: {
-        levels: Array.from(levelsSet).sort(),
-        streams: Array.from(streamsSet).sort(),
-        courses: Array.from(coursesSet).sort(),
-        universities: Array.from(universitiesSet).sort(),
-        colleges: Array.from(collegesSet).sort(),
-        locations: Array.from(locationsSet).sort(),
-      }
-    };
-  }, [data, search, selectedLevels, selectedStreams, selectedCourses, selectedUniversities, selectedColleges, selectedLocations]);
 
   const toggleFilter = (list: string[], setList: (next: string[]) => void, value: string) => {
     if (list.includes(value)) {
@@ -354,6 +402,17 @@ export default function CourseSearch() {
   };
 
   const hasActiveFilters = selectedLevels.length > 0 || selectedStreams.length > 0 || selectedCourses.length > 0 || selectedUniversities.length > 0 || selectedColleges.length > 0 || selectedLocations.length > 0;
+
+  // Standardize once per row for display — data already arrives pre-filtered from the server
+  const displayRows = useMemo(() => data.map(item => ({
+    item,
+    stdLevel: standardizeLevel(item.level),
+    stdUni: standardizeName(item.University),
+    stdCol: standardizeName(item.College),
+    stdLoc: standardizeName(item.Location),
+    stdStream: standardizeName(item.stream),
+    stdCourse: standardizeCourse(item.Course),
+  })), [data]);
 
   return (
     <div style={{ background: BG, minHeight: "100vh", color: TEXT_MAIN, fontFamily: "'Manrope', sans-serif" }}>
@@ -385,8 +444,8 @@ export default function CourseSearch() {
             <input
               type="text"
               placeholder="Search by course, stream, college, or keyword..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={rawSearch}
+              onChange={(e) => setRawSearch(e.target.value)}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
               style={{ width: "100%", boxSizing: "border-box", background: SURFACE, border: `1.5px solid ${searchFocused ? P : "transparent"}`, borderRadius: 999, padding: "16px 24px 16px 54px", fontSize: 15, color: TEXT_MAIN, outline: "none", boxShadow: searchFocused ? `0 12px 30px rgba(0, 140, 227, 0.2)` : "0 8px 30px rgba(0,0,0,0.2)", transition: "all 0.3s ease" }}
@@ -417,191 +476,203 @@ export default function CourseSearch() {
       <div style={{ maxWidth: 1040, margin: "0 auto", padding: "40px 24px 96px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
           <div style={{ fontSize: 15, color: TEXT_MUTED }}>
-            Showing <strong style={{ color: TEXT_MAIN }}>{filteredData.length}</strong> programs available
+            {loading ? "Loading programs…" : (
+              <>Showing <strong style={{ color: TEXT_MAIN }}>{data.length}</strong>{hasMore ? "+" : ""} programs available</>
+            )}
           </div>
         </div>
 
         {loading ? (
-          <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 64, textAlign: "center", color: TEXT_MUTED }}>
-            Searching directory listings...
+          <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 64, textAlign: "center", color: TEXT_MUTED, display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+            <SpinnerIcon />
+            Loading the first 200 programs…
           </div>
-        ) : filteredData.length === 0 ? (
+        ) : displayRows.length === 0 ? (
           <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 64, textAlign: "center", color: TEXT_MUTED }}>
             No matches found. Try adjusting your filter terms or keywords.
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            {filteredData.map(item => {
-              const stdLevel = standardizeLevel(item.level);
-              const stdUni = standardizeName(item.University);
-              const stdCol = standardizeName(item.College);
-              const stdLoc = standardizeName(item.Location);
-              const stdStream = standardizeName(item.stream);
-              const stdCourse = standardizeCourse(item.Course);
+          <>
+            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+              {displayRows.map(({ item, stdLevel, stdUni, stdCol, stdLoc, stdStream, stdCourse }) => {
+                const collegeLogo = validUrl(item.college_logo_url);
+                const universityLogo = validUrl(item.university_logo_url);
+                const fallbackImage = getStreamImage(item.stream, item.id);
 
-              const collegeLogo = validUrl(item.college_logo_url);
-              const universityLogo = validUrl(item.university_logo_url);
-              const fallbackImage = getStreamImage(item.stream, item.id);
+                const uuid = item.course_detail_uuid;
+                const uniRoute = uuid ? `/courses/${uuid}` : "#";
 
-              const uuid = item.course_detail_uuid;
-const uniRoute = uuid ? `/courses/${uuid}` : "#";
-
-              return (
-                <div
-                  key={item.id}
-                  className="course-card-element"
-                  style={{
-                    background: SURFACE,
-                    border: `1.5px solid ${BORDER}`,
-                    borderRadius: 16,
-                    display: "flex",
-                    overflow: "hidden",
-                    transition: "all 0.3s ease",
-                    boxShadow: "0 4px 20px rgba(0,0,0,0.02)"
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = P;
-                    e.currentTarget.style.transform = "translateY(-2px)";
-                    e.currentTarget.style.boxShadow = "0 14px 30px rgba(0,0,0,0.06)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = BORDER;
-                    e.currentTarget.style.transform = "none";
-                    e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.02)";
-                  }}
-                >
-                  {/* Left Column: Image (Now Clickable) */}
-                  <a href={uniRoute} className="card-image-col" style={{
-                    textDecoration: "none",
-                    color: "inherit",
-                    width: 240,
-                    position: "relative",
-                    overflow: "hidden",
-                    flexShrink: 0,
-                    background: collegeLogo ? "#ffffff" : "#E5E7EB",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderRight: `1px solid ${BORDER}`
-                  }}>
-                    <img
-                      src={collegeLogo ?? fallbackImage}
-                      alt={stdCol}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: collegeLogo ? "contain" : "cover",
-                        padding: collegeLogo ? "24px" : "0",
-                        transition: "transform 0.5s ease",
-                        boxSizing: "border-box",
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!collegeLogo) e.currentTarget.style.transform = "scale(1.05)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = "scale(1.0)";
-                      }}
-                      onError={(e) => {
-                        e.currentTarget.src = fallbackImage;
-                        e.currentTarget.style.objectFit = "cover";
-                        e.currentTarget.style.padding = "0";
-                        e.currentTarget.parentElement!.style.background = "#E5E7EB";
-                      }}
-                    />
-                    <div style={{ position: "absolute", bottom: 12, left: 12, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)", color: "#ffffff", fontSize: 10, fontWeight: 700, fontFamily: "'Rajdhani', sans-serif", padding: "4px 8px", borderRadius: 4, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                      {stdStream}
-                    </div>
-                  </a>
-
-                  {/* Right Column: Content */}
-                  <div style={{ padding: "28px 24px", flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-                    
-                    {/* Top Content (Now Clickable and takes up available space) */}
-                    <a href={uniRoute} style={{ textDecoration: "none", color: "inherit", display: "flex", flexDirection: "column", gap: 12, flex: 1 }}>
-                      {/* Tags */}
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        <span style={{ background: `${AMBER}12`, color: AMBER, border: `1px solid ${AMBER}33`, fontSize: 9, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, letterSpacing: "0.12em", padding: "4px 10px", borderRadius: 999, textTransform: "uppercase" }}>
-                          {stdLevel}
-                        </span>
-                        {item.Intake && (
-                          <span style={{ background: "#F3F4F6", color: TEXT_MUTED, border: `1px solid #E5E7EB`, fontSize: 9, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, letterSpacing: "0.12em", padding: "4px 10px", borderRadius: 999, textTransform: "uppercase" }}>
-                            Intake: {item.Intake}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Title & Meta */}
-                      <div>
-                        <h2 style={{ fontSize: 18, fontWeight: 700, color: TEXT_MAIN, margin: "0 0 6px", fontFamily: "'Manrope', sans-serif" }}>
-                          {stdCourse}
-                        </h2>
-                        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, fontSize: 13, color: TEXT_MUTED }}>
-                          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                            <BuildingIcon />
-                            {stdCol}
-                          </span>
-                          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                            <LocationIcon />
-                            {stdLoc}
-                          </span>
-                        </div>
+                return (
+                  <div
+                    key={item.id}
+                    className="course-card-element"
+                    style={{
+                      background: SURFACE,
+                      border: `1.5px solid ${BORDER}`,
+                      borderRadius: 16,
+                      display: "flex",
+                      overflow: "hidden",
+                      transition: "all 0.3s ease",
+                      boxShadow: "0 4px 20px rgba(0,0,0,0.02)"
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = P;
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                      e.currentTarget.style.boxShadow = "0 14px 30px rgba(0,0,0,0.06)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = BORDER;
+                      e.currentTarget.style.transform = "none";
+                      e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.02)";
+                    }}
+                  >
+                    {/* Left Column: Image (Now Clickable) */}
+                    <a href={uniRoute} className="card-image-col" style={{
+                      textDecoration: "none",
+                      color: "inherit",
+                      width: 240,
+                      position: "relative",
+                      overflow: "hidden",
+                      flexShrink: 0,
+                      background: collegeLogo ? "#ffffff" : "#E5E7EB",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRight: `1px solid ${BORDER}`
+                    }}>
+                      <img
+                        src={collegeLogo ?? fallbackImage}
+                        alt={stdCol}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: collegeLogo ? "contain" : "cover",
+                          padding: collegeLogo ? "24px" : "0",
+                          transition: "transform 0.5s ease",
+                          boxSizing: "border-box",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!collegeLogo) e.currentTarget.style.transform = "scale(1.05)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = "scale(1.0)";
+                        }}
+                        onError={(e) => {
+                          e.currentTarget.src = fallbackImage;
+                          e.currentTarget.style.objectFit = "cover";
+                          e.currentTarget.style.padding = "0";
+                          e.currentTarget.parentElement!.style.background = "#E5E7EB";
+                        }}
+                      />
+                      <div style={{ position: "absolute", bottom: 12, left: 12, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)", color: "#ffffff", fontSize: 10, fontWeight: 700, fontFamily: "'Rajdhani', sans-serif", padding: "4px 8px", borderRadius: 4, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                        {stdStream}
                       </div>
                     </a>
 
-                    {/* Footer Row: Uni & Button */}
-                    <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 14, marginTop: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                      
-                      {/* Uni info (Now Clickable) */}
-                      <a href={uniRoute} style={{ textDecoration: "none", color: "inherit", display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                        {universityLogo ? (
-                          <img
-                            src={universityLogo}
-                            alt={stdUni}
-                            style={{ width: 32, height: 32, objectFit: "contain", borderRadius: 6, border: `1px solid ${BORDER}`, background: "#ffffff", padding: 3, flexShrink: 0, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}
-                            onError={(e) => { e.currentTarget.style.display = "none"; }}
-                          />
-                        ) : (
-                          <div style={{ width: 32, height: 32, borderRadius: 6, border: `1px solid ${BORDER}`, background: `${P}12`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: P, fontFamily: "'Rajdhani', sans-serif" }}>
-                            {stdUni.charAt(0).toUpperCase()}
+                    {/* Right Column: Content */}
+                    <div style={{ padding: "28px 24px", flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+
+                      {/* Top Content (Now Clickable and takes up available space) */}
+                      <a href={uniRoute} style={{ textDecoration: "none", color: "inherit", display: "flex", flexDirection: "column", gap: 12, flex: 1 }}>
+                        {/* Tags */}
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <span style={{ background: `${AMBER}12`, color: AMBER, border: `1px solid ${AMBER}33`, fontSize: 9, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, letterSpacing: "0.12em", padding: "4px 10px", borderRadius: 999, textTransform: "uppercase" }}>
+                            {stdLevel}
+                          </span>
+                          {item.Intake && (
+                            <span style={{ background: "#F3F4F6", color: TEXT_MUTED, border: `1px solid #E5E7EB`, fontSize: 9, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, letterSpacing: "0.12em", padding: "4px 10px", borderRadius: 999, textTransform: "uppercase" }}>
+                              Intake: {item.Intake}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Title & Meta */}
+                        <div>
+                          <h2 style={{ fontSize: 18, fontWeight: 700, color: TEXT_MAIN, margin: "0 0 6px", fontFamily: "'Manrope', sans-serif" }}>
+                            {stdCourse}
+                          </h2>
+                          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, fontSize: 13, color: TEXT_MUTED }}>
+                            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                              <BuildingIcon />
+                              {stdCol}
+                            </span>
+                            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                              <LocationIcon />
+                              {stdLoc}
+                            </span>
                           </div>
-                        )}
-                        <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
-                          <span style={{ fontSize: 10, fontWeight: 600, color: TEXT_LIGHT, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                            Affiliated University
-                          </span>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: TEXT_MAIN, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={stdUni}>
-                            {stdUni}
-                          </span>
                         </div>
                       </a>
 
-                      {/* Inquire Button (Independent Link) */}
-                      <a href={`/student-inquiry`} style={{ textDecoration: 'none' }}>
-                        <button
-                          style={{ background: P, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8, fontSize: 12, fontWeight: 700, fontFamily: "'Rajdhani', sans-serif", textTransform: "uppercase", letterSpacing: "0.05em", cursor: "pointer", transition: "all 0.2s ease", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = "#0072b8";
-                            e.currentTarget.style.transform = "scale(1.02)";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = P;
-                            e.currentTarget.style.transform = "scale(1)";
-                          }}
-                        >
-                          Inquire Now
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="5" y1="12" x2="19" y2="12"></line>
-                            <polyline points="12 5 19 12 12 19"></polyline>
-                          </svg>
-                        </button>
-                      </a>
-                    </div>
+                      {/* Footer Row: Uni & Button */}
+                      <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 14, marginTop: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
 
+                        {/* Uni info (Now Clickable) */}
+                        <a href={uniRoute} style={{ textDecoration: "none", color: "inherit", display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                          {universityLogo ? (
+                            <img
+                              src={universityLogo}
+                              alt={stdUni}
+                              style={{ width: 32, height: 32, objectFit: "contain", borderRadius: 6, border: `1px solid ${BORDER}`, background: "#ffffff", padding: 3, flexShrink: 0, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}
+                              onError={(e) => { e.currentTarget.style.display = "none"; }}
+                            />
+                          ) : (
+                            <div style={{ width: 32, height: 32, borderRadius: 6, border: `1px solid ${BORDER}`, background: `${P}12`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: P, fontFamily: "'Rajdhani', sans-serif" }}>
+                              {stdUni.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
+                            <span style={{ fontSize: 10, fontWeight: 600, color: TEXT_LIGHT, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                              Affiliated University
+                            </span>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: TEXT_MAIN, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={stdUni}>
+                              {stdUni}
+                            </span>
+                          </div>
+                        </a>
+
+                        {/* Inquire Button (Independent Link) */}
+                        <a href={`/student-inquiry`} style={{ textDecoration: 'none' }}>
+                          <button
+                            style={{ background: P, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8, fontSize: 12, fontWeight: 700, fontFamily: "'Rajdhani', sans-serif", textTransform: "uppercase", letterSpacing: "0.05em", cursor: "pointer", transition: "all 0.2s ease", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = "#0072b8";
+                              e.currentTarget.style.transform = "scale(1.02)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = P;
+                              e.currentTarget.style.transform = "scale(1)";
+                            }}
+                          >
+                            Inquire Now
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <line x1="5" y1="12" x2="19" y2="12"></line>
+                              <polyline points="12 5 19 12 12 19"></polyline>
+                            </svg>
+                          </button>
+                        </a>
+                      </div>
+
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+
+            {/* Sentinel for infinite scroll + spinner while fetching the next batch */}
+            <div ref={sentinelRef} style={{ height: 1 }} />
+            {loadingMore && (
+              <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, padding: "32px 0", color: TEXT_MUTED, fontSize: 14 }}>
+                <SpinnerIcon />
+                Loading more programs…
+              </div>
+            )}
+            {!hasMore && data.length > 0 && (
+              <div style={{ textAlign: "center", padding: "32px 0", color: TEXT_LIGHT, fontSize: 13 }}>
+                You've reached the end — {data.length} programs shown.
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -618,6 +689,14 @@ const uniRoute = uuid ? `/courses/${uuid}` : "#";
         }
         .custom-scroll::-webkit-scrollbar-thumb:hover {
           background: #9ca3af;
+        }
+
+        .spin-icon {
+          animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
 
         @media (max-width: 768px) {
