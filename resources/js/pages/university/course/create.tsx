@@ -580,7 +580,7 @@ export default function CourseDetailsForm({ courseDetail }: { courseDetail?: Cou
     useEffect(() => {
         setMasterLoading(true);
         setMasterError(null);
-        fetch('/api/university')
+        fetch('/api/universities')
             .then((res) => { if (!res.ok) throw new Error('Failed to fetch'); return res.json(); })
             .then((data) => { setMasterData(Array.isArray(data) ? data : []); })
             .catch((err) => {
