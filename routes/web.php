@@ -123,7 +123,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/university/export', [UniversityApiControler::class, 'export']);
         Route::post('/university/import', [UniversityApiControler::class, 'import']);
         Route::get('/university/filter-options', [UniversityApiControler::class, 'filterOptions']);
-        Route::get('/universities', [UniversityApiControler::class, 'filterOptions']);
+        Route::get('/universities', [UniversityApiControler::class, 'coursedetailscreate']);
         
 
         // Survey API
