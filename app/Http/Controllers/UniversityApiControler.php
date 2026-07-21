@@ -7,22 +7,107 @@ use Illuminate\Http\Request;
 use PhpOffice\PhpSpreadsheet\IOFactory; 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class UniversityApiControler extends Controller
 {
-   public function index(): JsonResponse
+    /**
+     * GET /api/university
+     *
+     * Was: University::leftJoin(...)->get() — pulled all 5000+ joined rows
+     * on every request, with no limit, no search, no filters. That's the
+     * slow load.
+     *
+     * Now: same join (needed for course_detail_uuid), but paginated with a
+     * cursor, and search/filters are pushed into the SQL so the DB only
+     * returns the rows actually needed for the current page.
+     *
+     * Query params:
+     *   search        string   - matches University, Course, College, Location, stream
+     *   level[]       string[]
+     *   stream[]      string[]
+     *   course[]      string[]
+     *   university[]  string[]
+     *   college[]     string[]
+     *   location[]    string[]
+     *   cursor        string   - opaque cursor from previous response's next_cursor
+     *   limit         int      - frontend sends 200 for the first page, then a
+     *                            smaller page size (e.g. 40) for subsequent loads
+     *
+     * Response:
+     *   { data: [...], next_cursor: string|null, has_more: bool }
+     */
+    public function index(Request $request): JsonResponse
     {
-        // Join course_details to fetch the uuid along with the university data
-        $data = University::leftJoin('course_details', function ($join) {
+        $limit = (int) $request->query('limit', 200);
+        $limit = max(1, min($limit, 200)); // hard cap so a bad request can't pull everything again
+
+        $query = University::query()
+            ->leftJoin('course_details', function ($join) {
                 $join->on('universities.University', '=', 'course_details.university_name')
                      ->on('universities.College', '=', 'course_details.college_name')
                      ->on('universities.Course', '=', 'course_details.course_name');
             })
-            // Select all university columns, and grab the course_details UUID
-            ->select('universities.*', 'course_details.uuid as course_detail_uuid')
-            ->get();
+            ->select('universities.*', 'course_details.uuid as course_detail_uuid');
 
-        return response()->json($data);
+        if ($search = trim((string) $request->query('search', ''))) {
+            // Requires a FULLTEXT index (see accompanying migration). Without it,
+            // LIKE '%term%' can't use an index and forces a full scan on every keystroke.
+            $query->whereFullText(
+                ['universities.University', 'universities.Course', 'universities.College', 'universities.Location', 'universities.stream'],
+                $search,
+                ['mode' => 'boolean']
+            );
+        }
+
+        $filterMap = [
+            'level'      => 'universities.level',
+            'stream'     => 'universities.stream',
+            'course'     => 'universities.Course',
+            'university' => 'universities.University',
+            'college'    => 'universities.College',
+            'location'   => 'universities.Location',
+        ];
+
+        foreach ($filterMap as $param => $column) {
+            $values = $request->query($param);
+            if (!empty($values)) {
+                $query->whereIn($column, (array) $values);
+            }
+        }
+
+        $paginated = $query->orderBy('universities.id')->cursorPaginate($limit);
+
+        return response()->json([
+            'data'        => $paginated->items(),
+            'next_cursor' => optional($paginated->nextCursor())->encode(),
+            'has_more'    => $paginated->hasMorePages(),
+        ]);
+    }
+
+    /**
+     * GET /api/university/filter-options
+     *
+     * Powers the dropdown filter lists without shipping all 5000+ rows to
+     * the browser just to compute distinct values client-side. Cached for
+     * 60s — data changes frequently, but the *set of distinct values*
+     * (which universities/colleges/streams exist at all) changes much less
+     * often than individual rows, so a short TTL is safe.
+     */
+    public function filterOptions(): JsonResponse
+    {
+        return response()->json(
+            Cache::remember('university_filter_options', 60, function () {
+                return [
+                    'levels'       => University::query()->distinct()->orderBy('level')->pluck('level')->filter()->values(),
+                    'streams'      => University::query()->distinct()->orderBy('stream')->pluck('stream')->filter()->values(),
+                    'courses'      => University::query()->distinct()->orderBy('Course')->pluck('Course')->filter()->values(),
+                    'universities' => University::query()->distinct()->orderBy('University')->pluck('University')->filter()->values(),
+                    'colleges'     => University::query()->distinct()->orderBy('College')->pluck('College')->filter()->values(),
+                    'locations'    => University::query()->distinct()->orderBy('Location')->pluck('Location')->filter()->values(),
+                ];
+            })
+        );
     }
 
     public function store(Request $request): JsonResponse
@@ -71,6 +156,8 @@ class UniversityApiControler extends Controller
                 $results[] = $university;
             }
         }
+
+        Cache::forget('university_filter_options');
 
         return response()->json([
             'message'    => 'University data saved successfully.',
@@ -125,6 +212,8 @@ class UniversityApiControler extends Controller
         }
     });
 
+    Cache::forget('university_filter_options');
+
     return response()->json([
         'message' => 'University updated successfully.'
     ]);
@@ -156,6 +245,8 @@ public function destroy($id)
 
             // Deletes the record
             $entry->delete();
+
+            Cache::forget('university_filter_options');
 
             return response()->json([
                 'success' => true,
@@ -300,6 +391,8 @@ $record->linkMatchingCourseDetail();
             }
 
             DB::commit();
+
+            Cache::forget('university_filter_options');
 
             return response()->json([
                 'success' => true,
