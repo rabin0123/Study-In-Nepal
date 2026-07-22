@@ -1,20 +1,6 @@
 import { Head } from '@inertiajs/react';
 import { useEffect, useState, useMemo } from 'react';
-
-// Iconify is loaded globally via CDN in app.blade.php and registers the
-// <iconify-icon> custom element. Declare it here so TSX/JSX recognizes the
-// tag and its attributes (icon, width, height, class) without extra imports.
-declare global {
-    namespace JSX {
-        interface IntrinsicElements {
-            'iconify-icon': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
-                icon?: string;
-                width?: string | number;
-                height?: string | number;
-            };
-        }
-    }
-}
+import { Icon } from "@iconify/react";
 
 type ModuleEntry = { name: string; info?: string | null };
 type YearModule = { year: number; title?: string | null; modules?: (string | ModuleEntry)[] | null };
@@ -38,6 +24,7 @@ type Props = {
             Intake?: string;
             Location?: string;
             university_logo_url?: string | null;
+           college_logo_url?: string | null;
         } | null;
     };
 };
@@ -119,6 +106,8 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
     const careersData = normalizeCareersData(courseDetail.careers);
     const careersIsStructuredDoc = typeof careersData === 'string' && isStructuredCareersDocument(careersData);
 
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+
     // Memoize the sections array so we can safely use it in our useEffect observer
     const sections = useMemo(() => {
         return [
@@ -139,13 +128,14 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
     const jumpTo = (id: string) => {
         const el = document.getElementById(id);
         if (!el) return;
+        // Offset adjusted so the section title clears the sticky header correctly
         const top = el.getBoundingClientRect().top + window.scrollY - 100;
         window.scrollTo({ top, behavior: 'smooth' });
     };
 
     // States for logos
     const [univLogo, setUnivLogo] = useState<string | null | undefined>(courseDetail.university?.university_logo_url);
-    const [collegeLogo, setCollegeLogo] = useState<string | null | undefined>(null);
+    const [collegeLogo, setCollegeLogo] = useState<string | null | undefined>(courseDetail.university?.college_logo_url);
 
     // Fetch logos from the API
     useEffect(() => {
@@ -178,6 +168,8 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 }
             } catch (err) {
                 console.error('Failed to fetch university API data for logos:', err);
+            } finally {
+                if (isMounted) setIsLoading(false);
             }
         };
 
@@ -190,6 +182,9 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
     // Intersection Observer to highlight active navigation link based on scroll position
     useEffect(() => {
+        // Prevent observer initialization until DOM elements are fully loaded
+        if (isLoading) return; 
+
         const observer = new IntersectionObserver(
             (entries) => {
                 entries.forEach((entry) => {
@@ -207,280 +202,293 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
         });
 
         return () => observer.disconnect();
-    }, [sections]);
+    }, [sections, isLoading]);
 
     return (
         <div className="gcu-page">
             <Head title={`${courseDetail.course_name} | ${courseDetail.university_name}`} />
 
-            {/* ================= HERO SECTION ================= */}
-            <div className="gcu-hero position-relative d-flex align-items-end overflow-hidden">
-                <div
-                    className="gcu-hero__bg position-absolute top-0 start-0 w-100 h-100"
-                    style={{
-                        backgroundImage: `url(${courseDetail.hero_image_url || 'https://www.studyinnepal.com/images/event_hallway.png'})`,
-                    }}
-                />
-                <div className="gcu-hero__overlay position-absolute top-0 start-0 w-100 h-100" />
-
-                {/* University strip, top-left */}
-                <div className="position-absolute top-0 start-0 w-100 pt-4 z-2">
-                    <div className="container-xl px-4">
-                        <div className="d-flex align-items-center flex-wrap gap-3">
-                            {univLogo && (
-                                <img
-                                    src={univLogo}
-                                    alt={courseDetail.university_name}
-                                    className="gcu-logo-sm gcu-logo-native bg-white rounded-3 p-1 flex-shrink-0"
-                                />
-                            )}
-                            <span className="text-white fw-bold fs-6">{courseDetail.university_name}</span>
-                        </div>
+            {isLoading ? (
+                /* ================= LOADING SPINNER ================= */
+                <div className="d-flex justify-content-center align-items-center w-100" style={{ minHeight: '100vh', backgroundColor: 'var(--gcu-surface)' }}>
+                    <div className="spinner-border" style={{ width: '3.5rem', height: '3.5rem', color: 'var(--gcu-blue)' }} role="status">
+                        <span className="visually-hidden">Loading...</span>
                     </div>
                 </div>
+            ) : (
+                <>
+                    {/* ================= HERO SECTION ================= */}
+                    <div className="gcu-hero position-relative d-flex align-items-end overflow-hidden">
+                        <div
+                            className="gcu-hero__bg position-absolute top-0 start-0 w-100 h-100"
+                            style={{
+                                backgroundImage: `url(${courseDetail.hero_image_url || 'https://www.studyinnepal.com/images/event_hallway.png'})`,
+                            }}
+                        />
+                        <div className="gcu-hero__overlay position-absolute top-0 start-0 w-100 h-100" />
 
-                <div className="container-xl px-4 position-relative z-2">
-                    <div className="gcu-banner card border-0 shadow-lg rounded-4 text-white p-4 p-md-5 mb-n5">
-                        <span className="badge bg-white bg-opacity-25 text-white fw-bold text-uppercase mb-3 align-self-start px-3 py-2">
-                            {courseDetail.university?.level || 'Postgraduate'}
-                        </span>
-                        <h1 className="fw-bold mb-3 gcu-banner__title">{courseDetail.course_name}</h1>
-
-                        <div className="d-flex align-items-center flex-wrap gap-3 mb-4 fs-5 fw-semibold">
-                            {collegeLogo && (
-                                <img
-                                    src={collegeLogo}
-                                    alt={courseDetail.college_name}
-                                    className="gcu-logo-xs gcu-logo-native bg-white rounded-2 p-1 flex-shrink-0"
-                                />
-                            )}
-                            <span>{courseDetail.college_name}</span>
-                        </div>
-
-                        <ul className="list-unstyled d-flex flex-wrap gap-4 border-top border-white border-opacity-25 pt-3 mb-0 fw-semibold small">
-                            {courseDetail.university?.Intake && (
-                                <li className="d-flex align-items-center gap-2">
-                                    <iconify-icon icon="material-symbols:calendar-month-outline" width="18" height="18" />
-                                    Intake: {courseDetail.university.Intake}
-                                </li>
-                            )}
-                            {courseDetail.university?.Location && (
-                                <li className="d-flex align-items-center gap-2">
-                                    <iconify-icon icon="material-symbols:location-on-outline" width="18" height="18" />
-                                    Location: {courseDetail.university.Location}
-                                </li>
-                            )}
-                        </ul>
-                    </div>
-                </div>
-            </div>
-
-            {/* ================= STICKY SUBNAV ================= */}
-            {sections.length > 1 && (
-                <nav className="gcu-subnav sticky-top border-bottom" aria-label="Course Sections">
-                    <div className="container-xl px-4">
-                        <ul className="nav gcu-subnav__list justify-content-center flex-nowrap overflow-auto">
-                            {sections.map((s) => (
-                                <li className="nav-item" key={s.id}>
-                                    <button
-                                        type="button"
-                                        onClick={() => jumpTo(s.id)}
-                                        className={`nav-link gcu-subnav__link fw-bold text-nowrap ${
-                                            activeSection === s.id ? 'active' : ''
-                                        }`}
-                                    >
-                                        {s.label}
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                </nav>
-            )}
-
-            <main className="gcu-main">
-                {/* ================= OVERVIEW ================= */}
-                {courseDetail.summary && (
-                    <section id="overview" className="container-xl px-4 gcu-panel gcu-panel--surface border-bottom">
-                        <div className="row gy-4 gy-lg-0" style={{ maxWidth: 1200 }}>
-                            <div className="col-lg-3">
-                                <h2 className="gcu-heading fw-bold fs-7">Overview</h2>
-                            </div>
-                            <div className="col-lg-9">
-                                <div
-                                    className="gcu-html-content"
-                                    dangerouslySetInnerHTML={{ __html: courseDetail.summary }}
-                                />
-                            </div>
-                        </div>
-                    </section>
-                )}
-
-                {/* ================= WHAT YOU WILL STUDY ================= */}
-                {modules.length > 0 && (
-                    <section id="study" className="gcu-panel-dark gcu-panel">
-                        <div className="container-xl px-4">
-                            <div className="row gy-4 gy-lg-0" style={{ maxWidth: 1200 }}>
-                                <div className="col-lg-3">
-                                    <h2 className="fw-bold fs-7 gcu-panel-dark__heading">
-                                        What you
-                                        <br />
-                                        will study
-                                    </h2>
-                                </div>
-                                <div className="col-lg-9">
-                                    {modules.length > 1 && (
-                                        <ul className="nav gcu-tab-headers flex-wrap gap-4 mb-4 pb-1">
-                                            {modules.map((yearBlock) => (
-                                                <li className="nav-item" key={yearBlock.year}>
-                                                    <button
-                                                        type="button"
-                                                        className={`nav-link gcu-tab-header-btn fw-bold fs-5 ${
-                                                            activeTab === yearBlock.year ? 'active' : ''
-                                                        }`}
-                                                        onClick={() => setActiveTab(yearBlock.year)}
-                                                    >
-                                                        {yearBlock.title || `Year ${yearBlock.year}`}
-                                                    </button>
-                                                </li>
-                                            ))}
-                                        </ul>
+                        {/* University strip, top-left */}
+                        <div className="position-absolute top-0 start-0 w-100 pt-4 z-2">
+                            <div className="container-xl px-4">
+                                <div className="d-flex align-items-center flex-wrap gap-3">
+                                    {univLogo && (
+                                        <img
+                                            src={univLogo}
+                                            alt={courseDetail.university_name}
+                                            className="gcu-logo-sm gcu-logo-native rounded-3 p-1 flex-shrink-0"
+                                        />
                                     )}
+                                    <span className="text-white fw-bold fs-6">{courseDetail.university_name}</span>
+                                </div>
+                            </div>
+                        </div>
 
-                                    <div className="gcu-modules-list" id="moduleAccordion">
-                                        {modules.map((yearBlock) => {
-                                            if (activeTab !== yearBlock.year && modules.length > 1) return null;
-                                            return (
-                                                <div key={yearBlock.year} className="d-flex flex-column gcu-modules-gap">
-                                                    {yearBlock.title && modules.length === 1 && (
-                                                        <h3 className="fs-5 fw-bold gcu-panel-dark__heading mb-2">{yearBlock.title}</h3>
-                                                    )}
-                                                    {yearBlock.modules && yearBlock.modules.length > 0 ? (
-                                                        yearBlock.modules
-                                                            .map(normalizeModuleEntry)
-                                                            .map((mod, i) => (
-                                                                <ModuleAccordion
-                                                                    key={i}
-                                                                    id={`mod-${yearBlock.year}-${i}`}
-                                                                    name={mod.name}
-                                                                    info={mod.info}
-                                                                />
-                                                            ))
-                                                    ) : (
-                                                        <p className="gcu-panel-dark__muted mb-0">No modules listed for this period.</p>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
+                        <div className="container-xl px-4 position-relative z-2">
+                            <div className="gcu-banner card border-0 shadow-lg rounded-4 text-white p-4 p-md-5 mb-n5">
+                                <div className="d-flex align-items-center justify-content-between mb-3">
+                                    <span className="badge bg-white bg-opacity-25 text-white fw-bold text-uppercase px-3 py-2">
+                                        {courseDetail.university?.level || 'Postgraduate'}
+                                    </span>
+                                    {courseDetail.university?.Intake && (
+                                        <span className="d-flex align-items-center gap-1 small fw-semibold text-white text-opacity-75">
+                                            <Icon icon="material-symbols:calendar-month-outline" width="16" height="16" />
+                                            Intake: {courseDetail.university.Intake}
+                                        </span>
+                                    )}
+                                </div>
+
+                                <h1 className="fw-bold mb-3 gcu-banner__title">{courseDetail.course_name}</h1>
+
+                                <div className="d-flex align-items-center flex-wrap gap-3 mb-4 fs-5 fw-bold">
+                                    {collegeLogo && (
+                                        <img
+                                            src={collegeLogo}
+                                            alt={courseDetail.college_name}
+                                            className="gcu-logo-xs gcu-logo-native rounded-2 p-1 flex-shrink-0"
+                                        />
+                                    )}
+                                    <div className="d-flex flex-column">
+                                        <span>{courseDetail.college_name}</span>
+                                        {courseDetail.university?.Location && (
+                                            <span className="d-flex align-items-center gap-1 small fw-normal text-white text-opacity-75">
+                                                <Icon icon="material-symbols:location-on-outline" width="16" height="16" />
+                                                {courseDetail.university.Location}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </section>
-                )}
+                    </div>
 
-                {/* ================= FEES AND FUNDING ================= */}
-                {fees.length > 0 && (
-                    <section id="fees" className="container-xl px-4 gcu-panel gcu-panel--surface border-bottom">
-                        <div className="row gy-4 gy-lg-0" style={{ maxWidth: 1200 }}>
-                            <div className="col-lg-3">
-                                <h2 className="gcu-heading fw-bold fs-7">
-                                    Fees and
-                                    <br />
-                                    funding
-                                </h2>
+                    {/* ================= STICKY SUBNAV ================= */}
+                    {sections.length > 1 && (
+                        <nav className="gcu-subnav sticky-top border-bottom" aria-label="Course Sections">
+                            <div className="container-xl px-4">
+                                <ul className="nav gcu-subnav__list justify-content-center flex-nowrap overflow-auto">
+                                    {sections.map((s) => (
+                                        <li className="nav-item" key={s.id}>
+                                            <button
+                                                type="button"
+                                                onClick={() => jumpTo(s.id)}
+                                                className={`nav-link gcu-subnav__link fw-bold text-nowrap ${
+                                                    activeSection === s.id ? 'active' : ''
+                                                }`}
+                                            >
+                                                {s.label}
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
                             </div>
-                            <div className="col-lg-9">
-                                <p className="gcu-body-text fs-4 mb-4">
-                                    The tuition fees you pay are determined by your fee status. Estimated tuition
-                                    breakdown by year is published below for guidance.
-                                </p>
-                                <div className="table-responsive border rounded-3">
-                                    <table className="table table-striped table-hover mb-0 align-middle gcu-fees-table">
-                                        <thead>
-                                            <tr>
-                                                <th className="text-uppercase fw-bold py-3 px-3">
-                                                    Year of Study
-                                                </th>
-                                                <th className="text-uppercase fw-bold py-3 px-3">
-                                                    Tuition Fee
-                                                </th>
-                                                <th className="text-uppercase fw-bold py-3 px-3">
-                                                    Additional Notes
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {fees.map((fee) => (
-                                                <tr key={fee.year}>
-                                                    <td className="fw-bold px-3">Year {fee.year}</td>
-                                                    <td className="fw-bold text-primary px-3">
-                                                        {fee.amount ? `${fee.currency ?? ''} ${fee.amount}`.trim() : '—'}
-                                                    </td>
-                                                    <td className=" px-3">{fee.note || '—'}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                        </nav>
+                    )}
+
+                    <main className="gcu-main">
+                        {/* ================= OVERVIEW ================= */}
+                        {courseDetail.summary && (
+                            <section id="overview" className="container-xl px-4 gcu-panel gcu-panel--surface border-bottom">
+                                <div className="row gy-4 gy-lg-0" style={{ maxWidth: 1200 }}>
+                                    <div className="col-lg-3">
+                                        <h2 className="gcu-heading fw-bold fs-7">Overview</h2>
+                                    </div>
+                                    <div className="col-lg-9">
+                                        <div
+                                            className="gcu-html-content"
+                                            dangerouslySetInnerHTML={{ __html: courseDetail.summary }}
+                                        />
+                                    </div>
+                                </div>
+                            </section>
+                        )}
+
+                        {/* ================= WHAT YOU WILL STUDY ================= */}
+                        {modules.length > 0 && (
+                            <section id="study" className="gcu-panel-dark gcu-panel">
+                                <div className="container-xl px-4">
+                                    <div className="row gy-4 gy-lg-0" style={{ maxWidth: 1200 }}>
+                                        <div className="col-lg-3">
+                                            <h2 className="fw-bold fs-7 gcu-panel-dark__heading">
+                                                What you
+                                                <br />
+                                                will study
+                                            </h2>
+                                        </div>
+                                        <div className="col-lg-9">
+                                            {modules.length > 1 && (
+                                                <ul className="nav gcu-tab-headers flex-wrap gap-4 mb-4 pb-1">
+                                                    {modules.map((yearBlock) => (
+                                                        <li className="nav-item" key={yearBlock.year}>
+                                                            <button
+                                                                type="button"
+                                                                className={`nav-link gcu-tab-header-btn fw-bold fs-5 ${
+                                                                    activeTab === yearBlock.year ? 'active' : ''
+                                                                }`}
+                                                                onClick={() => setActiveTab(yearBlock.year)}
+                                                            >
+                                                                {yearBlock.title || `Year ${yearBlock.year}`}
+                                                            </button>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            )}
+
+                                            <div className="gcu-modules-list" id="moduleAccordion">
+                                                {modules.map((yearBlock) => {
+                                                    if (activeTab !== yearBlock.year && modules.length > 1) return null;
+                                                    return (
+                                                        <div key={yearBlock.year} className="d-flex flex-column gcu-modules-gap">
+                                                            {yearBlock.title && modules.length === 1 && (
+                                                                <h3 className="fs-5 fw-bold gcu-panel-dark__heading mb-2">{yearBlock.title}</h3>
+                                                            )}
+                                                            {yearBlock.modules && yearBlock.modules.length > 0 ? (
+                                                                yearBlock.modules
+                                                                    .map(normalizeModuleEntry)
+                                                                    .map((mod, i) => (
+                                                                        <ModuleAccordion
+                                                                            key={i}
+                                                                            id={`mod-${yearBlock.year}-${i}`}
+                                                                            name={mod.name}
+                                                                            info={mod.info}
+                                                                        />
+                                                                    ))
+                                                            ) : (
+                                                                <p className="gcu-panel-dark__muted mb-0">No modules listed for this period.</p>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                        )}
+
+                        {/* ================= FEES AND FUNDING ================= */}
+                        {fees.length > 0 && (
+                            <section id="fees" className="container-xl px-4 gcu-panel gcu-panel--surface border-bottom">
+                                <div className="row gy-4 gy-lg-0" style={{ maxWidth: 1200 }}>
+                                    <div className="col-lg-3">
+                                        <h2 className="gcu-heading fw-bold fs-7">
+                                            Fees and
+                                            <br />
+                                            funding
+                                        </h2>
+                                    </div>
+                                    <div className="col-lg-9">
+                                        <p className="gcu-body-text fs-4 mb-4">
+                                            The tuition fees you pay are determined by your fee status. Estimated tuition
+                                            breakdown by year is published below for guidance.
+                                        </p>
+                                        <div className="table-responsive border rounded-3">
+                                            <table className="table table-striped table-hover mb-0 align-middle gcu-fees-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th className="text-uppercase fw-bold py-3 px-3">
+                                                            Year of Study
+                                                        </th>
+                                                        <th className="text-uppercase fw-bold py-3 px-3">
+                                                            Tuition Fee
+                                                        </th>
+                                                        <th className="text-uppercase fw-bold py-3 px-3">
+                                                            Additional Notes
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {fees.map((fee) => (
+                                                        <tr key={fee.year}>
+                                                            <td className="fw-bold px-3">Year {fee.year}</td>
+                                                            <td className="fw-bold text-primary px-3">
+                                                                {fee.amount ? `${fee.currency ?? ''} ${fee.amount}`.trim() : '—'}
+                                                            </td>
+                                                            <td className=" px-3">{fee.note || '—'}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                        )}
+
+                        {/* ================= CAREER PROSPECTUS ================= */}
+                        <section
+                            id="careers"
+                            className="gcu-panel-careers gcu-panel position-relative"
+                            style={{
+                                backgroundImage: `url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')`,
+                            }}
+                        >
+                            <div className="gcu-panel-careers__overlay position-absolute top-0 start-0 w-100 h-100" />
+                            <div className="container-xl px-4 position-relative z-2">
+                                <div className="row gy-4 gy-lg-0" style={{ maxWidth: 1200 }}>
+                                    <div className="col-lg-3">
+                                        <h2 className="fw-bold fs-7 text-white">
+                                            Career
+                                            <br />
+                                            Prospectus
+                                        </h2>
+                                    </div>
+                                    <div className="col-lg-9">
+                                        <p className="text-white-50 fs-5 mb-4">
+                                            Our course helps set the trajectory for career positions such as:
+                                        </p>
+
+                                        {typeof careersData === 'string' && careersData.trim() !== '' ? (
+                                            <div
+                                                // Full structured HTML (headings + nested/ordered lists) renders as a
+                                                // real document with plain bullets/numbers via .gcu-html-content.
+                                                // A short flat list of tag-like phrases instead falls back to the
+                                                // compact pill badges via the --pills modifier.
+                                                className={`gcu-html-content gcu-html-content--dark ${
+                                                    careersIsStructuredDoc ? '' : 'gcu-html-content--pills'
+                                                }`}
+                                                dangerouslySetInnerHTML={{ __html: careersData }}
+                                            />
+                                        ) : Array.isArray(careersData) && careersData.length > 0 ? (
+                                            <ul className="list-unstyled d-flex flex-wrap gap-2 mb-0">
+                                                {careersData.map((c, i) => (
+                                                    <li key={i} className="gcu-career-pill">
+                                                        {c}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <p className="text-white-50 fst-italic mb-0">
+                                                No detailed career prospectus information has been published for this course
+                                                yet.
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </section>
-                )}
-
-                {/* ================= CAREER PROSPECTUS ================= */}
-                <section
-                    id="careers"
-                    className="gcu-panel-careers gcu-panel position-relative"
-                    style={{
-                        backgroundImage: `url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')`,
-                    }}
-                >
-                    <div className="gcu-panel-careers__overlay position-absolute top-0 start-0 w-100 h-100" />
-                    <div className="container-xl px-4 position-relative z-2">
-                        <div className="row gy-4 gy-lg-0" style={{ maxWidth: 1200 }}>
-                            <div className="col-lg-3">
-                                <h2 className="fw-bold fs-7 text-white">
-                                    Career
-                                    <br />
-                                    Prospectus
-                                </h2>
-                            </div>
-                            <div className="col-lg-9">
-                                <p className="text-white-50 fs-5 mb-4">
-                                    Our course helps set the trajectory for career positions such as:
-                                </p>
-
-                                {typeof careersData === 'string' && careersData.trim() !== '' ? (
-                                    <div
-                                        // Full structured HTML (headings + nested/ordered lists) renders as a
-                                        // real document with plain bullets/numbers via .gcu-html-content.
-                                        // A short flat list of tag-like phrases instead falls back to the
-                                        // compact pill badges via the --pills modifier.
-                                        className={`gcu-html-content gcu-html-content--dark ${
-                                            careersIsStructuredDoc ? '' : 'gcu-html-content--pills'
-                                        }`}
-                                        dangerouslySetInnerHTML={{ __html: careersData }}
-                                    />
-                                ) : Array.isArray(careersData) && careersData.length > 0 ? (
-                                    <ul className="list-unstyled d-flex flex-wrap gap-2 mb-0">
-                                        {careersData.map((c, i) => (
-                                            <li key={i} className="gcu-career-pill">
-                                                {c}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <p className="text-white-50 fst-italic mb-0">
-                                        No detailed career prospectus information has been published for this course
-                                        yet.
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            </main>
+                        </section>
+                    </main>
+                </>
+            )}
 
             {/*
                 Bootstrap 5 handles layout, spacing, grid, tables, nav, and badges.
@@ -571,6 +579,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                    Scoped as a hard reset so no future dark-mode rule added
                    elsewhere on the page can accidentally recolor these. */
                 .gcu-logo-native {
+                    background-color: #ffffff !important;
                     filter: none !important;
                     -webkit-filter: none !important;
                     mix-blend-mode: normal !important;
@@ -588,7 +597,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
                 /* ---- Sticky subnav ---- */
                 .gcu-subnav {
-                    top: 0;
+                    top: -30px !important;
                     z-index: 1030;
                     background-color: var(--gcu-subnav-bg) !important;
                     border-color: var(--gcu-border) !important;
@@ -841,7 +850,7 @@ function ModuleAccordion({ id, name, info }: { id: string; name: string; info?: 
             >
                 <span>{name}</span>
                 {hasInfo && (
-                    <iconify-icon
+                    <Icon
                         icon="material-symbols:chevron-right-rounded"
                         width="22"
                         height="22"
