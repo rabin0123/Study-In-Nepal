@@ -14,7 +14,8 @@ const INITIAL_PAGE_SIZE = 200;
 const NEXT_PAGE_SIZE = 40;
 const SEARCH_DEBOUNCE_MS = 300;
 
-// ── Stream → Image mapping (computed once, not per-row) ───────────────────
+// ── Helper to dynamically map stream to actual homepage assets ─────────────
+// Computed once via a static rule table rather than a chain of .includes() calls per row.
 const STREAM_IMAGE_RULES: [RegExp, string][] = [
   [/it|tech|comput|engin|science/, "/images/event_classroom.png"],
   [/buddhist|philosophy|culture|art/, "/images/nepal_temple.png"],
@@ -23,20 +24,12 @@ const STREAM_IMAGE_RULES: [RegExp, string][] = [
 ];
 const FALLBACK_POOL = ["/images/event_grad.png", "/images/students_hero.jpg"];
 
-// Cache results per unique stream string so repeated streams across rows
-// (common — many courses share a stream) skip re-matching entirely.
-const streamImageCache = new Map<string, string>();
-
-const getStreamImage = (stream: string, id: number): string => {
-  const key = stream?.toLowerCase() || "";
-  const cacheKey = `${key}::${id % FALLBACK_POOL.length}`;
-  if (streamImageCache.has(cacheKey)) return streamImageCache.get(cacheKey)!;
-
-  const rule = STREAM_IMAGE_RULES.find(([regex]) => regex.test(key));
-  const result = rule ? rule[1] : FALLBACK_POOL[id % FALLBACK_POOL.length];
-
-  streamImageCache.set(cacheKey, result);
-  return result;
+const getStreamImage = (stream: string | null | undefined, id: number): string => {
+  const s = stream?.toLowerCase() || "";
+  for (const [pattern, image] of STREAM_IMAGE_RULES) {
+    if (pattern.test(s)) return image;
+  }
+  return FALLBACK_POOL[id % FALLBACK_POOL.length];
 };
 
 // ── Data Standardization & Sanitization Helpers ────────────────────────────
@@ -146,6 +139,63 @@ const validUrl = (url: string | null | undefined): string | null => {
   if (trimmed === "") return null;
   return trimmed;
 };
+
+// ── Card Image with two-stage fallback (college logo → stream image → none) ─
+// Tracks failure state locally so onError never loops and, once both the
+// primary and fallback sources have failed, renders nothing (null) instead
+// of a broken-image icon — the card's gray placeholder background shows through.
+function CardImage({
+  collegeLogo,
+  fallbackImage,
+  alt,
+}: {
+  collegeLogo: string | null;
+  fallbackImage: string | null;
+  alt: string;
+}) {
+  const [stage, setStage] = useState<"primary" | "fallback" | "none">(
+    collegeLogo ? "primary" : fallbackImage ? "fallback" : "none"
+  );
+
+  // Reset stage if the underlying row data changes (e.g. after a re-fetch/filter change
+  // reusing the same component instance via list virtualization edge cases)
+  useEffect(() => {
+    setStage(collegeLogo ? "primary" : fallbackImage ? "fallback" : "none");
+  }, [collegeLogo, fallbackImage]);
+
+  if (stage === "none") return null;
+
+  const src = stage === "primary" ? collegeLogo! : fallbackImage!;
+  const isPrimary = stage === "primary";
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      style={{
+        width: "100%",
+        height: "100%",
+        objectFit: isPrimary ? "contain" : "cover",
+        padding: isPrimary ? "24px" : "0",
+        transition: "transform 0.5s ease",
+        boxSizing: "border-box",
+      }}
+      onMouseEnter={(e) => {
+        if (!isPrimary) e.currentTarget.style.transform = "scale(1.05)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "scale(1.0)";
+      }}
+      onError={() => {
+        if (stage === "primary" && fallbackImage) {
+          setStage("fallback");
+        } else {
+          setStage("none"); // both primary and fallback failed — leave it null
+        }
+      }}
+    />
+  );
+}
 
 // ── Reusable Dropdown Component ────────────────────────────────────────────
 function DropdownFilter({ label, options, selected, toggleOption }: { label: string, options: string[], selected: string[], toggleOption: (val: string) => void }) {
@@ -409,16 +459,26 @@ export default function CourseSearch() {
 
   const hasActiveFilters = selectedLevels.length > 0 || selectedStreams.length > 0 || selectedCourses.length > 0 || selectedUniversities.length > 0 || selectedColleges.length > 0 || selectedLocations.length > 0;
 
-  // Standardize once per row for display — data already arrives pre-filtered from the server
-  const displayRows = useMemo(() => data.map(item => ({
-    item,
-    stdLevel: standardizeLevel(item.level),
-    stdUni: standardizeName(item.University),
-    stdCol: standardizeName(item.College),
-    stdLoc: standardizeName(item.Location),
-    stdStream: standardizeName(item.stream),
-    stdCourse: standardizeCourse(item.Course),
-  })), [data]);
+  // Standardize once per row for display — data already arrives pre-filtered from the server.
+  // Logo validation and the stream-image fallback are also resolved here, once per row per
+  // data change, instead of being recomputed inline during every render/hover.
+  const displayRows = useMemo(() => data.map(item => {
+    const collegeLogo = validUrl(item.college_logo_url);
+    const universityLogo = validUrl(item.university_logo_url);
+    return {
+      item,
+      stdLevel: standardizeLevel(item.level),
+      stdUni: standardizeName(item.University),
+      stdCol: standardizeName(item.College),
+      stdLoc: standardizeName(item.Location),
+      stdStream: standardizeName(item.stream),
+      stdCourse: standardizeCourse(item.Course),
+      collegeLogo,
+      universityLogo,
+      // Only relevant as a fallback when there's no college logo to try first.
+      fallbackImage: collegeLogo ? null : getStreamImage(item.stream, item.id),
+    };
+  }), [data]);
 
   return (
     <div style={{ background: BG, minHeight: "100vh", color: TEXT_MAIN, fontFamily: "'Manrope', sans-serif" }}>
@@ -500,11 +560,7 @@ export default function CourseSearch() {
         ) : (
           <>
             <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-              {displayRows.map(({ item, stdLevel, stdUni, stdCol, stdLoc, stdStream, stdCourse }) => {
-                const collegeLogo = validUrl(item.college_logo_url);
-                const universityLogo = validUrl(item.university_logo_url);
-                const fallbackImage = getStreamImage(item.stream, item.id);
-
+              {displayRows.map(({ item, stdLevel, stdUni, stdCol, stdLoc, stdStream, stdCourse, collegeLogo, universityLogo, fallbackImage }) => {
                 const uuid = item.course_detail_uuid;
                 const uniRoute = uuid ? `/courses/${uuid}` : "#";
 
@@ -540,36 +596,13 @@ export default function CourseSearch() {
                       position: "relative",
                       overflow: "hidden",
                       flexShrink: 0,
-                      background: collegeLogo ? "#ffffff" : "#E5E7EB",
+                      background: "#E5E7EB",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       borderRight: `1px solid ${BORDER}`
                     }}>
-                      <img
-                        src={collegeLogo ?? fallbackImage}
-                        alt={stdCol}
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: collegeLogo ? "contain" : "cover",
-                          padding: collegeLogo ? "24px" : "0",
-                          transition: "transform 0.5s ease",
-                          boxSizing: "border-box",
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!collegeLogo) e.currentTarget.style.transform = "scale(1.05)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = "scale(1.0)";
-                        }}
-                        onError={(e) => {
-                          e.currentTarget.src = fallbackImage;
-                          e.currentTarget.style.objectFit = "cover";
-                          e.currentTarget.style.padding = "0";
-                          e.currentTarget.parentElement!.style.background = "#E5E7EB";
-                        }}
-                      />
+                      <CardImage collegeLogo={collegeLogo} fallbackImage={fallbackImage} alt={stdCol} />
                       <div style={{ position: "absolute", bottom: 12, left: 12, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)", color: "#ffffff", fontSize: 10, fontWeight: 700, fontFamily: "'Rajdhani', sans-serif", padding: "4px 8px", borderRadius: 4, letterSpacing: "0.08em", textTransform: "uppercase" }}>
                         {stdStream}
                       </div>
