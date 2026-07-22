@@ -145,25 +145,24 @@ class CourseDetailController extends Controller
     /**
      * Public detail page.
      */
-    public function show($uuid): JsonResponse
-{
-    // Find the CourseDetail using UUID
-    $courseDetail = CourseDetail::where('uuid', $uuid)->firstOrFail();
+    public function show($uuid): Response
+    {
+        // 1. Find the CourseDetail using the UUID (throws 404 if not found)
+        $courseDetail = CourseDetail::where('uuid', $uuid)->firstOrFail();
 
-    // Find the matching University record
-    $university = University::where('Course', $courseDetail->course_name)
-        ->where('College', $courseDetail->college_name)
-        ->where('University', $courseDetail->university_name)
-        ->first();
+        // 2. Find the matching University record for context
+        // Notice we are matching the capitalized column names from the `universities` table
+        // against the snake_case column names from the `course_details` table.
+        $university = University::where('Course', $courseDetail->course_name)
+            ->where('College', $courseDetail->college_name)
+            ->where('University', $courseDetail->university_name)
+            ->first();
 
-    return response()->json([
-        'success' => true,
-        'data' => [
-            'university' => $university,
+        return Inertia::render('courses/show', [
+            'university'   => $university,
             'courseDetail' => $courseDetail,
-        ],
-    ]);
-}
+        ]);
+    }
 
     /**
      * Show edit form for a single Course Detail.
