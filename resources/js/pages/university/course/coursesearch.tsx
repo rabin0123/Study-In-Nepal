@@ -596,7 +596,7 @@ export default function CourseSearch() {
                       position: "relative",
                       overflow: "hidden",
                       flexShrink: 0,
-                      background: "#E5E7EB",
+                      background: "#ffffff",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
