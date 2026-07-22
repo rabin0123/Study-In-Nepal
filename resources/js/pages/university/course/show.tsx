@@ -1047,9 +1047,22 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: inherit;
                 }
 
-                .gcu-panel.scheme--mild-black-bg .gcu-html-content {
-                    color: rgba(255, 255, 255, 0.9);
-                }
+                .gcu-panel.scheme--mild-black-bg .gcu-html-content,
+.gcu-panel.scheme--mild-black-bg .gcu-html-content p,
+.gcu-panel.scheme--mild-black-bg .gcu-html-content span,
+.gcu-panel.scheme--mild-black-bg .gcu-html-content div,
+.gcu-panel.scheme--mild-black-bg .gcu-html-content li,
+.gcu-panel.scheme--mild-black-bg .gcu-html-content strong,
+.gcu-panel.scheme--mild-black-bg .gcu-html-content b,
+.gcu-panel.scheme--mild-black-bg .gcu-html-content em,
+.gcu-panel.scheme--mild-black-bg .gcu-html-content i,
+.gcu-panel.scheme--mild-black-bg .gcu-html-content u {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+.gcu-panel.scheme--mild-black-bg .gcu-html-content,
+.gcu-panel.scheme--mild-black-bg .gcu-html-content * {
+    background-color: transparent !important;
+}
                 .gcu-panel.scheme--mild-black-bg .gcu-html-content h1,
                 .gcu-panel.scheme--mild-black-bg .gcu-html-content h2 {
                     color: var(--color-white);
