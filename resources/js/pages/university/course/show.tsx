@@ -24,17 +24,16 @@ type Props = {
         careers: string | string[] | null;
         university_id: number | null;
         hero_image_url?: string | null;
-        // Fully resolved server-side in CourseDetailController::show().
-        // No more partial data + client-side backfill.
-        university?: {
-            id: number | null;
-            level?: string | null;
-            Intake?: string | null;
-            Location?: string | null;
-            university_logo_url?: string | null;
-            college_logo_url?: string | null;
-        } | null;
     };
+    // Moved university to the top level, as it arrives as a sibling of courseDetail
+    university?: {
+        id: number | null;
+        level?: string | null;
+        Intake?: string | null;
+        Location?: string | null;
+        university_logo_url?: string | null;
+        college_logo_url?: string | null;
+    } | null;
 };
 
 function sortByYear<T extends { year: number }>(items: T[] | null | undefined): T[] {
@@ -68,7 +67,7 @@ function normalizeCareersData(careers: string | string[] | null | undefined): st
     return careers;
 }
 
-export default function CourseDetailsShow({ courseDetail }: Props) {
+export default function CourseDetailsShow({ courseDetail, university }: Props) {
     const modules = sortByYear(courseDetail.year_wise_modules);
     const fees = sortByYear(courseDetail.fees);
     const careersData = normalizeCareersData(courseDetail.careers);
@@ -104,15 +103,12 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
         setActiveSemester(0);
     };
 
-    // Resolved entirely server-side now (CourseDetailController::show merges
-    // the University row — with exact/partial-match fallback — before the
-    // page is ever sent to Inertia). No client-side fetch, no flash of
-    // missing logos/intake/location after the course text renders.
-    const univLogo = courseDetail.university?.university_logo_url ?? null;
-    const collegeLogo = courseDetail.university?.college_logo_url ?? null;
-    const intake = courseDetail.university?.Intake ?? null;
-    const location = courseDetail.university?.Location ?? null;
-    const level = courseDetail.university?.level || 'Postgraduate';
+    // Now correctly mapping to the top-level 'university' prop
+    const univLogo = university?.university_logo_url ?? null;
+    const collegeLogo = university?.college_logo_url ?? null;
+    const intake = university?.Intake ?? null;
+    const location = university?.Location ?? null;
+    const level = university?.level || 'Postgraduate';
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -280,7 +276,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                                             yearBlock.semesters!.every((sem) => Boolean(sem.title && sem.title.trim() !== ''));
 
                                                         if (hasSemesters && allSemestersNamed) {
-                                                            // Every semester has a real title — show the tab-switcher as normal.
                                                             return (
                                                                 <>
                                                                     <div className="gcu-semester-tabs">
@@ -314,9 +309,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                                         }
 
                                                         if (hasSemesters) {
-                                                            // At least one semester has no title — skip the pill switcher
-                                                            // entirely and just show every module from every semester
-                                                            // in this year, flattened into one list.
                                                             const allModules = yearBlock.semesters!.flatMap((sem) => sem.modules || []);
                                                             if (allModules.length > 0) {
                                                                 return allModules
@@ -329,7 +321,6 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                                         }
 
                                                         if (yearBlock.modules && yearBlock.modules.length > 0) {
-                                                            /* Fallback logic for backward compatibility if no nested semesters are passed */
                                                             return yearBlock.modules
                                                                 .map(normalizeModuleEntry)
                                                                 .map((mod, i) => <ModuleAccordion key={i} name={mod.name} credit_hours={mod.credit_hours} info={mod.info} />);
@@ -430,6 +421,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
             </main>
 
             <style>{`
+                /* ... (All CSS remains identical, omitting to keep answer concise, just leave the block as you had it) ... */
                 :root {
                     --color-skyblue: #0085da;
                     --color-skyblue-dark: #006bb0;
