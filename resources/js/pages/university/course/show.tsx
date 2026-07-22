@@ -30,6 +30,7 @@ type Props = {
             Intake?: string;
             Location?: string;
             university_logo_url?: string | null;
+           college_logo_url?: string | null;
         } | null;
     };
 };
@@ -102,7 +103,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
     };
 
     const [univLogo, setUnivLogo] = useState<string | null | undefined>(courseDetail.university?.university_logo_url);
-    const [collegeLogo, setCollegeLogo] = useState<string | null | undefined>(null);
+    const [collegeLogo, setCollegeLogo] = useState<string | null | undefined>(courseDetail.university?.college_logo_url);
     const [intake, setIntake] = useState<string | null | undefined>(courseDetail.university?.Intake);
     const [location, setLocation] = useState<string | null | undefined>(courseDetail.university?.Location);
     const [level, setLevel] = useState<string | null | undefined>(courseDetail.university?.level || 'Postgraduate');
@@ -112,10 +113,31 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
         const fetchDetails = async () => {
             try {
-                const res = await fetch('https://www.admin.studyinnepal.com/api/university');
-                const data = await res.json();
+                // The endpoint is paginated: { data: [...], next_cursor, has_more }.
+                // It is NOT a plain array, so we must unwrap `.data`. It's also
+                // limited to ~15-20 rows per page, so a course further down the
+                // table would silently fail to match unless we page through
+                // every batch first.
+                let allRows: any[] = [];
+                let cursor: string | null = null;
+
+                do {
+                    const url = new URL('https://www.admin.studyinnepal.com/api/university');
+                    if (cursor) url.searchParams.set('cursor', cursor);
+
+                    const res = await fetch(url.toString());
+                    const json = await res.json();
+
+                    const page = Array.isArray(json) ? json : (json.data ?? []);
+                    allRows = allRows.concat(page);
+
+                    cursor = json.next_cursor ?? null;
+                    if (!json.has_more) break;
+                } while (cursor);
 
                 if (!isMounted) return;
+
+                const data = allRows;
 
                 const exactMatch = data.find(
                     (item: any) =>
@@ -124,25 +146,27 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 );
 
                 if (exactMatch) {
-                    if (exactMatch.university_logo_url) setUnivLogo(exactMatch.university_logo_url);
-                    if (exactMatch.college_logo_url) setCollegeLogo(exactMatch.college_logo_url);
-                    if (exactMatch.Intake) setIntake(exactMatch.Intake);
-                    if (exactMatch.Location) setLocation(exactMatch.Location);
-                    if (exactMatch.Level || exactMatch.level) setLevel(exactMatch.Level || exactMatch.level);
+                    // Only fill in what's still missing — never overwrite
+                    // good data that already came from props.
+                    if (!univLogo && exactMatch.university_logo_url) setUnivLogo(exactMatch.university_logo_url);
+                    if (!collegeLogo && exactMatch.college_logo_url) setCollegeLogo(exactMatch.college_logo_url);
+                    if (!intake && exactMatch.Intake) setIntake(exactMatch.Intake);
+                    if (!location && exactMatch.Location) setLocation(exactMatch.Location);
+                    if (!courseDetail.university?.level && (exactMatch.Level || exactMatch.level)) setLevel(exactMatch.Level || exactMatch.level);
                 } else {
                     const univMatch = data.find((item: any) => item.University === courseDetail.university_name);
                     const colMatch = data.find((item: any) => item.College === courseDetail.college_name);
 
-                    if (univMatch?.university_logo_url) setUnivLogo(univMatch.university_logo_url);
-                    if (colMatch?.college_logo_url) setCollegeLogo(colMatch.college_logo_url);
+                    if (!univLogo && univMatch?.university_logo_url) setUnivLogo(univMatch.university_logo_url);
+                    if (!collegeLogo && colMatch?.college_logo_url) setCollegeLogo(colMatch.college_logo_url);
 
                     const fallbackIntake = colMatch?.Intake || univMatch?.Intake;
                     const fallbackLocation = colMatch?.Location || univMatch?.Location;
                     const fallbackLevel = colMatch?.Level || colMatch?.level || univMatch?.Level || univMatch?.level;
 
-                    if (fallbackIntake) setIntake(fallbackIntake);
-                    if (fallbackLocation) setLocation(fallbackLocation);
-                    if (fallbackLevel) setLevel(fallbackLevel);
+                    if (!intake && fallbackIntake) setIntake(fallbackIntake);
+                    if (!location && fallbackLocation) setLocation(fallbackLocation);
+                    if (!courseDetail.university?.level && fallbackLevel) setLevel(fallbackLevel);
                 }
             } catch (err) {
                 console.error('Failed to fetch university API data for details:', err);
@@ -1176,7 +1200,9 @@ function ModuleAccordion({ name, info, credit_hours }: { name: string; info?: st
                 aria-expanded={hasInfo ? open : undefined}
             >
                 <span>{name}</span>
-                <span className="gcu-credit-hours">{credit_hours} Credit hours </span>
+                {credit_hours && (
+                    <span className="gcu-credit-hours">{credit_hours} Credit hours</span>
+                )}
                 {hasInfo && (
                     <span className="gcu-module-row__arrow" aria-hidden="true">
                         &#10142;
