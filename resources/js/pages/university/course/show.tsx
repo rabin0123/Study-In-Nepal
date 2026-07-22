@@ -112,7 +112,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
         const fetchDetails = async () => {
             try {
-                const res = await fetch('/api/university');
+                const res = await fetch('https://www.admin.studyinnepal.com/api/university');
                 const data = await res.json();
 
                 if (!isMounted) return;
