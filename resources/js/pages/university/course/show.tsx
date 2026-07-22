@@ -24,11 +24,13 @@ type Props = {
         careers: string | string[] | null;
         university_id: number | null;
         hero_image_url?: string | null;
+        // Fully resolved server-side in CourseDetailController::show().
+        // No more partial data + client-side backfill.
         university?: {
-            id: number;
-            level?: string;
-            Intake?: string;
-            Location?: string;
+            id: number | null;
+            level?: string | null;
+            Intake?: string | null;
+            Location?: string | null;
             university_logo_url?: string | null;
             college_logo_url?: string | null;
         } | null;
@@ -102,83 +104,15 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
         setActiveSemester(0);
     };
 
-    const [univLogo, setUnivLogo] = useState<string | null | undefined>(courseDetail.university?.university_logo_url);
-    const [collegeLogo, setCollegeLogo] = useState<string | null | undefined>(courseDetail.university?.college_logo_url);
-    const [intake, setIntake] = useState<string | null | undefined>(courseDetail.university?.Intake);
-    const [location, setLocation] = useState<string | null | undefined>(courseDetail.university?.Location);
-    const [level, setLevel] = useState<string | null | undefined>(courseDetail.university?.level || 'Postgraduate');
-
-    useEffect(() => {
-        let isMounted = true;
-
-        const fetchDetails = async () => {
-            try {
-                // The endpoint is paginated: { data: [...], next_cursor, has_more }.
-                // It is NOT a plain array, so we must unwrap `.data`. It's also
-                // limited to ~15-20 rows per page, so a course further down the
-                // table would silently fail to match unless we page through
-                // every batch first.
-                let allRows: any[] = [];
-                let cursor: string | null = null;
-
-                do {
-                    const url = new URL('https://www.admin.studyinnepal.com/api/university');
-                    if (cursor) url.searchParams.set('cursor', cursor);
-
-                    const res = await fetch(url.toString());
-                    const json = await res.json();
-
-                    const page = Array.isArray(json) ? json : (json.data ?? []);
-                    allRows = allRows.concat(page);
-
-                    cursor = json.next_cursor ?? null;
-                    if (!json.has_more) break;
-                } while (cursor);
-
-                if (!isMounted) return;
-
-                const data = allRows;
-
-                const exactMatch = data.find(
-                    (item: any) =>
-                        item.University === courseDetail.university_name &&
-                        item.College === courseDetail.college_name
-                );
-
-                if (exactMatch) {
-                    // Only fill in what's still missing — never overwrite
-                    // good data that already came from props.
-                    if (!univLogo && exactMatch.university_logo_url) setUnivLogo(exactMatch.university_logo_url);
-                    if (!collegeLogo && exactMatch.college_logo_url) setCollegeLogo(exactMatch.college_logo_url);
-                    if (!intake && exactMatch.Intake) setIntake(exactMatch.Intake);
-                    if (!location && exactMatch.Location) setLocation(exactMatch.Location);
-                    if (!courseDetail.university?.level && (exactMatch.Level || exactMatch.level)) setLevel(exactMatch.Level || exactMatch.level);
-                } else {
-                    const univMatch = data.find((item: any) => item.University === courseDetail.university_name);
-                    const colMatch = data.find((item: any) => item.College === courseDetail.college_name);
-
-                    if (!univLogo && univMatch?.university_logo_url) setUnivLogo(univMatch.university_logo_url);
-                    if (!collegeLogo && colMatch?.college_logo_url) setCollegeLogo(colMatch.college_logo_url);
-
-                    const fallbackIntake = colMatch?.Intake || univMatch?.Intake;
-                    const fallbackLocation = colMatch?.Location || univMatch?.Location;
-                    const fallbackLevel = colMatch?.Level || colMatch?.level || univMatch?.Level || univMatch?.level;
-
-                    if (!intake && fallbackIntake) setIntake(fallbackIntake);
-                    if (!location && fallbackLocation) setLocation(fallbackLocation);
-                    if (!courseDetail.university?.level && fallbackLevel) setLevel(fallbackLevel);
-                }
-            } catch (err) {
-                console.error('Failed to fetch university API data for details:', err);
-            }
-        };
-
-        fetchDetails();
-
-        return () => {
-            isMounted = false;
-        };
-    }, [courseDetail.university_name, courseDetail.college_name]);
+    // Resolved entirely server-side now (CourseDetailController::show merges
+    // the University row — with exact/partial-match fallback — before the
+    // page is ever sent to Inertia). No client-side fetch, no flash of
+    // missing logos/intake/location after the course text renders.
+    const univLogo = courseDetail.university?.university_logo_url ?? null;
+    const collegeLogo = courseDetail.university?.college_logo_url ?? null;
+    const intake = courseDetail.university?.Intake ?? null;
+    const location = courseDetail.university?.Location ?? null;
+    const level = courseDetail.university?.level || 'Postgraduate';
 
     useEffect(() => {
         const observer = new IntersectionObserver(

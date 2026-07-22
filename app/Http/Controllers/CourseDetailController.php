@@ -144,22 +144,44 @@ class CourseDetailController extends Controller
 
     /**
      * Public detail page.
+     *
+     * IMPORTANT: previously the frontend fetched
+     * https://www.admin.studyinnepal.com/api/university client-side (an
+     * external, paginated, cross-origin call) just to backfill logos,
+     * intake, and location AFTER the course text had already rendered —
+     * causing a visible flash/delay. That entire round trip is now
+     * resolved here, server-side, in the same request that loads the
+     * course detail, using our own indexed `universities` table.
      */
     public function show($uuid): Response
     {
         // 1. Find the CourseDetail using the UUID (throws 404 if not found)
         $courseDetail = CourseDetail::where('uuid', $uuid)->firstOrFail();
 
-        // 2. Find the matching University record for context
-        // Notice we are matching the capitalized column names from the `universities` table
-        // against the snake_case column names from the `course_details` table.
-        $university = University::where('Course', $courseDetail->course_name)
+        // 2. Resolve the matching University row(s), mirroring the same
+        //    fallback tiers the old client-side code used:
+        //      a) exact match on University + College
+        //      b) otherwise, best-effort partial match: a row matching the
+        //         university name, and (separately) a row matching the
+        //         college name — merging whichever fields each has.
+        $exactMatch = University::where('University', $courseDetail->university_name)
             ->where('College', $courseDetail->college_name)
-            ->where('University', $courseDetail->university_name)
             ->first();
 
+        $univMatch = $exactMatch ?: University::where('University', $courseDetail->university_name)->first();
+        $colMatch  = $exactMatch ?: University::where('College', $courseDetail->college_name)->first();
+
+        $resolvedUniversity = [
+            'id'                  => $exactMatch->id ?? $univMatch->id ?? $colMatch->id ?? null,
+            'level'               => $exactMatch->level ?? $colMatch->level ?? $univMatch->level ?? null,
+            'Intake'              => $exactMatch->Intake ?? $colMatch->Intake ?? $univMatch->Intake ?? null,
+            'Location'            => $exactMatch->Location ?? $colMatch->Location ?? $univMatch->Location ?? null,
+            'university_logo_url' => $exactMatch->university_logo_url ?? $univMatch->university_logo_url ?? null,
+            'college_logo_url'    => $exactMatch->college_logo_url ?? $colMatch->college_logo_url ?? null,
+        ];
+
         return Inertia::render('university/course/show', [
-            'university'   => $university,
+            'university'   => $resolvedUniversity,
             'courseDetail' => $courseDetail,
         ]);
     }
