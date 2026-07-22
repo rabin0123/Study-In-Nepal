@@ -3,12 +3,12 @@ import { useEffect, useState, useMemo } from 'react';
 
 type ModuleEntry = { name: string; info?: string | null; credit_hours?: string | null };
 type Semester = { title: string; modules?: (string | ModuleEntry)[] | null };
-type YearModule = { 
-    year: number; 
-    title?: string; 
-    credit_hours?: string | null; 
-    modules?: (string | ModuleEntry)[] | null; 
-    semesters?: Semester[] | null; 
+type YearModule = {
+    year: number;
+    title?: string;
+    credit_hours?: string | null;
+    modules?: (string | ModuleEntry)[] | null;
+    semesters?: Semester[] | null;
 };
 type YearFee = { year: number; amount?: string | null; currency?: string | null; note?: string | null };
 
@@ -30,6 +30,7 @@ type Props = {
             Intake?: string;
             Location?: string;
             university_logo_url?: string | null;
+            college_logo_url?: string | null;
         } | null;
     };
 };
@@ -65,6 +66,12 @@ function normalizeCareersData(careers: string | string[] | null | undefined): st
     return careers;
 }
 
+// Small helper: true only when the value is a real, non-empty string.
+// Used so we never render "null Credit hours" or an empty credit-hours pill.
+function hasText(v: string | null | undefined): v is string {
+    return Boolean(v && v.trim() !== '');
+}
+
 export default function CourseDetailsShow({ courseDetail }: Props) {
     const modules = sortByYear(courseDetail.year_wise_modules);
     const fees = sortByYear(courseDetail.fees);
@@ -82,7 +89,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
     const [activeTab, setActiveTab] = useState<number>(() => {
         return modules.length > 0 ? modules[0].year : 1;
     });
-    
+
     // State to track the currently active semester index within the active year
     const [activeSemester, setActiveSemester] = useState<number>(0);
 
@@ -101,14 +108,40 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
         setActiveSemester(0);
     };
 
+    // ── Logo / meta state ───────────────────────────────────────────────
+    // Seed every field directly from props first. The `university` object
+    // passed in from the parent page (wherever it merges the /api response's
+    // `university` + `courseDetail` before rendering this component) already
+    // carries university_logo_url, college_logo_url, Intake, Location, and
+    // level — there is no reason to start any of these as null and wait on
+    // a network round-trip when the data is already sitting in props.
+    //
+    // Previously `collegeLogo` was hardcoded to start as `null` regardless
+    // of props, which is why the college logo never rendered even when the
+    // API response clearly included `college_logo_url`. That was the core
+    // bug — fixed by seeding it here like every other field.
     const [univLogo, setUnivLogo] = useState<string | null | undefined>(courseDetail.university?.university_logo_url);
-    const [collegeLogo, setCollegeLogo] = useState<string | null | undefined>(null);
+    const [collegeLogo, setCollegeLogo] = useState<string | null | undefined>(courseDetail.university?.college_logo_url);
     const [intake, setIntake] = useState<string | null | undefined>(courseDetail.university?.Intake);
     const [location, setLocation] = useState<string | null | undefined>(courseDetail.university?.Location);
     const [level, setLevel] = useState<string | null | undefined>(courseDetail.university?.level || 'Postgraduate');
 
+    // Fallback fetch: only used to fill in whatever is still missing from
+    // props (e.g. a course whose university/college name doesn't cleanly
+    // match in the external directory). It never overwrites values that
+    // already arrived via props, so a good prop value can no longer be
+    // clobbered by a fuzzy/partial match from this external source.
     useEffect(() => {
         let isMounted = true;
+
+        const needsFallback =
+            !hasText(courseDetail.university?.university_logo_url) ||
+            !hasText(courseDetail.university?.college_logo_url) ||
+            !hasText(courseDetail.university?.Intake) ||
+            !hasText(courseDetail.university?.Location) ||
+            !hasText(courseDetail.university?.level);
+
+        if (!needsFallback) return;
 
         const fetchDetails = async () => {
             try {
@@ -124,25 +157,39 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 );
 
                 if (exactMatch) {
-                    if (exactMatch.university_logo_url) setUnivLogo(exactMatch.university_logo_url);
-                    if (exactMatch.college_logo_url) setCollegeLogo(exactMatch.college_logo_url);
-                    if (exactMatch.Intake) setIntake(exactMatch.Intake);
-                    if (exactMatch.Location) setLocation(exactMatch.Location);
-                    if (exactMatch.Level || exactMatch.level) setLevel(exactMatch.Level || exactMatch.level);
+                    if (!hasText(courseDetail.university?.university_logo_url) && exactMatch.university_logo_url) {
+                        setUnivLogo(exactMatch.university_logo_url);
+                    }
+                    if (!hasText(courseDetail.university?.college_logo_url) && exactMatch.college_logo_url) {
+                        setCollegeLogo(exactMatch.college_logo_url);
+                    }
+                    if (!hasText(courseDetail.university?.Intake) && exactMatch.Intake) {
+                        setIntake(exactMatch.Intake);
+                    }
+                    if (!hasText(courseDetail.university?.Location) && exactMatch.Location) {
+                        setLocation(exactMatch.Location);
+                    }
+                    if (!hasText(courseDetail.university?.level) && (exactMatch.Level || exactMatch.level)) {
+                        setLevel(exactMatch.Level || exactMatch.level);
+                    }
                 } else {
                     const univMatch = data.find((item: any) => item.University === courseDetail.university_name);
                     const colMatch = data.find((item: any) => item.College === courseDetail.college_name);
 
-                    if (univMatch?.university_logo_url) setUnivLogo(univMatch.university_logo_url);
-                    if (colMatch?.college_logo_url) setCollegeLogo(colMatch.college_logo_url);
+                    if (!hasText(courseDetail.university?.university_logo_url) && univMatch?.university_logo_url) {
+                        setUnivLogo(univMatch.university_logo_url);
+                    }
+                    if (!hasText(courseDetail.university?.college_logo_url) && colMatch?.college_logo_url) {
+                        setCollegeLogo(colMatch.college_logo_url);
+                    }
 
                     const fallbackIntake = colMatch?.Intake || univMatch?.Intake;
                     const fallbackLocation = colMatch?.Location || univMatch?.Location;
                     const fallbackLevel = colMatch?.Level || colMatch?.level || univMatch?.Level || univMatch?.level;
 
-                    if (fallbackIntake) setIntake(fallbackIntake);
-                    if (fallbackLocation) setLocation(fallbackLocation);
-                    if (fallbackLevel) setLevel(fallbackLevel);
+                    if (!hasText(courseDetail.university?.Intake) && fallbackIntake) setIntake(fallbackIntake);
+                    if (!hasText(courseDetail.university?.Location) && fallbackLocation) setLocation(fallbackLocation);
+                    if (!hasText(courseDetail.university?.level) && fallbackLevel) setLevel(fallbackLevel);
                 }
             } catch (err) {
                 console.error('Failed to fetch university API data for details:', err);
@@ -154,6 +201,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
         return () => {
             isMounted = false;
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [courseDetail.university_name, courseDetail.college_name]);
 
     useEffect(() => {
@@ -201,10 +249,9 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                 <div className="gcu-wrap">
                     <div className="gcu-banner-info">
                         <div className="gcu-banner-info__wrap">
-                            
                             <div className="gcu-banner-top-row">
                                 <span className="gcu-banner-info__award">{level}</span>
-                                
+
                                 {intake && (
                                     <span className="gcu-banner-info__intake">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="gcu-svg-icon">
@@ -219,7 +266,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                             </div>
 
                             <div className="gcu-banner-info__title">{courseDetail.course_name}</div>
-                            
+
                             <div className="gcu-banner-info__meta">
                                 <div className="gcu-banner-info__tagline">
                                     {collegeLogo && (
@@ -250,9 +297,9 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                         <ul className="gcu-subnav__list">
                             {sections.map((s) => (
                                 <li key={s.id}>
-                                    <button 
-                                        type="button" 
-                                        onClick={() => jumpTo(s.id)} 
+                                    <button
+                                        type="button"
+                                        onClick={() => jumpTo(s.id)}
                                         className={`gcu-subnav__link ${activeSection === s.id ? 'is-active' : ''}`}
                                     >
                                         {s.label}
@@ -690,7 +737,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     border-bottom-color: var(--color-border);
                 }
                 .gcu-subnav__link.is-active,
-                .gcu-subnav__link:focus, 
+                .gcu-subnav__link:focus,
                 .gcu-subnav__link:active {
                     color: var(--color-skyblue);
                     border-bottom-color: var(--color-skyblue);
@@ -755,7 +802,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     font-weight: 600;
                 }
 
-                /* -- NEW SEMESTER TABS STYLING -- */
+                /* -- SEMESTER TABS STYLING -- */
                 .gcu-semester-tabs {
                     display: flex;
                     gap: 12px;
@@ -1047,25 +1094,42 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     color: inherit;
                 }
 
+                /*
+                    Career Prospectus panel — force ALL text white.
+
+                    CMS-authored careers HTML (dangerouslySetInnerHTML) can
+                    contain bare text nodes or inline tags (span, div,
+                    strong, b, em, i, u) that the rules above never touch —
+                    those were silently inheriting dark text and becoming
+                    unreadable against this panel's dark background. This
+                    block now explicitly forces every element and text node
+                    white, and also strips any inline background color the
+                    CMS HTML might carry (rich-text editors often emit
+                    style="color:#000" / style="background:#fff" on
+                    wrapper tags, which otherwise beats a plain CSS rule at
+                    equal specificity — hence the !important here, scoped
+                    tightly to .scheme--mild-black-bg .gcu-html-content
+                    descendants only).
+                */
                 .gcu-panel.scheme--mild-black-bg .gcu-html-content,
-.gcu-panel.scheme--mild-black-bg .gcu-html-content p,
-.gcu-panel.scheme--mild-black-bg .gcu-html-content span,
-.gcu-panel.scheme--mild-black-bg .gcu-html-content div,
-.gcu-panel.scheme--mild-black-bg .gcu-html-content li,
-.gcu-panel.scheme--mild-black-bg .gcu-html-content strong,
-.gcu-panel.scheme--mild-black-bg .gcu-html-content b,
-.gcu-panel.scheme--mild-black-bg .gcu-html-content em,
-.gcu-panel.scheme--mild-black-bg .gcu-html-content i,
-.gcu-panel.scheme--mild-black-bg .gcu-html-content u {
-    color: rgba(255, 255, 255, 0.9) !important;
-}
-.gcu-panel.scheme--mild-black-bg .gcu-html-content,
-.gcu-panel.scheme--mild-black-bg .gcu-html-content * {
-    background-color: transparent !important;
-}
+                .gcu-panel.scheme--mild-black-bg .gcu-html-content p,
+                .gcu-panel.scheme--mild-black-bg .gcu-html-content span,
+                .gcu-panel.scheme--mild-black-bg .gcu-html-content div,
+                .gcu-panel.scheme--mild-black-bg .gcu-html-content li,
+                .gcu-panel.scheme--mild-black-bg .gcu-html-content strong,
+                .gcu-panel.scheme--mild-black-bg .gcu-html-content b,
+                .gcu-panel.scheme--mild-black-bg .gcu-html-content em,
+                .gcu-panel.scheme--mild-black-bg .gcu-html-content i,
+                .gcu-panel.scheme--mild-black-bg .gcu-html-content u {
+                    color: rgba(255, 255, 255, 0.92) !important;
+                }
+                .gcu-panel.scheme--mild-black-bg .gcu-html-content,
+                .gcu-panel.scheme--mild-black-bg .gcu-html-content * {
+                    background-color: transparent !important;
+                }
                 .gcu-panel.scheme--mild-black-bg .gcu-html-content h1,
                 .gcu-panel.scheme--mild-black-bg .gcu-html-content h2 {
-                    color: var(--color-white);
+                    color: var(--color-white) !important;
                     font-size: 1.5rem;
                     margin-top: 36px;
                 }
@@ -1074,22 +1138,20 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                     margin-top: 0;
                 }
                 .gcu-panel.scheme--mild-black-bg .gcu-html-content h3 {
-                    color: var(--color-skyblue-light);
+                    color: var(--color-skyblue-light) !important;
                     font-size: 1.15rem;
                     margin-top: 26px;
                 }
-                .gcu-panel.scheme--mild-black-bg .gcu-html-content p {
-                    color: rgba(255, 255, 255, 0.8);
-                }
                 .gcu-panel.scheme--mild-black-bg .gcu-html-content a {
-                    color: var(--color-skyblue-light);
+                    color: var(--color-skyblue-light) !important;
+                    text-decoration: underline;
                 }
                 .gcu-panel.scheme--mild-black-bg .gcu-html-content blockquote {
                     border-left-color: rgba(255, 255, 255, 0.25);
-                    color: rgba(255, 255, 255, 0.7);
+                    color: rgba(255, 255, 255, 0.75) !important;
                 }
-                .gcu-panel.scheme--mild-black-bg .gcu-html-content li {
-                    color: rgba(255, 255, 255, 0.9);
+                .gcu-panel.scheme--mild-black-bg .gcu-html-content li::marker {
+                    color: var(--color-skyblue-light);
                 }
 
                 .gcu-muted {
@@ -1176,7 +1238,7 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
 
 function ModuleAccordion({ name, info, credit_hours }: { name: string; info?: string | null; credit_hours?: string | null }) {
     const hasInfo = Boolean(info && info.trim() !== '');
-    const hasCreditHours = Boolean(credit_hours && credit_hours.trim() !== '');
+    const hasCreditHours = hasText(credit_hours);
     const [open, setOpen] = useState(false);
 
     return (
