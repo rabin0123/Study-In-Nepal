@@ -1,870 +1,1135 @@
-import { Head } from '@inertiajs/react';
-import { useEffect, useState, useMemo } from 'react';
-import { Icon } from "@iconify/react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { Link, usePage } from "@inertiajs/react";
 
-type ModuleEntry = { name: string; info?: string | null };
-type YearModule = { year: number; title?: string | null; modules?: (string | ModuleEntry)[] | null };
-type YearFee = { year: number; amount?: string | null; currency?: string | null; note?: string | null };
-
-type Props = {
-    courseDetail: {
-        uuid: string;
-        university_name: string;
-        college_name: string;
-        course_name: string;
-        summary: string | null;
-        year_wise_modules: YearModule[] | null;
-        fees: YearFee[] | null;
-        careers: string | string[] | null;
-        university_id: number | null;
-        hero_image_url?: string | null;
-        university?: {
-            id: number;
-            level?: string;
-            Intake?: string;
-            Location?: string;
-            university_logo_url?: string | null;
-           college_logo_url?: string | null;
-        } | null;
-    };
+// ── Helper to dynamically map stream to actual homepage assets ─────────────
+const getStreamImage = (stream: string, id: number): string => {
+  const s = stream?.toLowerCase() || "";
+  if (s.includes("it") || s.includes("tech") || s.includes("comput") || s.includes("engin") || s.includes("science")) {
+    return "/images/event_classroom.png";
+  }
+  if (s.includes("buddhist") || s.includes("philosophy") || s.includes("culture") || s.includes("art")) {
+    return "/images/nepal_temple.png";
+  }
+  if (s.includes("manage") || s.includes("business") || s.includes("mba") || s.includes("admin")) {
+    return "/images/cafe_student.png";
+  }
+  if (s.includes("social") || s.includes("ngo") || s.includes("communit")) {
+    return "/images/event_walking.png";
+  }
+  const fallbackPool = [
+    "/images/event_grad.png",
+    "/images/students_hero.jpg"
+  ];
+  return fallbackPool[id % fallbackPool.length];
 };
 
-function sortByYear<T extends { year: number }>(items: T[] | null | undefined): T[] {
-    if (!items) return [];
-    return [...items].sort((a, b) => a.year - b.year);
+// ── Data Standardization Helpers ───────────────────────────────────────────
+const standardizeLevel = (level: string | null | undefined): string => {
+  if (!level) return "";
+  let l = level.trim();
+  l = l.replace(/[\uFFFD\u2013\u2014]/g, '-');
+  l = l.replace(/\s*\/\s*/g, ' / ');
+  l = l.replace(/\b[Bb]achelor['’]?s?\b/g, "Bachelor's");
+  l = l.replace(/\b[Mm]aster['’]?s?\b/g, "Master's");
+  l = l.replace(/\b[Mm]\.?\s*[Pp]hil\.?\b/gi, "M.Phil.");
+  l = l.replace(/\b[Pp]h\.?[Dd]\.?\b/gi, "Ph.D.");
+  l = l.charAt(0).toUpperCase() + l.slice(1);
+  return l.replace(/\s+/g, ' ').trim();
+};
+
+const standardizeName = (name: string | null | undefined): string => {
+  if (!name) return "";
+  let n = name.trim();
+  n = n.replace(/[\uFFFD\u2013\u2014]/g, '-');
+  n = n.replace(/\s*-\s*/g, ' - ');
+  n = n.replace(/,\s*U\.?S\.?A\.?/gi, ' (USA)');
+  n = n.replace(/,\s*U\.?K\.?/gi, ' (UK)');
+  n = n.replace(/,\s*Australia/gi, ' (Australia)');
+  n = n.replace(/\b([a-z])([A-Za-z]*)\b/g, (match, p1, p2) => p1.toUpperCase() + p2);
+  return n.replace(/\s+/g, ' ').trim();
+};
+
+const standardizeStream = (stream: string | null | undefined): string => {
+  if (!stream) return "";
+  let s = stream.trim();
+  s = s.replace(/[\uFFFD\u2013\u2014]/g, '-');
+
+  const corrections: Record<string, string> = {
+    "Fashion Desinging": "Fashion Designing",
+    "Artificial Intellgance": "Artificial Intelligence",
+    "Mass Communciation": "Mass Communication",
+    "Interior Desinging": "Interior Designing",
+    "Pharmecy": "Pharmacy",
+    "Comuter Engineering": "Computer Engineering",
+    "Information Systerm Engineering": "Information System Engineering",
+    "Nurition": "Nutrition",
+    "Veternariy Science": "Veterinary Science",
+    "Electical Engineering": "Electrical Engineering",
+    "Electronics and Commucation Engineering": "Electronics & Communication Engineering",
+    "Physiotheraphy": "Physiotherapy",
+    "Geomtics Engineering": "Geomatics Engineering",
+    "Transporation Engineering": "Transportation Engineering",
+    "Chinease Language": "Chinese Language",
+    "Carpentory": "Carpentry",
+    "Reserch": "Research",
+    "Toursim Management": "Tourism Management",
+    "Toursim": "Tourism",
+    "Envrironment Science": "Environmental Science",
+    "Budhism": "Buddhism",
+    "Rular Development": "Rural Development",
+    "Medcine": "Medicine",
+    "Labotary Technology": "Laboratory Technology",
+    "Travel and Toursim": "Travel & Tourism"
+  };
+
+  if (corrections[s]) {
+    return corrections[s];
+  }
+
+  s = s.replace(/\b([a-z])([A-Za-z]*)\b/g, (match, p1, p2) => p1.toUpperCase() + p2);
+  return s.replace(/\s+/g, ' ').trim();
+};
+
+const standardizeCourse = (course: string | null | undefined): string => {
+  if (!course) return "";
+  let c = course.trim();
+  c = c.replace(/[\uFFFD\u2013\u2014]/g, '-');
+  c = c.replace(/\s*-\s*/g, ' - ');
+  return c.replace(/\s+/g, ' ').trim();
+};
+
+interface UniversityEntry {
+  id: number;
+  University: string;
+  university_logo_url: string | null;
+  level: string;
+  Intake: string;
+  College: string;
+  college_logo_url: string | null;
+  Location: string;
+  Course: string;
+  stream: string;
+  Amount: string | null;
+  Scholarship: string | null;
+  requireddocuments: string | null;
 }
 
-// Modules may come through as either a legacy flat string (just a name) or
-// the newer {name, info} object. Normalize to a consistent shape so the
-// rendering logic doesn't need to branch everywhere.
-function normalizeModuleEntry(m: string | ModuleEntry): ModuleEntry {
-    if (typeof m === 'string') return { name: m, info: null };
-    return { name: m.name, info: m.info ?? null };
+// Shape returned by GET /api/agent/applications/search-students
+interface StudentResult {
+  id: string;
+  app_id: string;
+  original_app_id: string | null;
+  student_name: string;
+  email: string | null;
+  phone_number: string | null;
+  country: string | null;
+  avatar_url: string | null;
+  university_name: string | null;
+  college_name: string | null;
+  course_name: string | null;
+  status: string;
 }
 
-// Defensive unwrap: if `careers` ever comes through as a raw JSON string like
-// `{"html": "<h2>...</h2>"}` instead of the plain HTML string, pull the HTML
-// back out so the page still renders correctly instead of showing raw JSON.
-// Also handles the case where the whole payload was accidentally saved as a
-// JSON-stringified string (e.g. `"<div>...</div>"` with escaped quotes),
-// which is how content pasted from a browser DOM inspector sometimes ends up
-// in the database.
-function normalizeCareersData(careers: string | string[] | null | undefined): string | string[] | null {
-    if (!careers) return null;
+const validUrl = (url: string | null | undefined): string | null => {
+  if (!url) return null;
+  const trimmed = url.trim();
+  if (trimmed === "") return null;
+  return trimmed;
+};
 
-    if (typeof careers === 'string') {
-        let value = careers.trim();
+// ── Dropdown Filter Component ──────────────────────────────────────────────
+interface DropdownProps {
+  label: string;
+  options: string[];
+  selected: string[];
+  toggleOption: (val: string) => void;
+}
 
-        // Unwrap a JSON-stringified string, e.g. "\"<div>...</div>\"" or
-        // "{\"html\": \"<div>...</div>\"}" — try up to twice in case it's
-        // double-encoded.
-        for (let i = 0; i < 2; i++) {
-            const trimmed = value.trim();
-            if (
-                (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-                (trimmed.startsWith('{') && trimmed.includes('"html"'))
-            ) {
-                try {
-                    const parsed = JSON.parse(trimmed);
-                    if (typeof parsed === 'string') {
-                        value = parsed;
-                        continue;
-                    }
-                    if (typeof parsed?.html === 'string') {
-                        value = parsed.html;
-                        continue;
-                    }
-                } catch {
-                    // not valid JSON, stop trying and use as-is
-                }
-            }
-            break;
-        }
+function DropdownFilter({ label, options, selected, toggleOption }: DropdownProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-        return value;
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const hasSelected = selected.length > 0;
+
+  return (
+    <div ref={containerRef} className="position-relative text-start">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="btn d-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm"
+        style={{
+          background: hasSelected ? "#008ce3" : "rgba(255, 255, 255, 0.12)",
+          backdropFilter: "blur(8px)",
+          border: `1px solid ${hasSelected ? "#008ce3" : "rgba(255, 255, 255, 0.25)"}`,
+          fontSize: "13px",
+          fontWeight: 600,
+          color: "#ffffff",
+          fontFamily: "'Manrope', sans-serif",
+          transition: "all 0.2s ease",
+          whiteSpace: "nowrap"
+        }}
+      >
+        <span>{label} {hasSelected && `(${selected.length})`}</span>
+        <iconify-icon 
+          icon="solar:alt-arrow-down-line-duotone" 
+          style={{ 
+            transform: isOpen ? "rotate(180deg)" : "none", 
+            transition: "transform 0.2s",
+            fontSize: "14px"
+          }} 
+        />
+      </button>
+
+      {isOpen && (
+        <div 
+          className="dropdown-menu show p-2 shadow-lg border mt-2 custom-scroll"
+          style={{
+            position: "absolute",
+            top: "100%",
+            left: 0,
+            width: "280px",
+            maxHeight: "300px",
+            overflowY: "auto",
+            zIndex: 1050,
+          }}
+        >
+          {options.length === 0 ? (
+            <div className="p-2 text-muted small">No options available</div>
+          ) : (
+            options.map(opt => (
+              <label 
+                key={opt} 
+                className="dropdown-item d-flex align-items-center gap-2 rounded-2 cursor-pointer py-2 px-3 m-0"
+                style={{ cursor: "pointer", whiteSpace: "normal" }}
+              >
+                <input
+                  type="checkbox"
+                  className="form-check-input mt-0"
+                  checked={selected.includes(opt)}
+                  onChange={() => toggleOption(opt)}
+                  style={{ width: "16px", height: "16px", cursor: "pointer" }}
+                />
+                <span className="small text-wrap" style={{ lineHeight: 1.4 }}>{opt}</span>
+              </label>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Apply Now Modal ─────────────────────────────────────────────────────────
+interface ApplyModalProps {
+  courseTarget: {
+    university: string;
+    college: string;
+    course: string;
+  };
+  recentStudents: StudentResult[];
+  recentStudentsLoading: boolean;
+  onRequestRefreshRecent: () => void;
+  onClose: () => void;
+}
+
+type ModalStep = "search" | "confirm" | "submitting" | "success" | "error";
+
+const LOCAL_FILTER_MAX_LENGTH = 2;
+
+function ApplyNowModal({ courseTarget, recentStudents, recentStudentsLoading, onRequestRefreshRecent, onClose }: ApplyModalProps) {
+  const [step, setStep] = useState<ModalStep>("search");
+  const [query, setQuery] = useState("");
+  const [remoteResults, setRemoteResults] = useState<StudentResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<StudentResult | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    onRequestRefreshRecent();
+  }, [onRequestRefreshRecent]);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  const runRemoteSearch = useCallback(async (q: string) => {
+    setSearching(true);
+    setSearchError(null);
+    try {
+      const res = await fetch(`/api/agent/applications/search-students?q=${encodeURIComponent(q)}`, {
+        headers: { "Accept": "application/json" },
+        credentials: "include",
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setSearchError(json.message || "Unable to search students right now.");
+        setRemoteResults([]);
+      } else {
+        setRemoteResults(json.data || []);
+      }
+    } catch (err) {
+      setSearchError("Network error while searching. Please try again.");
+      setRemoteResults([]);
+    } finally {
+      setSearching(false);
     }
+  }, []);
 
-    return careers;
+  const localMatches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return recentStudents;
+    return recentStudents.filter(
+      (s) =>
+        s.student_name?.toLowerCase().includes(q) ||
+        s.app_id?.toLowerCase().includes(q)
+    );
+  }, [query, recentStudents]);
+
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length <= LOCAL_FILTER_MAX_LENGTH) {
+      setRemoteResults([]);
+      setSearching(false);
+      setSearchError(null);
+      return;
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      runRemoteSearch(q);
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [query, runRemoteSearch]);
+
+  const isRemoteMode = query.trim().length > LOCAL_FILTER_MAX_LENGTH;
+
+  const displayedResults = isRemoteMode
+    ? [
+        ...remoteResults,
+        ...localMatches.filter((s) => !remoteResults.some((r) => r.id === s.id)),
+      ]
+    : localMatches;
+
+  const handlePickStudent = (student: StudentResult) => {
+    setSelectedStudent(student);
+    setStep("confirm");
+  };
+
+  const handleBackToSearch = () => {
+    setSelectedStudent(null);
+    setStep("search");
+  };
+
+  const handleConfirmApply = async () => {
+    if (!selectedStudent) return;
+    setStep("submitting");
+    setErrorMessage(null);
+    try {
+      const res = await fetch(
+        `/api/agent/applications/${selectedStudent.id}/apply-to-course`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            university_name: courseTarget.university,
+            college_name: courseTarget.college,
+            course_name: courseTarget.course,
+          }),
+        }
+      );
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setErrorMessage(json.message || "Could not submit this application. Please try again.");
+        setStep("error");
+        return;
+      }
+      setStep("success");
+    } catch (err) {
+      setErrorMessage("Network error while submitting. Please try again.");
+      setStep("error");
+    }
+  };
+
+  return (
+    <div
+      className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+      style={{ background: "rgba(15, 23, 42, 0.55)", backdropFilter: "blur(4px)", zIndex: 2000 }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="bg-white rounded-4 shadow-lg d-flex flex-column"
+        style={{
+          width: "min(520px, 92vw)",
+          maxHeight: "82vh",
+          fontFamily: "'Manrope', sans-serif",
+          overflow: "hidden",
+        }}
+      >
+        {/* Modal Header */}
+        <div className="d-flex align-items-center justify-content-between px-4 py-3 border-bottom">
+          <div>
+            <h2 className="h6 fw-bold mb-0 text-body">
+              {step === "search" && "Find a Student"}
+              {step === "confirm" && "Confirm Application"}
+              {step === "submitting" && "Submitting..."}
+              {step === "success" && "Application Submitted"}
+              {step === "error" && "Something Went Wrong"}
+            </h2>
+            <p className="small text-muted mb-0" style={{ fontSize: "12px" }}>
+              {courseTarget.course} &middot; {courseTarget.college}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="btn btn-sm btn-light rounded-circle d-flex align-items-center justify-content-center"
+            style={{ width: "32px", height: "32px" }}
+            aria-label="Close"
+          >
+            <iconify-icon icon="solar:close-circle-line-duotone" style={{ fontSize: "18px" }} />
+          </button>
+        </div>
+
+        {/* Modal Body */}
+        <div className="p-4 overflow-auto" style={{ flex: 1 }}>
+          {step === "search" && (
+            <>
+              <div className="position-relative mb-3">
+                <span className="position-absolute top-50 translate-middle-y start-0 ps-3 d-flex align-items-center">
+                  <iconify-icon icon="solar:magnifer-line-duotone" style={{ fontSize: "18px", color: "#008ce3" }} />
+                </span>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search by student name or App ID..."
+                  className="form-control rounded-pill ps-5 py-2 border"
+                  style={{ fontSize: "14px" }}
+                />
+              </div>
+
+              {!query.trim() && (
+                <div className="small text-muted mb-2" style={{ fontSize: "11px" }}>
+                  Recently active students
+                </div>
+              )}
+
+              {recentStudentsLoading && !query.trim() && recentStudents.length === 0 && (
+                <div className="text-center text-muted small py-4">Loading recent students...</div>
+              )}
+
+              {isRemoteMode && searching && (
+                <div className="text-center text-muted small py-2" style={{ fontSize: "12px" }}>
+                  Searching full student list...
+                </div>
+              )}
+
+              {isRemoteMode && !searching && searchError && (
+                <div className="text-center text-danger small py-4">{searchError}</div>
+              )}
+
+              {!recentStudentsLoading && displayedResults.length === 0 && query.trim() && !searching && !searchError && (
+                <div className="text-center text-muted small py-4">
+                  No students found matching &ldquo;{query}&rdquo;.
+                </div>
+              )}
+
+              {!recentStudentsLoading && displayedResults.length === 0 && !query.trim() && (
+                <div className="text-center text-muted small py-4">
+                  No students yet. Start typing a name or App ID to search.
+                </div>
+              )}
+
+              {displayedResults.length > 0 && (
+                <div className="d-flex flex-column gap-2">
+                  {displayedResults.map((student) => (
+                    <button
+                      key={student.id}
+                      onClick={() => handlePickStudent(student)}
+                      className="btn text-start d-flex align-items-center gap-3 p-2 rounded-3 border"
+                      style={{ background: "white" }}
+                    >
+                      <img
+                        src={student.avatar_url || "/images/default-avatar.png"}
+                        alt={student.student_name}
+                        className="rounded-circle"
+                        style={{ width: "40px", height: "40px", objectFit: "cover" }}
+                        onError={(e) => { e.currentTarget.style.visibility = "hidden"; }}
+                      />
+                      <div className="flex-grow-1">
+                        <div className="fw-bold small text-body">{student.student_name}</div>
+                        <div className="text-muted" style={{ fontSize: "12px" }}>
+                          App ID: {student.app_id}
+                          {student.email ? ` · ${student.email}` : ""}
+                        </div>
+                      </div>
+                      <iconify-icon icon="solar:arrow-right-linear" style={{ fontSize: "16px", color: "#008ce3" }} />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {step === "confirm" && selectedStudent && (
+            <div>
+              <div className="d-flex align-items-center gap-3 p-3 rounded-3 mb-3" style={{ background: "rgba(0, 140, 227, 0.06)" }}>
+                <img
+                  src={selectedStudent.avatar_url || "/images/default-avatar.png"}
+                  alt={selectedStudent.student_name}
+                  className="rounded-circle"
+                  style={{ width: "48px", height: "48px", objectFit: "cover" }}
+                />
+                <div>
+                  <div className="fw-bold text-body">{selectedStudent.student_name}</div>
+                  <div className="text-muted small">App ID: {selectedStudent.app_id}</div>
+                </div>
+              </div>
+
+              <p className="small text-body mb-3">
+                Do you want to apply <strong>{selectedStudent.student_name}</strong> to this program?
+              </p>
+
+              <div className="rounded-3 border p-3 mb-3 small">
+                <div className="d-flex justify-content-between py-1">
+                  <span className="text-muted">Course</span>
+                  <span className="fw-bold text-body text-end">{courseTarget.course}</span>
+                </div>
+                <div className="d-flex justify-content-between py-1">
+                  <span className="text-muted">College</span>
+                  <span className="fw-bold text-body text-end">{courseTarget.college}</span>
+                </div>
+                <div className="d-flex justify-content-between py-1">
+                  <span className="text-muted">University</span>
+                  <span className="fw-bold text-body text-end">{courseTarget.university}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === "submitting" && (
+            <div className="text-center text-muted small py-5">Submitting application...</div>
+          )}
+
+          {step === "success" && selectedStudent && (
+            <div className="text-center py-4">
+              <iconify-icon icon="solar:check-circle-bold-duotone" style={{ fontSize: "48px", color: "#22c55e" }} />
+              <p className="small text-body mt-3 mb-0">
+                <strong>{selectedStudent.student_name}</strong> has been applied to {courseTarget.course} at {courseTarget.college}.
+              </p>
+            </div>
+          )}
+
+          {step === "error" && (
+            <div className="text-center py-4">
+              <iconify-icon icon="solar:danger-triangle-bold-duotone" style={{ fontSize: "40px", color: "#ef4444" }} />
+              <p className="small text-body mt-3 mb-0">{errorMessage}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Modal Footer */}
+        {step === "confirm" && (
+          <div className="d-flex gap-2 px-4 py-3 border-top">
+            <button onClick={handleBackToSearch} className="btn btn-light flex-fill fw-bold rounded-pill" style={{ fontSize: "13px" }}>
+              Back
+            </button>
+            <button
+              onClick={handleConfirmApply}
+              className="btn flex-fill fw-bold rounded-pill text-white"
+              style={{ background: "#008ce3", fontSize: "13px" }}
+            >
+              Yes, Apply
+            </button>
+          </div>
+        )}
+
+        {step === "error" && (
+          <div className="d-flex gap-2 px-4 py-3 border-top">
+            <button onClick={handleBackToSearch} className="btn btn-light flex-fill fw-bold rounded-pill" style={{ fontSize: "13px" }}>
+              Back to Search
+            </button>
+            <button onClick={onClose} className="btn btn-outline-secondary flex-fill fw-bold rounded-pill" style={{ fontSize: "13px" }}>
+              Close
+            </button>
+          </div>
+        )}
+
+        {step === "success" && (
+          <div className="d-flex px-4 py-3 border-top">
+            <button
+              onClick={onClose}
+              className="btn flex-fill fw-bold rounded-pill text-white"
+              style={{ background: "#008ce3", fontSize: "13px" }}
+            >
+              Done
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
-// Heuristic: does this careers HTML contain real structured content (lists,
-// headings) as opposed to being a short flat set of tag-like phrases? Used to
-// decide between "document" rendering (real bullets/numbers) and "pill"
-// rendering (compact tag badges) for the Career Prospectus section.
-function isStructuredCareersDocument(html: string): boolean {
-    if (!html) return false;
-    const hasHeading = /<h[1-4][\s>]/i.test(html);
-    const hasNestedList = /<ul[^>]*>[\s\S]*<ul[^>]*>/i.test(html) || /<ol[^>]*>[\s\S]*<ul[^>]*>/i.test(html);
-    const hasOrderedList = /<ol[\s>]/i.test(html);
-    const listItemCount = (html.match(/<li[\s>]/gi) || []).length;
-    return hasHeading || hasNestedList || hasOrderedList || listItemCount > 12;
-}
+// ── Main Page Component ────────────────────────────────────────────────────
+export default function CourseSearch() {
+  const [data, setData] = useState<UniversityEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
+  
+  // Flash and Toast states
+  const { props } = usePage();
+  const flash = props.flash as { error?: string; success?: string; toast?: string } | undefined;
+  const [localToast, setLocalToast] = useState<string | null>(null);
 
-export default function CourseDetailsShow({ courseDetail }: Props) {
-    const modules = sortByYear(courseDetail.year_wise_modules);
-    const fees = sortByYear(courseDetail.fees);
-    const careersData = normalizeCareersData(courseDetail.careers);
-    const careersIsStructuredDoc = typeof careersData === 'string' && isStructuredCareersDocument(careersData);
+  useEffect(() => {
+    const message = flash?.toast || flash?.error;
+    if (message) {
+      setLocalToast(message);
+      const timer = setTimeout(() => {
+        setLocalToast(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [flash]);
+  
+  // Filter states
+  const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
+  const [selectedStreams, setSelectedStreams] = useState<string[]>([]);
+  const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
+  const [selectedUniversities, setSelectedUniversities] = useState<string[]>([]);
+  const [selectedColleges, setSelectedColleges] = useState<string[]>([]);
+  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
 
-    const [isLoading, setIsLoading] = useState<boolean>(true);
+  // Apply Now modal state — tracks which course card triggered it
+  const [applyTarget, setApplyTarget] = useState<{ university: string; college: string; course: string } | null>(null);
 
-    // Memoize the sections array so we can safely use it in our useEffect observer
-    const sections = useMemo(() => {
-        return [
-            { id: 'overview', label: 'Overview', show: Boolean(courseDetail.summary) },
-            { id: 'study', label: 'What you will study', show: modules.length > 0 },
-            { id: 'fees', label: 'Fees and funding', show: fees.length > 0 },
-            { id: 'careers', label: 'Career Prospectus', show: true },
-        ].filter((s) => s.show);
-    }, [courseDetail.summary, modules.length, fees.length]);
+  // Prefetched "recent students" cache
+  const [recentStudents, setRecentStudents] = useState<StudentResult[]>([]);
+  const [recentStudentsLoading, setRecentStudentsLoading] = useState(true);
 
-    const [activeTab, setActiveTab] = useState<number>(() => {
-        return modules.length > 0 ? modules[0].year : 1;
+  const fetchRecentStudents = useCallback(async () => {
+    setRecentStudentsLoading(true);
+    try {
+      const res = await fetch("/api/agent/applications/recent-students?limit=75", {
+        headers: { "Accept": "application/json" },
+        credentials: "include",
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setRecentStudents(json.data || []);
+      }
+    } catch (error) {
+      console.error("Failed to prefetch recent students", error);
+    } finally {
+      setRecentStudentsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUniversities();
+    fetchRecentStudents();
+  }, [fetchRecentStudents]);
+
+  const fetchUniversities = async () => {
+    setLoading(true);
+    try {
+      // Keep fetching directly from the external third-party API as requested
+      const res = await fetch("https://admin.studyinnepal.com/api/university", {
+        headers: { "Accept": "application/json" }
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setData(json.data || json);
+      }
+    } catch (error) {
+      console.error("Failed to load records from api", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClearFilters = () => {
+    setSelectedLevels([]);
+    setSelectedStreams([]);
+    setSelectedCourses([]);
+    setSelectedUniversities([]);
+    setSelectedColleges([]);
+    setSelectedLocations([]);
+    setSearch("");
+  };
+
+  // ── Dynamic Filtering Logic ──
+  const { filteredData, filterOptions } = useMemo(() => {
+    const q = search.toLowerCase();
+
+    const levelsSet = new Set<string>(selectedLevels);
+    const streamsSet = new Set<string>(selectedStreams);
+    const coursesSet = new Set<string>(selectedCourses);
+    const universitiesSet = new Set<string>(selectedUniversities);
+    const collegesSet = new Set<string>(selectedColleges);
+    const locationsSet = new Set<string>(selectedLocations);
+    
+    const resultData: UniversityEntry[] = [];
+
+    data.forEach(item => {
+      const stdLevel = standardizeLevel(item.level);
+      const stdStream = standardizeStream(item.stream);
+      const stdCourse = standardizeCourse(item.Course);
+      const stdUni = standardizeName(item.University);
+      const stdCol = standardizeName(item.College);
+      const stdLoc = standardizeName(item.Location);
+
+      const matchesSearch = !q || (
+        stdUni.toLowerCase().includes(q) ||
+        stdCourse.toLowerCase().includes(q) ||
+        stdLoc.toLowerCase().includes(q) ||
+        stdCol.toLowerCase().includes(q) ||
+        stdStream.toLowerCase().includes(q)
+      );
+
+      const matchesLevel = selectedLevels.length === 0 || selectedLevels.includes(stdLevel);
+      const matchesStream = selectedStreams.length === 0 || selectedStreams.includes(stdStream);
+      const matchesCourse = selectedCourses.length === 0 || selectedCourses.includes(stdCourse);
+      const matchesUni = selectedUniversities.length === 0 || selectedUniversities.includes(stdUni);
+      const matchesCol = selectedColleges.length === 0 || selectedColleges.includes(stdCol);
+      const matchesLoc = selectedLocations.length === 0 || selectedLocations.includes(stdLoc);
+
+      if (matchesSearch && matchesLevel && matchesStream && matchesCourse && matchesUni && matchesCol && matchesLoc) {
+        resultData.push(item);
+      }
+
+      if (matchesSearch && matchesStream && matchesCourse && matchesUni && matchesCol && matchesLoc) {
+        if (stdLevel) levelsSet.add(stdLevel);
+      }
+      if (matchesSearch && matchesLevel && matchesCourse && matchesUni && matchesCol && matchesLoc) {
+        if (stdStream) streamsSet.add(stdStream);
+      }
+      if (matchesSearch && matchesLevel && matchesStream && matchesUni && matchesCol && matchesLoc) {
+        if (stdCourse) coursesSet.add(stdCourse);
+      }
+      if (matchesSearch && matchesLevel && matchesStream && matchesCourse && matchesCol && matchesLoc) {
+        if (stdUni) universitiesSet.add(stdUni);
+      }
+      if (matchesSearch && matchesLevel && matchesStream && matchesCourse && matchesUni && matchesLoc) {
+        if (stdCol) collegesSet.add(stdCol);
+      }
+      if (matchesSearch && matchesLevel && matchesStream && matchesCourse && matchesUni && collegesSet) {
+        if (stdLoc) locationsSet.add(stdLoc);
+      }
     });
 
-    // Tracks the active section for the sticky sub-navigation
-    const [activeSection, setActiveSection] = useState<string>('');
-
-    const jumpTo = (id: string) => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        // Offset adjusted so the section title clears the sticky header correctly
-        const top = el.getBoundingClientRect().top + window.scrollY - 100;
-        window.scrollTo({ top, behavior: 'smooth' });
+    return {
+      filteredData: resultData,
+      filterOptions: {
+        levels: Array.from(levelsSet).sort(),
+        streams: Array.from(streamsSet).sort(),
+        courses: Array.from(coursesSet).sort(),
+        universities: Array.from(universitiesSet).sort(),
+        colleges: Array.from(collegesSet).sort(),
+        locations: Array.from(locationsSet).sort(),
+      }
     };
+  }, [data, search, selectedLevels, selectedStreams, selectedCourses, selectedUniversities, selectedColleges, selectedLocations]);
 
-    // States for logos
-    const [univLogo, setUnivLogo] = useState<string | null | undefined>(courseDetail.university?.university_logo_url);
-    const [collegeLogo, setCollegeLogo] = useState<string | null | undefined>(courseDetail.university?.college_logo_url);
+  const toggleFilter = (list: string[], setList: (next: string[]) => void, value: string) => {
+    if (list.includes(value)) {
+      setList(list.filter(v => v !== value));
+    } else {
+      setList([...list, value]);
+    }
+  };
 
-    // Fetch logos from the API
-    useEffect(() => {
-        let isMounted = true;
+  const hasActiveFilters = selectedLevels.length > 0 || selectedStreams.length > 0 || selectedCourses.length > 0 || selectedUniversities.length > 0 || selectedColleges.length > 0 || selectedLocations.length > 0;
 
-        const fetchLogos = async () => {
-            try {
-                const res = await fetch('https://www.admin.studyinnepal.com/api/university');
-                const data = await res.json();
+  return (
+    <div className="course-search-scope" style={{ fontFamily: "'Manrope', sans-serif" }}>
+      {/* External CSS Fonts */}
+      <link href="https://fonts.googleapis.com/css2?family=Castoro+Titling&family=Rajdhani:wght@600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-                if (!isMounted) return;
+      {/* ── VISUAL HERO BANNER ────────────────── */}
+      <div className="position-relative text-center" style={{ padding: "110px 24px 80px", zIndex: 10 }}>
+        
+        {/* Background Video */}
+        <div className="position-absolute top-0 start-0 end-0 bottom-0 overflow-hidden" style={{ zIndex: 0 }}>
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            poster="/students_hero.jpg"
+            className="position-absolute top-0 start-0 w-100 h-100"
+            style={{ objectFit: "cover" }}
+          >
+            <source src="https://admin.studyinnepal.com/storage/videos/d47e6ef1-9380-4968-b9b3-5b0b3a9a6e81.mp4" type="video/mp4" />
+          </video>
+          <div className="position-absolute inset-0 bg-dark opacity-75" style={{ mixBlendMode: "multiply", top: 0, left: 0, right: 0, bottom: 0 }} />
+          <div className="position-absolute inset-0" style={{ background: "linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6))", top: 0, left: 0, right: 0, bottom: 0 }} />
+        </div>
 
-                // Attempt to match exact university AND college
-                const exactMatch = data.find(
-                    (item: any) =>
-                        item.University === courseDetail.university_name &&
-                        item.College === courseDetail.college_name
-                );
+        {/* Hero Content Layer */}
+        <div className="container position-relative" style={{ zIndex: 5, maxWidth: "1040px" }}>
+          <p className="text-uppercase fw-bold text-warning mb-2" style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: "11px", letterSpacing: "0.28em" }}>
+            Explore Academic Fields
+          </p>
+          <h1 className="text-white text-uppercase mb-3" style={{ fontFamily: "'Castoro Titling', serif", fontSize: "calc(24px + 1.8vw)", letterSpacing: "0.06em", lineHeight: 1.15 }}>
+            Discover <span style={{ color: "#008ce3" }}>Your Pathway</span> in Nepal
+          </h1>
+          <p className="text-white-50 mx-auto mb-4" style={{ fontSize: "14px", lineHeight: 1.7, maxWidth: "620px" }}>
+            Search registered universities, streams, specialized colleges, and find the perfect program that meets your academic goals.
+          </p>
 
-                if (exactMatch) {
-                    if (exactMatch.university_logo_url) setUnivLogo(exactMatch.university_logo_url);
-                    if (exactMatch.college_logo_url) setCollegeLogo(exactMatch.college_logo_url);
-                } else {
-                    // Fallback to partial matching if exactly matching both fails
-                    const univMatch = data.find((item: any) => item.University === courseDetail.university_name);
-                    const colMatch = data.find((item: any) => item.College === courseDetail.college_name);
+          {/* Search Input Box */}
+          <div className="position-relative mx-auto mb-4" style={{ maxWidth: "640px" }}>
+            <span className="position-absolute top-50 translate-middle-y start-0 ps-4 z-3 d-flex align-items-center">
+              <iconify-icon icon="solar:magnifer-line-duotone" style={{ fontSize: "22px", color: "#008ce3" }} />
+            </span>
+            <input
+              type="text"
+              placeholder="Search by course, stream, college, or keyword..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+              className="form-control rounded-pill ps-5 py-3 border-0 bg-white shadow"
+              style={{
+                fontSize: "15px",
+                color: "#111827",
+                outline: "none",
+                boxShadow: searchFocused ? "0 12px 30px rgba(0, 140, 227, 0.25)" : "0 8px 30px rgba(0,0,0,0.15)",
+                transition: "all 0.3s ease"
+              }}
+            />
+          </div>
 
-                    if (univMatch?.university_logo_url) setUnivLogo(univMatch.university_logo_url);
-                    if (colMatch?.college_logo_url) setCollegeLogo(colMatch.college_logo_url);
-                }
-            } catch (err) {
-                console.error('Failed to fetch university API data for logos:', err);
-            } finally {
-                if (isMounted) setIsLoading(false);
-            }
-        };
+          {/* Horizontal Filters Section */}
+          <div className="d-flex flex-wrap align-items-center justify-content-center gap-2 pt-2">
+            <div className="d-flex align-items-center text-uppercase fw-bold text-white-50 me-2" style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: "13px", letterSpacing: "0.1em" }}>
+              <iconify-icon icon="solar:filter-line-duotone" style={{ fontSize: "20px", marginRight: "4px" }} /> Filters
+            </div>
 
-        fetchLogos();
+            <DropdownFilter label="Academic Level" options={filterOptions.levels} selected={selectedLevels} toggleOption={(v) => toggleFilter(selectedLevels, setSelectedLevels, v)} />
+            <DropdownFilter label="Stream / Field" options={filterOptions.streams} selected={selectedStreams} toggleOption={(v) => toggleFilter(selectedStreams, setSelectedStreams, v)} />
+            <DropdownFilter label="Course" options={filterOptions.courses} selected={selectedCourses} toggleOption={(v) => toggleFilter(selectedCourses, setSelectedCourses, v)} />
+            <DropdownFilter label="Universities" options={filterOptions.universities} selected={selectedUniversities} toggleOption={(v) => toggleFilter(selectedUniversities, setSelectedUniversities, v)} />
+            <DropdownFilter label="Colleges" options={filterOptions.colleges} selected={selectedColleges} toggleOption={(v) => toggleFilter(selectedColleges, setSelectedColleges, v)} />
+            <DropdownFilter label="Location" options={filterOptions.locations} selected={selectedLocations} toggleOption={(v) => toggleFilter(selectedLocations, setSelectedLocations, v)} />
 
-        return () => {
-            isMounted = false;
-        };
-    }, [courseDetail.university_name, courseDetail.college_name]);
+            {hasActiveFilters && (
+              <button
+                onClick={handleClearFilters}
+                className="btn btn-outline-danger btn-sm text-uppercase fw-bold px-3 py-2 rounded-pill shadow-sm"
+                style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: "12px", letterSpacing: "0.05em" }}
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
 
-    // Intersection Observer to highlight active navigation link based on scroll position
-    useEffect(() => {
-        // Prevent observer initialization until DOM elements are fully loaded
-        if (isLoading) return; 
+      {/* ── MAIN CONTENT AREA ──────────────────────────────────────────────── */}
+      <div className="container py-5" style={{ maxWidth: "1040px", position: "relative", zIndex: 1 }}>
 
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        setActiveSection(entry.target.id);
-                    }
-                });
-            },
-            { rootMargin: '-100px 0px -60% 0px', threshold: 0 }
-        );
+        {/* Results Status Bar */}
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <div className="small text-muted">
+            Showing <strong className="text-body">{filteredData.length}</strong> programs available
+          </div>
+        </div>
 
-        sections.forEach((s) => {
-            const el = document.getElementById(s.id);
-            if (el) observer.observe(el);
-        });
+        {/* Dynamic Responsive Layout */}
+        {loading ? (
+          <div className="card text-center p-5 border shadow-sm rounded-4">
+            <div className="card-body">
+              <span className="text-muted">Searching directory listings...</span>
+            </div>
+          </div>
+        ) : filteredData.length === 0 ? (
+          <div className="card text-center p-5 border shadow-sm rounded-4">
+            <div className="card-body">
+              <span className="text-muted">No matches found. Try adjusting your filter terms or keywords.</span>
+            </div>
+          </div>
+        ) : (
+          <div className="d-flex flex-column gap-4">
+            {filteredData.map(item => {
+              const stdLevel = standardizeLevel(item.level);
+              const stdUni = standardizeName(item.University);
+              const stdCol = standardizeName(item.College);
+              const stdLoc = standardizeName(item.Location);
+              const stdStream = standardizeStream(item.stream);
+              const stdCourse = standardizeCourse(item.Course);
 
-        return () => observer.disconnect();
-    }, [sections, isLoading]);
+              const collegeLogo = validUrl(item.college_logo_url);
+              const universityLogo = validUrl(item.university_logo_url);
+              const fallbackImage = getStreamImage(item.stream, item.id);
 
-    return (
-        <div className="gcu-page">
-            <Head title={`${courseDetail.course_name} | ${courseDetail.university_name}`} />
+              // Create resolve url that targets our new resolver backend endpoint with parameters
+              const resolveUrl = `/course/resolve?university=${encodeURIComponent(item.University)}&college=${encodeURIComponent(item.College)}&course=${encodeURIComponent(item.Course)}`;
 
-            {isLoading ? (
-                /* ================= LOADING SPINNER ================= */
-                <div className="d-flex justify-content-center align-items-center w-100" style={{ minHeight: '100vh', backgroundColor: 'var(--gcu-surface)' }}>
-                    <div className="spinner-border" style={{ width: '3.5rem', height: '3.5rem', color: 'var(--gcu-blue)' }} role="status">
-                        <span className="visually-hidden">Loading...</span>
-                    </div>
-                </div>
-            ) : (
-                <>
-                    {/* ================= HERO SECTION ================= */}
-                    <div className="gcu-hero position-relative d-flex align-items-end overflow-hidden">
-                        <div
-                            className="gcu-hero__bg position-absolute top-0 start-0 w-100 h-100"
-                            style={{
-                                backgroundImage: `url(${courseDetail.hero_image_url || 'https://www.studyinnepal.com/images/event_hallway.png'})`,
-                            }}
+              return (
+                <div
+                  key={item.id}
+                  className="card card-hover border shadow-sm rounded-4 overflow-hidden"
+                  style={{
+                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+                  }}
+                >
+                  <div className="row g-0 h-100">
+                    
+                    {/* Left Column: Cover / Logo Column — Clickable using Inertia Link */}
+                    <div className="col-12 col-md-4 col-lg-3 d-flex align-items-center justify-content-center position-relative border-end" 
+                         style={{ 
+                           minHeight: "200px", 
+                           background: collegeLogo ? "var(--bs-card-bg)" : "rgba(100,100,100,0.08)"
+                         }}>
+                      
+                      <Link 
+                        href={resolveUrl} 
+                        className="w-100 h-100 d-block"
+                      >
+                        <img
+                          src={collegeLogo ?? fallbackImage}
+                          alt={stdCol}
+                          className="w-100 h-100"
+                          style={{
+                            objectFit: collegeLogo ? "contain" : "cover",
+                            padding: collegeLogo ? "24px" : "0",
+                            boxSizing: "border-box",
+                            cursor: "pointer"
+                          }}
+                          onError={(e) => {
+                            e.currentTarget.src = fallbackImage;
+                            e.currentTarget.style.objectFit = "cover";
+                            e.currentTarget.style.padding = "0";
+                          }}
                         />
-                        <div className="gcu-hero__overlay position-absolute top-0 start-0 w-100 h-100" />
+                      </Link>
 
-                        {/* University strip, top-left */}
-                        <div className="position-absolute top-0 start-0 w-100 pt-4 z-2">
-                            <div className="container-xl px-4">
-                                <div className="d-flex align-items-center flex-wrap gap-3">
-                                    {univLogo && (
-                                        <img
-                                            src={univLogo}
-                                            alt={courseDetail.university_name}
-                                            className="gcu-logo-sm gcu-logo-native rounded-3 p-1 flex-shrink-0"
-                                        />
-                                    )}
-                                    <span className="text-white fw-bold fs-6">{courseDetail.university_name}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="container-xl px-4 position-relative z-2">
-                            <div className="gcu-banner card border-0 shadow-lg rounded-4 text-white p-4 p-md-5 mb-n5">
-                                <div className="d-flex align-items-center justify-content-between mb-3">
-                                    <span className="badge bg-white bg-opacity-25 text-white fw-bold text-uppercase px-3 py-2">
-                                        {courseDetail.university?.level || 'Postgraduate'}
-                                    </span>
-                                    {courseDetail.university?.Intake && (
-                                        <span className="d-flex align-items-center gap-1 small fw-semibold text-white text-opacity-75">
-                                            <Icon icon="material-symbols:calendar-month-outline" width="16" height="16" />
-                                            Intake: {courseDetail.university.Intake}
-                                        </span>
-                                    )}
-                                </div>
-
-                                <h1 className="fw-bold mb-3 gcu-banner__title">{courseDetail.course_name}</h1>
-
-                                <div className="d-flex align-items-center flex-wrap gap-3 mb-4 fs-5 fw-bold">
-                                    {collegeLogo && (
-                                        <img
-                                            src={collegeLogo}
-                                            alt={courseDetail.college_name}
-                                            className="gcu-logo-xs gcu-logo-native rounded-2 p-1 flex-shrink-0"
-                                        />
-                                    )}
-                                    <div className="d-flex flex-column">
-                                        <span>{courseDetail.college_name}</span>
-                                        {courseDetail.university?.Location && (
-                                            <span className="d-flex align-items-center gap-1 small fw-normal text-white text-opacity-75">
-                                                <Icon icon="material-symbols:location-on-outline" width="16" height="16" />
-                                                {courseDetail.university.Location}
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                      <div 
+                        className="position-absolute bottom-0 start-0 m-3 px-2 py-1 rounded text-white text-uppercase fw-bold"
+                        style={{ 
+                          background: "rgba(0,0,0,0.65)", 
+                          backdropFilter: "blur(4px)",
+                          fontSize: "10px", 
+                          fontFamily: "'Rajdhani', sans-serif",
+                          letterSpacing: "0.08em",
+                          pointerEvents: "none" // Ensures badge doesn't block the click events on the link below it
+                        }}
+                      >
+                        {stdStream}
+                      </div>
                     </div>
 
-                    {/* ================= STICKY SUBNAV ================= */}
-                    {sections.length > 1 && (
-                        <nav className="gcu-subnav sticky-top border-bottom" aria-label="Course Sections">
-                            <div className="container-xl px-4">
-                                <ul className="nav gcu-subnav__list justify-content-center flex-nowrap overflow-auto">
-                                    {sections.map((s) => (
-                                        <li className="nav-item" key={s.id}>
-                                            <button
-                                                type="button"
-                                                onClick={() => jumpTo(s.id)}
-                                                className={`nav-link gcu-subnav__link fw-bold text-nowrap ${
-                                                    activeSection === s.id ? 'active' : ''
-                                                }`}
-                                            >
-                                                {s.label}
-                                            </button>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </nav>
-                    )}
-
-                    <main className="gcu-main">
-                        {/* ================= OVERVIEW ================= */}
-                        {courseDetail.summary && (
-                            <section id="overview" className="container-xl px-4 gcu-panel gcu-panel--surface border-bottom">
-                                <div className="row gy-4 gy-lg-0" style={{ maxWidth: 1200 }}>
-                                    <div className="col-lg-3">
-                                        <h2 className="gcu-heading fw-bold fs-7">Overview</h2>
-                                    </div>
-                                    <div className="col-lg-9">
-                                        <div
-                                            className="gcu-html-content"
-                                            dangerouslySetInnerHTML={{ __html: courseDetail.summary }}
-                                        />
-                                    </div>
-                                </div>
-                            </section>
-                        )}
-
-                        {/* ================= WHAT YOU WILL STUDY ================= */}
-                        {modules.length > 0 && (
-                            <section id="study" className="gcu-panel-dark gcu-panel">
-                                <div className="container-xl px-4">
-                                    <div className="row gy-4 gy-lg-0" style={{ maxWidth: 1200 }}>
-                                        <div className="col-lg-3">
-                                            <h2 className="fw-bold fs-7 gcu-panel-dark__heading">
-                                                What you
-                                                <br />
-                                                will study
-                                            </h2>
-                                        </div>
-                                        <div className="col-lg-9">
-                                            {modules.length > 1 && (
-                                                <ul className="nav gcu-tab-headers flex-wrap gap-4 mb-4 pb-1">
-                                                    {modules.map((yearBlock) => (
-                                                        <li className="nav-item" key={yearBlock.year}>
-                                                            <button
-                                                                type="button"
-                                                                className={`nav-link gcu-tab-header-btn fw-bold fs-5 ${
-                                                                    activeTab === yearBlock.year ? 'active' : ''
-                                                                }`}
-                                                                onClick={() => setActiveTab(yearBlock.year)}
-                                                            >
-                                                                {yearBlock.title || `Year ${yearBlock.year}`}
-                                                            </button>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            )}
-
-                                            <div className="gcu-modules-list" id="moduleAccordion">
-                                                {modules.map((yearBlock) => {
-                                                    if (activeTab !== yearBlock.year && modules.length > 1) return null;
-                                                    return (
-                                                        <div key={yearBlock.year} className="d-flex flex-column gcu-modules-gap">
-                                                            {yearBlock.title && modules.length === 1 && (
-                                                                <h3 className="fs-5 fw-bold gcu-panel-dark__heading mb-2">{yearBlock.title}</h3>
-                                                            )}
-                                                            {yearBlock.modules && yearBlock.modules.length > 0 ? (
-                                                                yearBlock.modules
-                                                                    .map(normalizeModuleEntry)
-                                                                    .map((mod, i) => (
-                                                                        <ModuleAccordion
-                                                                            key={i}
-                                                                            id={`mod-${yearBlock.year}-${i}`}
-                                                                            name={mod.name}
-                                                                            info={mod.info}
-                                                                        />
-                                                                    ))
-                                                            ) : (
-                                                                <p className="gcu-panel-dark__muted mb-0">No modules listed for this period.</p>
-                                                            )}
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </section>
-                        )}
-
-                        {/* ================= FEES AND FUNDING ================= */}
-                        {fees.length > 0 && (
-                            <section id="fees" className="container-xl px-4 gcu-panel gcu-panel--surface border-bottom">
-                                <div className="row gy-4 gy-lg-0" style={{ maxWidth: 1200 }}>
-                                    <div className="col-lg-3">
-                                        <h2 className="gcu-heading fw-bold fs-7">
-                                            Fees and
-                                            <br />
-                                            funding
-                                        </h2>
-                                    </div>
-                                    <div className="col-lg-9">
-                                        <p className="gcu-body-text fs-4 mb-4">
-                                            The tuition fees you pay are determined by your fee status. Estimated tuition
-                                            breakdown by year is published below for guidance.
-                                        </p>
-                                        <div className="table-responsive border rounded-3">
-                                            <table className="table table-striped table-hover mb-0 align-middle gcu-fees-table">
-                                                <thead>
-                                                    <tr>
-                                                        <th className="text-uppercase fw-bold py-3 px-3">
-                                                            Year of Study
-                                                        </th>
-                                                        <th className="text-uppercase fw-bold py-3 px-3">
-                                                            Tuition Fee
-                                                        </th>
-                                                        <th className="text-uppercase fw-bold py-3 px-3">
-                                                            Additional Notes
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {fees.map((fee) => (
-                                                        <tr key={fee.year}>
-                                                            <td className="fw-bold px-3">Year {fee.year}</td>
-                                                            <td className="fw-bold text-primary px-3">
-                                                                {fee.amount ? `${fee.currency ?? ''} ${fee.amount}`.trim() : '—'}
-                                                            </td>
-                                                            <td className=" px-3">{fee.note || '—'}</td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            </section>
-                        )}
-
-                        {/* ================= CAREER PROSPECTUS ================= */}
-                        <section
-                            id="careers"
-                            className="gcu-panel-careers gcu-panel position-relative"
+                    {/* Right Column: Card Details Column */}
+                    <div className="col-12 col-md-8 col-lg-9 p-4 d-flex flex-column justify-content-between">
+                      <div>
+                        
+                        {/* Level & Intake Badges */}
+                        <div className="d-flex gap-2 flex-wrap mb-3">
+                          <span 
+                            className="text-uppercase fw-bold px-2 py-1 rounded-pill"
                             style={{
-                                backgroundImage: `url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')`,
+                              background: "rgba(251, 191, 36, 0.12)",
+                              color: "#fbbf24",
+                              fontSize: "9px",
+                              fontFamily: "'Rajdhani', sans-serif",
+                              letterSpacing: "0.12em"
                             }}
-                        >
-                            <div className="gcu-panel-careers__overlay position-absolute top-0 start-0 w-100 h-100" />
-                            <div className="container-xl px-4 position-relative z-2">
-                                <div className="row gy-4 gy-lg-0" style={{ maxWidth: 1200 }}>
-                                    <div className="col-lg-3">
-                                        <h2 className="fw-bold fs-7 text-white">
-                                            Career
-                                            <br />
-                                            Prospectus
-                                        </h2>
-                                    </div>
-                                    <div className="col-lg-9">
-                                        <p className="text-white-50 fs-5 mb-4">
-                                            Our course helps set the trajectory for career positions such as:
-                                        </p>
+                          >
+                            {stdLevel}
+                          </span>
+                          {item.Intake && (
+                            <span 
+                              className="text-uppercase fw-bold px-2 py-1 rounded-pill bg-secondary bg-opacity-10 text-secondary"
+                              style={{
+                                fontSize: "9px",
+                                fontFamily: "'Rajdhani', sans-serif",
+                                letterSpacing: "0.12em"
+                              }}
+                            >
+                              Intake: {item.Intake}
+                            </span>
+                          )}
+                        </div>
 
-                                        {typeof careersData === 'string' && careersData.trim() !== '' ? (
-                                            <div
-                                                // Full structured HTML (headings + nested/ordered lists) renders as a
-                                                // real document with plain bullets/numbers via .gcu-html-content.
-                                                // A short flat list of tag-like phrases instead falls back to the
-                                                // compact pill badges via the --pills modifier.
-                                                className={`gcu-html-content gcu-html-content--dark ${
-                                                    careersIsStructuredDoc ? '' : 'gcu-html-content--pills'
-                                                }`}
-                                                dangerouslySetInnerHTML={{ __html: careersData }}
-                                            />
-                                        ) : Array.isArray(careersData) && careersData.length > 0 ? (
-                                            <ul className="list-unstyled d-flex flex-wrap gap-2 mb-0">
-                                                {careersData.map((c, i) => (
-                                                    <li key={i} className="gcu-career-pill">
-                                                        {c}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        ) : (
-                                            <p className="text-white-50 fst-italic mb-0">
-                                                No detailed career prospectus information has been published for this course
-                                                yet.
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
+                        {/* Title & Organization Details */}
+                        <Link href={resolveUrl} className="text-decoration-none">
+                          <h3 className="h5 fw-bold mb-2 text-body card-title-link">{stdCourse}</h3>
+                        </Link>
+                        
+                        <div className="d-flex flex-wrap align-items-center gap-3 text-secondary mb-3">
+                          <span className="d-flex align-items-center gap-1 small text-muted">
+                            <iconify-icon icon="solar:home-angle-line-duotone" style={{ fontSize: "16px" }} />
+                            {stdCol}
+                          </span>
+                          <span className="d-flex align-items-center gap-1 small text-muted">
+                            <iconify-icon icon="solar:map-point-line-duotone" style={{ fontSize: "16px" }} />
+                            {stdLoc}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Card Footer row: Logo + Action */}
+                      <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 border-top pt-3 mt-3">
+                        
+                        {/* University Affiliation section */}
+                        <div className="d-flex align-items-center gap-2">
+                          {universityLogo ? (
+                            <img
+                              src={universityLogo}
+                              alt={stdUni}
+                              className="img-fluid rounded border p-1"
+                              style={{ width: "32px", height: "32px", objectFit: "contain", background: "white" }}
+                              onError={(e) => { e.currentTarget.style.display = "none"; }}
+                            />
+                          ) : (
+                            <div 
+                              className="rounded d-flex align-items-center justify-content-center fw-bold"
+                              style={{ 
+                                width: "32px", 
+                                height: "32px", 
+                                border: "1px solid var(--bs-border-color)",
+                                background: "rgba(0, 140, 227, 0.1)", 
+                                color: "#008ce3",
+                                fontSize: "11px",
+                                fontFamily: "'Rajdhani', sans-serif"
+                              }}
+                            >
+                              {stdUni.charAt(0).toUpperCase()}
                             </div>
-                        </section>
-                    </main>
-                </>
-            )}
+                          )}
+                          <div className="lh-1">
+                            <small className="text-uppercase text-muted d-block" style={{ fontSize: "10px", fontWeight: 600, letterSpacing: "0.06em" }}>
+                              Affiliated University
+                            </small>
+                            <span className="fw-bold small text-body">{stdUni}</span>
+                          </div>
+                        </div>
 
-            {/*
-                Bootstrap 5 handles layout, spacing, grid, tables, nav, and badges.
-                What's left below is only what Bootstrap has no utility for:
-                brand colors, the hero image treatment, sticky-tab underline
-                styling, module accordion look, and the dark careers panel
-                pill tags. No Tailwind, no other custom framework.
-
-                Theme support: the app layout toggles `data-bs-theme="dark"`
-                on <html> via MaterialM's theme.js (bound to the .moon/.sun
-                triggers in the topbar). Every custom color below is defined
-                as a CSS variable on :root, with a `[data-bs-theme="dark"]`
-                override block, so this page repaints correctly whenever the
-                user flips the toggle — instead of staying stuck with
-                hardcoded light-mode whites/blacks like it did before.
-            */}
-            <style>{`
-                :root {
-                    --gcu-blue: #0085da;
-                    --gcu-blue-dark: #006bb0;
-                    --gcu-blue-deep: #005490;
-                    --gcu-blue-light: #6ec4f7;
-                    --gcu-black: #12181f;
-
-                    /* Surface / text tokens — light mode defaults */
-                    --gcu-surface: #ffffff;
-                    --gcu-surface-alt: #f4f6f8;
-                    --gcu-text: #12181f;
-                    --gcu-text-muted: #4c5764;
-                    --gcu-border: #e5e9ef;
-                    --gcu-subnav-bg: #ffffff;
-                    --gcu-pill-bg: #f4f6f8;
-                    --gcu-pill-border: #bae0fb;
-                    --gcu-table-row-stripe: rgba(0, 133, 218, 0.04);
-                }
-
-                [data-bs-theme="dark"] {
-                    --gcu-surface: #1a2028;
-                    --gcu-surface-alt: #222a34;
-                    --gcu-text: #e6ebf1;
-                    --gcu-text-muted: #a6b0bd;
-                    --gcu-border: #2c3644;
-                    --gcu-subnav-bg: #1a2028;
-                    --gcu-pill-bg: #222a34;
-                    --gcu-pill-border: #2f5d80;
-                    --gcu-table-row-stripe: rgba(110, 196, 247, 0.06);
-                    --gcu-black: #0b0e13;
-                }
-
-                .gcu-page {
-                    font-family: -apple-system, BlinkMacSystemFont, "Montserrat", "Segoe UI", Arial, sans-serif;
-                    overflow-x: clip;
-                    background-color: var(--gcu-surface);
-                    color: var(--gcu-text);
-                }
-
-                .gcu-main { padding-top: 50px; padding-bottom: 100px; background-color: var(--gcu-surface); }
-                .gcu-panel { padding-top: 50px; padding-bottom: 50px; }
-                .gcu-panel.border-bottom { border-color: var(--gcu-border) !important; }
-                /* Explicit surface background on the panel itself (not just
-                   inherited from .gcu-main) — CMS-authored HTML dropped in
-                   via dangerouslySetInnerHTML can carry its own background
-                   on wrapper tags from the rich-text editor, which without
-                   this would show through as a stray white block in dark
-                   mode instead of repainting with the theme. */
-                .gcu-panel--surface { background-color: var(--gcu-surface); }
-                .gcu-panel-dark.gcu-panel,
-                .gcu-panel-careers.gcu-panel { padding-top: 60px; padding-bottom: 60px; }
-
-                /* ---- Hero ---- */
-                .gcu-hero {
-                    min-height: 480px;
-                    background: #111;
-                }
-                .gcu-hero__bg {
-                    background-size: cover;
-                    background-position: center;
-                }
-                .gcu-hero__overlay {
-                    background: linear-gradient(90deg, rgba(0,0,0,0.9) 0%, rgba(0,133,218,0.6) 100%);
-                }
-                .z-2 { z-index: 2; }
-                .gcu-logo-sm { width: 60px; height: 60px; object-fit: contain; }
-                .gcu-logo-xs { width: 50px; height: 50px; object-fit: contain; }
-                /* University/college logos must render with their true source
-                   colors in both light and dark theme — never let any theme
-                   filter, invert, grayscale, or blend-mode rule reach them.
-                   Scoped as a hard reset so no future dark-mode rule added
-                   elsewhere on the page can accidentally recolor these. */
-                .gcu-logo-native {
-                    background-color: #ffffff !important;
-                    filter: none !important;
-                    -webkit-filter: none !important;
-                    mix-blend-mode: normal !important;
-                    color-scheme: light !important;
-                }
-
-                .gcu-banner {
-                    background: linear-gradient(135deg, var(--gcu-blue-dark) 0%, #041118 100%);
-                }
-                .gcu-banner__title {
-                    font-size: 2.3rem;
-                    line-height: 1.15;
-                    color: #dae4f3;
-                }
-
-                /* ---- Sticky subnav ---- */
-                .gcu-subnav {
-                    top: -30px !important;
-                    z-index: 1030;
-                    background-color: var(--gcu-subnav-bg) !important;
-                    border-color: var(--gcu-border) !important;
-                }
-                .gcu-subnav__list { --bs-nav-link-padding-y: 0; }
-                .gcu-subnav__link { padding-top: 20px !important; padding-bottom: 17px !important; }
-                .gcu-subnav__link {
-                    background: none;
-                    border: none;
-                    border-bottom: 3px solid transparent !important;
-                    border-radius: 0 !important;
-                    color: var(--gcu-text-muted) !important;
-                }
-                .gcu-subnav__link:hover {
-                    color: var(--gcu-blue) !important;
-                    border-bottom-color: var(--gcu-blue-light) !important;
-                }
-                .gcu-subnav__link.active {
-                    color: var(--gcu-blue) !important;
-                    border-bottom-color: var(--gcu-blue) !important;
-                }
-                .gcu-subnav__link:focus-visible {
-                    outline: 2px solid var(--gcu-blue);
-                    outline-offset: 2px;
-                }
-
-                /* ---- Headings / prose ---- */
-                .gcu-heading { color: var(--gcu-blue-dark); }
-                [data-bs-theme="dark"] .gcu-heading { color: var(--gcu-blue-light); }
-                .gcu-body-text { color: var(--gcu-text); }
-                /* CMS-authored HTML rendered via dangerouslySetInnerHTML often
-                   carries its own inline style="color:#000" /
-                   style="background:#fff" attributes from whatever
-                   rich-text editor produced it (this is exactly what the
-                   MBA course's Overview/Career content does). An inline
-                   style attribute always beats an external stylesheet rule
-                   at equal or lower specificity, so a plain color: var(...)
-                   here was being silently ignored — that's why text was
-                   unreadable in dark mode even though the panel background
-                   correctly switched. !important on the inherited-content
-                   selectors is the only reliable way to beat arbitrary
-                   inline styles we don't control the source of, so it's
-                   used deliberately here, scoped tightly to
-                   .gcu-html-content descendants only. */
-                .gcu-html-content { font-size: 1.05rem; line-height: 1.75; color: var(--gcu-text); }
-                .gcu-html-content,
-                .gcu-html-content * {
-                    background-color: transparent !important;
-                }
-                .gcu-html-content,
-                .gcu-html-content p,
-                .gcu-html-content span,
-                .gcu-html-content div,
-                .gcu-html-content li,
-                .gcu-html-content strong,
-                .gcu-html-content b,
-                .gcu-html-content em {
-                    color: var(--gcu-text) !important;
-                }
-                .gcu-html-content h2 { font-size: 1.4rem; font-weight: 800; margin: 28px 0 12px; color: var(--gcu-blue-dark) !important; }
-                [data-bs-theme="dark"] .gcu-html-content h2 { color: var(--gcu-blue-light) !important; }
-                .gcu-html-content h2:first-child { margin-top: 0; }
-                .gcu-html-content h3 { font-size: 1.1rem; font-weight: 700; margin: 22px 0 10px; color: var(--gcu-blue) !important; }
-                .gcu-html-content p { margin-bottom: 14px; }
-
-                /* Plain bulleted / numbered lists — the default for real
-                   document-style content (headings, nested sub-lists, and
-                   ordered "career progression" style steps). This is what
-                   renders for the MBA-style careers copy: top-level <ul>
-                   sections as bullets, the nested certifications <ul> as a
-                   sub-bulleted list, and the <ol> "Career Progression"
-                   section as a numbered list — matching how it was authored
-                   in the rich text editor (see RichTextEditor's own
-                   .editor-content ul/ol rules, which this mirrors). */
-                .gcu-html-content ul,
-                .gcu-html-content ol {
-                    margin: 10px 0 20px;
-                    padding-left: 1.5rem;
-                }
-                .gcu-html-content ul { list-style-type: disc; }
-                .gcu-html-content ul ul { list-style-type: circle; margin: 6px 0; }
-                .gcu-html-content ul ul ul { list-style-type: square; }
-                .gcu-html-content ol { list-style-type: decimal; }
-                .gcu-html-content ol ol { list-style-type: lower-alpha; }
-                .gcu-html-content ol ol ol { list-style-type: lower-roman; }
-                .gcu-html-content li { margin: 4px 0; padding-left: 2px; }
-                /* Rich text editors commonly wrap each <li> content in a <p>;
-                   keep it inline so list items don't get extra block spacing. */
-                .gcu-html-content li > p { display: inline; margin: 0; }
-                .gcu-html-content li::marker { color: var(--gcu-blue); font-weight: 700; }
-                [data-bs-theme="dark"] .gcu-html-content li::marker { color: var(--gcu-blue-light); }
-
-                /* Opt-in compact pill/tag style — used only for short, flat
-                   lists of plain tags (e.g. "Skills: X, Y, Z") via the
-                   --pills modifier class, not applied to full documents. */
-                .gcu-html-content--pills ul:not(.gcu-html-content--dark ul) {
-                    list-style: none; display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 20px; padding: 0;
-                }
-                .gcu-html-content--pills ul:not(.gcu-html-content--dark ul) li {
-                    background-color: var(--gcu-pill-bg) !important; border: 1px solid var(--gcu-pill-border); padding: 8px 16px;
-                    border-radius: 999px; font-weight: 600; font-size: 0.9rem; color: var(--gcu-blue-dark) !important; margin: 0;
-                }
-                [data-bs-theme="dark"] .gcu-html-content--pills ul:not(.gcu-html-content--dark ul) li { color: var(--gcu-blue-light) !important; }
-
-                /* Dark variant: used inside the always-dark Career Prospectus
-                   panel, so its content colors are fixed white/light rather
-                   than theme-token driven — same !important reasoning as
-                   above applies since it also renders CMS HTML. */
-                .gcu-html-content--dark,
-                .gcu-html-content--dark p,
-                .gcu-html-content--dark span,
-                .gcu-html-content--dark div,
-                .gcu-html-content--dark li,
-                .gcu-html-content--dark strong,
-                .gcu-html-content--dark b,
-                .gcu-html-content--dark em {
-                    color: rgba(255,255,255,0.85) !important;
-                }
-                .gcu-html-content--dark h2 { color: #fff !important; }
-                .gcu-html-content--dark h3 { color: var(--gcu-blue-light) !important; }
-                .gcu-html-content--dark li::marker { color: var(--gcu-blue-light) !important; }
-                .gcu-html-content--dark.gcu-html-content--pills ul li {
-                    background-color: rgba(255,255,255,0.08) !important; border-color: rgba(255,255,255,0.14); color: #fff !important;
-                }
-
-                /* ---- Study panel (dark) ----
-                   Always dark regardless of app theme (deliberate brand
-                   panel), but the app-wide dark toggle deepens it slightly
-                   via the --gcu-black override above so it doesn't look
-                   flat/mismatched against a dark shell. */
-                .gcu-panel-dark { background-color: var(--gcu-black); }
-                .gcu-panel-dark__heading { color: #fff; }
-                .gcu-panel-dark__muted { color: rgba(255,255,255,0.6); }
-                .gcu-tab-headers { border-bottom: 2px solid rgba(255,255,255,0.2); }
-                .gcu-tab-header-btn {
-                    background: none; border: none; border-bottom: 4px solid transparent !important;
-                    border-radius: 0 !important; color: rgba(255,255,255,0.6) !important; padding-bottom: 14px !important;
-                }
-                .gcu-tab-header-btn:hover, .gcu-tab-header-btn.active {
-                    color: #fff !important; border-bottom-color: #fff !important;
-                }
-
-                /* Module accordion rows */
-                .gcu-modules-gap { gap: 12px; }
-                .gcu-modules-list .card {
-                    border: none;
-                    border-radius: 6px;
-                    overflow: hidden;
-                    margin-bottom: 0;
-                    background-color: var(--gcu-surface);
-                }
-                .gcu-mod-btn {
-                    color: var(--gcu-blue);
-                    font-weight: 700;
-                    background-color: var(--gcu-surface) !important;
-                }
-                .gcu-mod-btn:not(.collapsed) { color: var(--gcu-blue-dark); }
-                [data-bs-theme="dark"] .gcu-mod-btn:not(.collapsed) { color: var(--gcu-blue-light); }
-                .gcu-mod-arrow { transition: transform 0.2s ease; }
-                .gcu-mod-btn[aria-expanded="true"] .gcu-mod-arrow { transform: rotate(90deg); }
-                .gcu-mod-info {
-                    background-color: var(--gcu-surface);
-                    border-top: 1px dashed var(--gcu-border) !important;
-                }
-                .gcu-mod-info p { color: var(--gcu-text-muted); }
-
-                /* ---- Fees table header ----
-                   Bootstrap's .table/.table-striped set background via the
-                   --bs-table-bg CSS variable on td/th, which otherwise wins
-                   over a plain background-color rule here. Set both the
-                   variable and the property directly, and drive text/stripe
-                   colors from our theme tokens so the table repaints in
-                   dark mode instead of leaving white cells with light text. */
-                .gcu-fees-table {
-                    --bs-table-bg: var(--gcu-surface);
-                    --bs-table-striped-bg: var(--gcu-table-row-stripe);
-                    --bs-table-color: var(--gcu-text);
-                    --bs-table-striped-color: var(--gcu-text);
-                    --bs-table-hover-bg: var(--gcu-surface-alt);
-                    --bs-table-hover-color: var(--gcu-text);
-                    --bs-border-color: var(--gcu-border);
-                    font-size: 0.95rem;
-                }
-                .gcu-fees-table thead th {
-                    --bs-table-bg: var(--gcu-blue);
-                    background-color: var(--gcu-blue) !important;
-                    color: #fff !important;
-                    border-color: var(--gcu-blue);
-                    font-size: 0.75rem;
-                    letter-spacing: 0.05em;
-                }
-                .gcu-fees-table tbody td {
-                    font-size: 0.95rem;
-                    color: var(--gcu-text);
-                }
-
-                /* ---- Careers panel ----
-                   Always a dark, image-backed panel by design in both app
-                   themes; overlay opacity nudges slightly darker in dark
-                   mode so the background photo doesn't look washed out
-                   next to a dark shell. */
-                .gcu-panel-careers {
-                    background-color: #1e293b;
-                    background-size: cover;
-                    background-position: center;
-                    background-repeat: no-repeat;
-                }
-                .gcu-panel-careers__overlay { background-color: rgba(15,23,42,0.88); }
-                [data-bs-theme="dark"] .gcu-panel-careers__overlay { background-color: rgba(8,12,20,0.92); }
-                .gcu-career-pill {
-                    background: rgba(255,255,255,0.08);
-                    border: 1px solid rgba(255,255,255,0.14);
-                    color: #fff;
-                    padding: 8px 16px;
-                    border-radius: 999px;
-                    font-size: 0.88rem;
-                    transition: background 0.15s, border-color 0.15s;
-                }
-                .gcu-career-pill:hover {
-                    background: rgba(255,255,255,0.16);
-                    border-color: var(--gcu-blue-light);
-                }
-
-                @media (max-width: 500px) {
-                    .gcu-hero { min-height: 270px; }
-                    .gcu-banner__title { font-size: 1.4rem; }
-                }
-            `}</style>
-        </div>
-    );
-}
-
-// Renders a single module row using a Bootstrap accordion-style card.
-// The expand chevron and click-to-open behavior only appear when `info`
-// has real content — modules with no info render as a plain static row.
-function ModuleAccordion({ id, name, info }: { id: string; name: string; info?: string | null }) {
-    const hasInfo = Boolean(info && info.trim() !== '');
-    const [open, setOpen] = useState(false);
-
-    return (
-        <div className="card border-0 shadow-sm">
-            <button
-                type="button"
-                className={`gcu-mod-btn btn w-100 d-flex align-items-center justify-content-between text-start px-4 py-3 ${
-                    !hasInfo ? 'pe-none' : ''
-                }`}
-                onClick={() => hasInfo && setOpen((o) => !o)}
-                aria-expanded={hasInfo ? open : undefined}
-                style={{ cursor: hasInfo ? 'pointer' : 'default' }}
-            >
-                <span>{name}</span>
-                {hasInfo && (
-                    <Icon
-                        icon="material-symbols:chevron-right-rounded"
-                        width="22"
-                        height="22"
-                        className="gcu-mod-arrow flex-shrink-0"
-                    />
-                )}
-            </button>
-            {hasInfo && open && (
-                <div className="gcu-mod-info px-4 pb-3 pt-2 border-top border-dashed">
-                    <p className="small mb-0" id={id}>
-                        {info}
-                    </p>
+                        {/* CTA Button */}
+                        <button
+                          onClick={() => setApplyTarget({ university: stdUni, college: stdCol, course: stdCourse })}
+                          className="btn btn-primary btn-sm d-flex align-items-center gap-2 px-3 py-2 text-uppercase fw-bold"
+                          style={{
+                            background: "#008ce3",
+                            borderColor: "#008ce3",
+                            fontFamily: "'Rajdhani', sans-serif",
+                            fontSize: "12px",
+                            letterSpacing: "0.05em",
+                            transition: "all 0.2s"
+                          }}
+                        >
+                          <span>Apply Now</span>
+                          <iconify-icon icon="solar:arrow-right-linear" style={{ fontSize: "14px" }} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-            )}
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Apply Now Modal */}
+      {applyTarget && (
+        <ApplyNowModal
+          courseTarget={applyTarget}
+          recentStudents={recentStudents}
+          recentStudentsLoading={recentStudentsLoading}
+          onRequestRefreshRecent={fetchRecentStudents}
+          onClose={() => setApplyTarget(null)}
+        />
+      )}
+
+      {/* Local Toast Notification Pop-up */}
+      {localToast && (
+        <div 
+          className="position-fixed bottom-0 end-0 m-4 p-3 rounded-3 shadow-lg text-white d-flex align-items-center gap-2 border border-danger-subtle"
+          style={{ 
+            background: "#ef4444", 
+            zIndex: 3000,
+            fontSize: "14px",
+            animation: "fadeInUp 0.3s ease-out",
+            fontFamily: "'Manrope', sans-serif"
+          }}
+        >
+          <iconify-icon icon="solar:danger-triangle-bold" style={{ fontSize: "20px" }} />
+          <span>{localToast}</span>
+          <button 
+            onClick={() => setLocalToast(null)} 
+            className="btn btn-sm text-white p-0 ms-2"
+            style={{ background: "none", border: "none" }}
+          >
+            <iconify-icon icon="solar:close-circle-line-duotone" style={{ fontSize: "16px" }} />
+          </button>
         </div>
-    );
+      )}
+
+      {/* CSS Rules */}
+      <style>{`
+        .card-hover:hover {
+          border-color: #008ce3 !important;
+          transform: translateY(-2px);
+          box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important;
+        }
+
+        .card-title-link:hover {
+          color: #008ce3 !important;
+          transition: color 0.2s ease;
+        }
+
+        .custom-scroll::-webkit-scrollbar {
+          width: 5px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+          background: #d1d5db;
+          border-radius: 10px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+          background: #9ca3af;
+        }
+
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
+    </div>
+  );
 }
