@@ -4,18 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\University;
 use Illuminate\Http\Request;
-use PhpOffice\PhpSpreadsheet\IOFactory; 
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 
 class UniversityApiControler extends Controller
 {
-    
+
     public function index(Request $request): JsonResponse
     {
         $limit = (int) $request->query('limit', 200);
-        $limit = max(1, min($limit, 200)); // hard cap so a bad request can't pull everything again
+        $limit = max(1, min($limit, 200)); // hard cap so a bad request can't pull everything at once
 
         $query = University::query()
             ->leftJoin('course_details', function ($join) {
@@ -25,16 +25,33 @@ class UniversityApiControler extends Controller
             })
             ->select('universities.*', 'course_details.uuid as course_detail_uuid');
 
+        /*
+        |--------------------------------------------------------------------------
+        | Search — partial, as-you-type matching on any relevant field
+        |--------------------------------------------------------------------------
+        | Using LIKE '%term%' here on purpose, not FULLTEXT. FULLTEXT only matches
+        | whole indexed tokens (subject to min token length + stopword rules), so
+        | "Ace" would never match "Ace International College" until the full word
+        | boundary lines up. With ~1,300 rows, LIKE is fast enough and gives true
+        | substring matching (Ace -> Ace International, anywhere in the string).
+        */
         if ($search = trim((string) $request->query('search', ''))) {
-            // Requires a FULLTEXT index (see accompanying migration). Without it,
-            // LIKE '%term%' can't use an index and forces a full scan on every keystroke.
-            $query->whereFullText(
-                ['universities.University', 'universities.Course', 'universities.College', 'universities.Location', 'universities.stream'],
-                $search,
-                ['mode' => 'boolean']
-            );
+            $query->where(function ($q) use ($search) {
+                $q->where('universities.University', 'LIKE', "%{$search}%")
+                  ->orWhere('universities.College', 'LIKE', "%{$search}%")
+                  ->orWhere('universities.Course', 'LIKE', "%{$search}%")
+                  ->orWhere('universities.Location', 'LIKE', "%{$search}%")
+                  ->orWhere('universities.stream', 'LIKE', "%{$search}%")
+                  ->orWhere('universities.level', 'LIKE', "%{$search}%")
+                  ->orWhere('universities.Intake', 'LIKE', "%{$search}%");
+            });
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | Filters
+        |--------------------------------------------------------------------------
+        */
         $filterMap = [
             'level'      => 'universities.level',
             'stream'     => 'universities.stream',
@@ -51,7 +68,14 @@ class UniversityApiControler extends Controller
             }
         }
 
-        $paginated = $query->orderBy('universities.id')->cursorPaginate($limit);
+        $paginated = $query
+            ->orderBy('universities.id')
+            ->cursorPaginate(
+                $limit,
+                ['*'],
+                'cursor',
+                $request->query('cursor')
+            );
 
         return response()->json([
             'data'        => $paginated->items(),
@@ -142,7 +166,7 @@ class UniversityApiControler extends Controller
                                                 ? implode(', ', $course['allDocs'])
                                                 : null,
                 ]);
-                $university->linkMatchingCourseDetail(); 
+                $university->linkMatchingCourseDetail();
 
                 $results[] = $university;
             }
@@ -156,73 +180,76 @@ class UniversityApiControler extends Controller
             'entries'    => $results,
         ], 201);
     }
+
     public function update(Request $request, $id): JsonResponse
-{
-    // Locate the target entry to obtain the old name identifier
-    $target = University::findOrFail($id);
-    $oldUniversityName = $target->University;
+    {
+        // Locate the target entry to obtain the old name identifier
+        $target = University::findOrFail($id);
+        $oldUniversityName = $target->University;
 
-    $validated = $request->validate([
-        'universityName'                  => 'required|string|max:255',
-        'level'                           => 'required|string|max:255',
-        'intake'                          => 'required|string|max:20',
-        'colleges'                        => 'required|array|min:1',
-        'colleges.*.name'                 => 'required|string|max:255',
-        'colleges.*.location'             => 'required|string|max:255',
-        'colleges.*.courses'              => 'required|array|min:1',
-        'colleges.*.courses.*.courseName'  => 'required|string|max:255',
-        'colleges.*.courses.*.stream'      => 'required|string|max:255',
-        'colleges.*.courses.*.annualFee'   => 'nullable|string|max:100',
-        'colleges.*.courses.*.scholarship' => 'nullable|string|max:255',
-        'colleges.*.courses.*.allDocs'     => 'nullable|array',
-        'colleges.*.courses.*.allDocs.*'   => 'string|max:255',
-    ]);
+        $validated = $request->validate([
+            'universityName'                  => 'required|string|max:255',
+            'level'                           => 'required|string|max:255',
+            'intake'                          => 'required|string|max:20',
+            'colleges'                        => 'required|array|min:1',
+            'colleges.*.name'                 => 'required|string|max:255',
+            'colleges.*.location'             => 'required|string|max:255',
+            'colleges.*.courses'              => 'required|array|min:1',
+            'colleges.*.courses.*.courseName'  => 'required|string|max:255',
+            'colleges.*.courses.*.stream'      => 'required|string|max:255',
+            'colleges.*.courses.*.annualFee'   => 'nullable|string|max:100',
+            'colleges.*.courses.*.scholarship' => 'nullable|string|max:255',
+            'colleges.*.courses.*.allDocs'     => 'nullable|array',
+            'colleges.*.courses.*.allDocs.*'   => 'string|max:255',
+        ]);
 
-    DB::transaction(function() use ($oldUniversityName, $validated) {
-        // Delete all old rows for this university name to clean up configurations
-        University::where('University', $oldUniversityName)->delete();
+        DB::transaction(function() use ($oldUniversityName, $validated) {
+            // Delete all old rows for this university name to clean up configurations
+            University::where('University', $oldUniversityName)->delete();
 
-        // Populate new rows
-        foreach ($validated['colleges'] as $college) {
-            foreach ($college['courses'] as $course) {
-                University::create([
-                    'University'         => $validated['universityName'],
-                    'level'              => $validated['level'],
-                    'Intake'             => $validated['intake'],
-                    'College'            => $college['name'],
-                    'Location'           => $college['location'],
-                    'Course'             => $course['courseName'],
-                    'stream'             => $course['stream'],
-                    'Amount'             => $course['annualFee'] ?? null,
-                    'Scholarship'        => $course['scholarship'] ?? null,
-                    'requireddocuments'  => isset($course['allDocs'])
-                                                ? implode(', ', $course['allDocs'])
-                                                : null,
-                ]);
+            // Populate new rows
+            foreach ($validated['colleges'] as $college) {
+                foreach ($college['courses'] as $course) {
+                    University::create([
+                        'University'         => $validated['universityName'],
+                        'level'              => $validated['level'],
+                        'Intake'             => $validated['intake'],
+                        'College'            => $college['name'],
+                        'Location'           => $college['location'],
+                        'Course'             => $course['courseName'],
+                        'stream'             => $course['stream'],
+                        'Amount'             => $course['annualFee'] ?? null,
+                        'Scholarship'        => $course['scholarship'] ?? null,
+                        'requireddocuments'  => isset($course['allDocs'])
+                                                    ? implode(', ', $course['allDocs'])
+                                                    : null,
+                    ]);
+                }
             }
-        }
-    });
+        });
 
-    Cache::forget('university_filter_options');
+        Cache::forget('university_filter_options');
 
-    return response()->json([
-        'message' => 'University updated successfully.'
-    ]);
-}
-public function show($id): JsonResponse
-{
-    // Find the entry that was clicked in the directory
-    $entry = University::findOrFail($id);
+        return response()->json([
+            'message' => 'University updated successfully.'
+        ]);
+    }
 
-    // Retrieve all database rows that share the exact same University Name
-    $universityRows = University::where('University', $entry->University)
-        ->orderBy('College', 'asc')
-        ->orderBy('Course', 'asc')
-        ->get();
+    public function show($id): JsonResponse
+    {
+        // Find the entry that was clicked in the directory
+        $entry = University::findOrFail($id);
 
-    return response()->json($universityRows);
-}
-public function destroy($id)
+        // Retrieve all database rows that share the exact same University Name
+        $universityRows = University::where('University', $entry->University)
+            ->orderBy('College', 'asc')
+            ->orderBy('Course', 'asc')
+            ->get();
+
+        return response()->json($universityRows);
+    }
+
+    public function destroy($id)
     {
         try {
             $entry = University::find($id);
@@ -252,7 +279,7 @@ public function destroy($id)
         }
     }
 
-     public function export(): \Symfony\Component\HttpFoundation\StreamedResponse
+    public function export(): \Symfony\Component\HttpFoundation\StreamedResponse
     {
         $headers = [
             'Content-type'        => 'text/csv',
@@ -263,10 +290,10 @@ public function destroy($id)
         ];
 
         $columns = [
-    'University', 'university_logo_url', 'level', 'Intake',
-    'College', 'college_logo_url', 'Location',
-    'Course', 'stream', 'Amount', 'Scholarship', 'requireddocuments'
-];
+            'University', 'university_logo_url', 'level', 'Intake',
+            'College', 'college_logo_url', 'Location',
+            'Course', 'stream', 'Amount', 'Scholarship', 'requireddocuments'
+        ];
 
         $callback = function() use ($columns) {
             $file = fopen('php://output', 'w');
@@ -275,19 +302,19 @@ public function destroy($id)
             University::chunk(200, function($records) use ($file) {
                 foreach ($records as $record) {
                     fputcsv($file, [
-    $record->University,
-    $record->university_logo_url,   // ← add
-    $record->level,
-    $record->Intake,
-    $record->College,
-    $record->college_logo_url,      // ← add
-    $record->Location,
-    $record->Course,
-    $record->stream,
-    $record->Amount,
-    $record->Scholarship,
-    $record->requireddocuments,
-]);
+                        $record->University,
+                        $record->university_logo_url,
+                        $record->level,
+                        $record->Intake,
+                        $record->College,
+                        $record->college_logo_url,
+                        $record->Location,
+                        $record->Course,
+                        $record->stream,
+                        $record->Amount,
+                        $record->Scholarship,
+                        $record->requireddocuments,
+                    ]);
                 }
             });
 
@@ -297,7 +324,7 @@ public function destroy($id)
         return response()->stream($callback, 200, $headers);
     }
 
-      public function import(Request $request): JsonResponse
+    public function import(Request $request): JsonResponse
     {
         // Support xlsx, xls, csv, and txt formats
         $request->validate([
@@ -315,7 +342,7 @@ public function destroy($id)
             // Load CSV or Excel via PhpSpreadsheet factory
             $spreadsheet = IOFactory::load($filePath);
             $worksheet = $spreadsheet->getActiveSheet();
-            
+
             // Convert worksheet to array of rows
             $rows = $worksheet->toArray();
 
@@ -346,7 +373,7 @@ public function destroy($id)
                         $row = array_slice($row, 0, count($header));
                     }
                 }
-                
+
                 $data = array_combine($header, $row);
 
                 // Skip rows that lack mandatory identifiers
@@ -356,24 +383,24 @@ public function destroy($id)
 
                 // Match strictly by University and Course
                 $record = University::updateOrCreate(
-    [
-        'University' => trim($data['University']),
-        'Course'     => trim($data['Course']),
-    ],
-    [
-        'level'               => isset($data['level']) ? trim($data['level']) : null,
-        'Intake'              => isset($data['Intake']) ? trim($data['Intake']) : null,
-        'College'             => isset($data['College']) ? trim($data['College']) : null,
-        'Location'            => isset($data['Location']) ? trim($data['Location']) : null,
-        'stream'              => isset($data['stream']) ? trim($data['stream']) : null,
-        'Amount'              => isset($data['Amount']) ? trim($data['Amount']) : null,
-        'Scholarship'         => isset($data['Scholarship']) ? trim($data['Scholarship']) : null,
-        'requireddocuments'   => isset($data['requireddocuments']) ? trim($data['requireddocuments']) : null,
-        'university_logo_url' => isset($data['university_logo_url']) ? trim($data['university_logo_url']) : null,
-        'college_logo_url'    => isset($data['college_logo_url']) ? trim($data['college_logo_url']) : null,
-    ]
-);
-$record->linkMatchingCourseDetail();
+                    [
+                        'University' => trim($data['University']),
+                        'Course'     => trim($data['Course']),
+                    ],
+                    [
+                        'level'               => isset($data['level']) ? trim($data['level']) : null,
+                        'Intake'              => isset($data['Intake']) ? trim($data['Intake']) : null,
+                        'College'             => isset($data['College']) ? trim($data['College']) : null,
+                        'Location'            => isset($data['Location']) ? trim($data['Location']) : null,
+                        'stream'              => isset($data['stream']) ? trim($data['stream']) : null,
+                        'Amount'              => isset($data['Amount']) ? trim($data['Amount']) : null,
+                        'Scholarship'         => isset($data['Scholarship']) ? trim($data['Scholarship']) : null,
+                        'requireddocuments'   => isset($data['requireddocuments']) ? trim($data['requireddocuments']) : null,
+                        'university_logo_url' => isset($data['university_logo_url']) ? trim($data['university_logo_url']) : null,
+                        'college_logo_url'    => isset($data['college_logo_url']) ? trim($data['college_logo_url']) : null,
+                    ]
+                );
+                $record->linkMatchingCourseDetail();
                 if ($record->wasRecentlyCreated) {
                     $createdCount++;
                 } else {
