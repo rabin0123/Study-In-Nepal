@@ -14,23 +14,29 @@ const INITIAL_PAGE_SIZE = 200;
 const NEXT_PAGE_SIZE = 40;
 const SEARCH_DEBOUNCE_MS = 300;
 
-// ── Helper to dynamically map stream to actual homepage assets ─────────────
+// ── Stream → Image mapping (computed once, not per-row) ───────────────────
+const STREAM_IMAGE_RULES: [RegExp, string][] = [
+  [/it|tech|comput|engin|science/, "/images/event_classroom.png"],
+  [/buddhist|philosophy|culture|art/, "/images/nepal_temple.png"],
+  [/manage|business|mba|admin/, "/images/cafe_student.png"],
+  [/social|ngo|communit/, "/images/event_walking.png"],
+];
+const FALLBACK_POOL = ["/images/event_grad.png", "/images/students_hero.jpg"];
+
+// Cache results per unique stream string so repeated streams across rows
+// (common — many courses share a stream) skip re-matching entirely.
+const streamImageCache = new Map<string, string>();
+
 const getStreamImage = (stream: string, id: number): string => {
-  const s = stream?.toLowerCase() || "";
-  if (s.includes("it") || s.includes("tech") || s.includes("comput") || s.includes("engin") || s.includes("science")) {
-    return "/images/event_classroom.png";
-  }
-  if (s.includes("buddhist") || s.includes("philosophy") || s.includes("culture") || s.includes("art")) {
-    return "/images/nepal_temple.png";
-  }
-  if (s.includes("manage") || s.includes("business") || s.includes("mba") || s.includes("admin")) {
-    return "/images/cafe_student.png";
-  }
-  if (s.includes("social") || s.includes("ngo") || s.includes("communit")) {
-    return "/images/event_walking.png";
-  }
-  const fallbackPool = ["/images/event_grad.png", "/images/students_hero.jpg"];
-  return fallbackPool[id % fallbackPool.length];
+  const key = stream?.toLowerCase() || "";
+  const cacheKey = `${key}::${id % FALLBACK_POOL.length}`;
+  if (streamImageCache.has(cacheKey)) return streamImageCache.get(cacheKey)!;
+
+  const rule = STREAM_IMAGE_RULES.find(([regex]) => regex.test(key));
+  const result = rule ? rule[1] : FALLBACK_POOL[id % FALLBACK_POOL.length];
+
+  streamImageCache.set(cacheKey, result);
+  return result;
 };
 
 // ── Data Standardization & Sanitization Helpers ────────────────────────────
