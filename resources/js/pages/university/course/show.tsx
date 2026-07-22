@@ -2,7 +2,7 @@ import { Head } from '@inertiajs/react';
 import { useEffect, useState, useMemo } from 'react';
 
 type ModuleEntry = { name: string; info?: string | null; credit_hours?: string | null };
-type Semester = { title: string; modules?: (string | ModuleEntry)[] | null };
+type Semester = { title?: string | null; modules?: (string | ModuleEntry)[] | null };
 type YearModule = { 
     year: number; 
     title?: string; 
@@ -30,7 +30,7 @@ type Props = {
             Intake?: string;
             Location?: string;
             university_logo_url?: string | null;
-           college_logo_url?: string | null;
+            college_logo_url?: string | null;
         } | null;
     };
 };
@@ -339,43 +339,70 @@ export default function CourseDetailsShow({ courseDetail }: Props) {
                                                     )}
 
                                                     {/* Handling nested semesters if they exist */}
-                                                    {yearBlock.semesters && yearBlock.semesters.length > 0 ? (
-                                                        <>
-                                                            <div className="gcu-semester-tabs">
-                                                                {yearBlock.semesters.map((sem, idx) => (
-                                                                    <button
-                                                                        key={idx}
-                                                                        type="button"
-                                                                        className={`gcu-semester-tab-btn ${activeSemester === idx ? 'is-active' : ''}`}
-                                                                        onClick={() => setActiveSemester(idx)}
-                                                                    >
-                                                                        {sem.title}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
+                                                    {(() => {
+                                                        const hasSemesters = yearBlock.semesters && yearBlock.semesters.length > 0;
+                                                        const allSemestersNamed =
+                                                            hasSemesters &&
+                                                            yearBlock.semesters!.every((sem) => Boolean(sem.title && sem.title.trim() !== ''));
 
-                                                            <div className="gcu-semester-modules-list gcu-accordion-navigation">
-                                                                {(() => {
-                                                                    const currentSem = yearBlock.semesters[activeSemester];
-                                                                    if (currentSem && currentSem.modules && currentSem.modules.length > 0) {
-                                                                        return currentSem.modules
-                                                                            .map(normalizeModuleEntry)
-                                                                            .map((mod, i) => (
-                                                                                <ModuleAccordion key={i} name={mod.name} credit_hours={mod.credit_hours} info={mod.info} />
-                                                                            ));
-                                                                    }
-                                                                    return <p className="gcu-muted">No modules listed for this semester.</p>;
-                                                                })()}
-                                                            </div>
-                                                        </>
-                                                    ) : yearBlock.modules && yearBlock.modules.length > 0 ? (
-                                                        /* Fallback logic for backward compatibility if no nested semesters are passed */
-                                                        yearBlock.modules
-                                                            .map(normalizeModuleEntry)
-                                                            .map((mod, i) => <ModuleAccordion key={i} name={mod.name} credit_hours={mod.credit_hours} info={mod.info} />)
-                                                    ) : (
-                                                        <p className="gcu-muted">No modules listed for this period.</p>
-                                                    )}
+                                                        if (hasSemesters && allSemestersNamed) {
+                                                            // Every semester has a real title — show the tab-switcher as normal.
+                                                            return (
+                                                                <>
+                                                                    <div className="gcu-semester-tabs">
+                                                                        {yearBlock.semesters!.map((sem, idx) => (
+                                                                            <button
+                                                                                key={idx}
+                                                                                type="button"
+                                                                                className={`gcu-semester-tab-btn ${activeSemester === idx ? 'is-active' : ''}`}
+                                                                                onClick={() => setActiveSemester(idx)}
+                                                                            >
+                                                                                {sem.title}
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+
+                                                                    <div className="gcu-semester-modules-list gcu-accordion-navigation">
+                                                                        {(() => {
+                                                                            const currentSem = yearBlock.semesters![activeSemester];
+                                                                            if (currentSem && currentSem.modules && currentSem.modules.length > 0) {
+                                                                                return currentSem.modules
+                                                                                    .map(normalizeModuleEntry)
+                                                                                    .map((mod, i) => (
+                                                                                        <ModuleAccordion key={i} name={mod.name} credit_hours={mod.credit_hours} info={mod.info} />
+                                                                                    ));
+                                                                            }
+                                                                            return <p className="gcu-muted">No modules listed for this semester.</p>;
+                                                                        })()}
+                                                                    </div>
+                                                                </>
+                                                            );
+                                                        }
+
+                                                        if (hasSemesters) {
+                                                            // At least one semester has no title — skip the pill switcher
+                                                            // entirely and just show every module from every semester
+                                                            // in this year, flattened into one list.
+                                                            const allModules = yearBlock.semesters!.flatMap((sem) => sem.modules || []);
+                                                            if (allModules.length > 0) {
+                                                                return allModules
+                                                                    .map(normalizeModuleEntry)
+                                                                    .map((mod, i) => (
+                                                                        <ModuleAccordion key={i} name={mod.name} credit_hours={mod.credit_hours} info={mod.info} />
+                                                                    ));
+                                                            }
+                                                            return <p className="gcu-muted">No modules listed for this period.</p>;
+                                                        }
+
+                                                        if (yearBlock.modules && yearBlock.modules.length > 0) {
+                                                            /* Fallback logic for backward compatibility if no nested semesters are passed */
+                                                            return yearBlock.modules
+                                                                .map(normalizeModuleEntry)
+                                                                .map((mod, i) => <ModuleAccordion key={i} name={mod.name} credit_hours={mod.credit_hours} info={mod.info} />);
+                                                        }
+
+                                                        return <p className="gcu-muted">No modules listed for this period.</p>;
+                                                    })()}
                                                 </div>
                                             );
                                         })}
