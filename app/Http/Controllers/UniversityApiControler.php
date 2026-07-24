@@ -363,7 +363,6 @@ class UniversityApiControler extends Controller
                     [
                         'level'               => isset($data['level']) ? trim($data['level']) : null,
                         'Intake'              => isset($data['Intake']) ? trim($data['Intake']) : null,
-                        'College'             => isset($data['College']) ? trim($data['College']) : null,
                         'Location'            => isset($data['Location']) ? trim($data['Location']) : null,
                         'stream'              => isset($data['stream']) ? trim($data['stream']) : null,
                         'Amount'              => isset($data['Amount']) ? trim($data['Amount']) : null,
