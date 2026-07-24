@@ -38,11 +38,13 @@ interface CollegeEntry {
   id: string;
   name: string;
   location: string;
+  collegeLogoUrl: string; // Added college logo URL
   collegeCourses: CollegeCourseMapping[];
 }
 
 interface FormState {
   universityName: string;
+  universityLogoUrl: string; // Added university logo URL
   level: string;
   intake: string;
   courses: CourseTemplate[];
@@ -58,7 +60,7 @@ const makeCourseTemplate = (id?: string): CourseTemplate => ({
 
 const makeCollegeEntry = (firstCourseTemplateId = "", id?: string): CollegeEntry => ({
   id: id ?? Math.random().toString(36).slice(2),
-  name: "", location: "",
+  name: "", location: "", collegeLogoUrl: "",
   collegeCourses: [{
     courseTemplateId: firstCourseTemplateId,
     annualFee: "", scholarship: "",
@@ -69,6 +71,7 @@ const defaultCourse = makeCourseTemplate();
 const defaultCollege = makeCollegeEntry(defaultCourse.id);
 const initial: FormState = {
   universityName: "",
+  universityLogoUrl: "",
   level: "",
   intake: "",
   courses: [defaultCourse],
@@ -99,14 +102,15 @@ const selectBase = (focused: boolean): CSSProperties => ({
 
 function InputF({ value, onChange, placeholder, type = "text" }: { value: string; onChange: (v: string) => void; placeholder?: string; type?: string; }) {
   const [f, setF] = useState(false);
-  return <input type={type} value={value} placeholder={placeholder} style={inputBase(f)}
+  // Default to "" to prevent React uncontrolled input warnings on missing draft properties
+  return <input type={type} value={value || ""} placeholder={placeholder} style={inputBase(f)}
     onChange={e => onChange(e.target.value)} onFocus={() => setF(true)} onBlur={() => setF(false)} />;
 }
 
 function SelectF({ value, onChange, options, placeholder }: { value: string; onChange: (v: string) => void; options: string[]; placeholder: string; }) {
   const [f, setF] = useState(false);
   return (
-    <select value={value} style={selectBase(f)} onChange={e => onChange(e.target.value)}
+    <select value={value || ""} style={selectBase(f)} onChange={e => onChange(e.target.value)}
       onFocus={() => setF(true)} onBlur={() => setF(false)}>
       <option value="">{placeholder}</option>
       {options.map(o => <option key={o} value={o} style={{ background: "#1a1a1a" }}>{o}</option>)}
@@ -116,7 +120,7 @@ function SelectF({ value, onChange, options, placeholder }: { value: string; onC
 
 function TextareaF({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string; }) {
   const [f, setF] = useState(false);
-  return <textarea value={value} placeholder={placeholder}
+  return <textarea value={value || ""} placeholder={placeholder}
     style={{ ...inputBase(f), minHeight: 70, resize: "vertical", lineHeight: 1.6 }}
     onChange={e => onChange(e.target.value)} onFocus={() => setF(true)} onBlur={() => setF(false)} />;
 }
@@ -396,7 +400,7 @@ export default function UniversityEntryForm() {
     }
   };
 
-  const updateCollege = (colIdx: number, field: "name" | "location", value: string) => {
+  const updateCollege = (colIdx: number, field: "name" | "location" | "collegeLogoUrl", value: string) => {
     setForm(f => {
       const nextColleges = f.colleges.map((col, idx) => {
         if (idx !== colIdx) return col;
@@ -500,11 +504,13 @@ export default function UniversityEntryForm() {
 
     const payload = {
       universityName: form.universityName,
+      university_logo_url: form.universityLogoUrl, // Matched with migration
       level: form.level,
       intake: form.intake,
       colleges: form.colleges.map(col => ({
         name: col.name,
         location: col.location,
+        college_logo_url: col.collegeLogoUrl, // Matched with migration
         courses: col.collegeCourses.map(cc => {
           const matchingTemplate = form.courses.find(t => t.id === cc.courseTemplateId);
           return {
@@ -603,7 +609,7 @@ export default function UniversityEntryForm() {
 
         {/* 01 Institution & Global Courses */}
         <SectionCard number={1} title="Central University Registrations" subtitle="Primary settings and shared course configurations">
-          <div style={{ marginBottom: 20 }}>
+          <div style={{ ...g2, marginBottom: 20 }}>
             <Field label="University Name" required>
               <InputF
                 value={form.universityName}
@@ -611,6 +617,13 @@ export default function UniversityEntryForm() {
                 placeholder="e.g. Tribhuvan University"
               />
               <ErrMsg msg={errors.universityName} />
+            </Field>
+            <Field label="University Logo URL" hint="Optional image link">
+              <InputF
+                value={form.universityLogoUrl}
+                onChange={v => { setForm(f => ({ ...f, universityLogoUrl: v })) }}
+                placeholder="e.g. https://example.com/logo.png"
+              />
             </Field>
           </div>
 
@@ -739,7 +752,7 @@ export default function UniversityEntryForm() {
 
                 {isColOpen && (
                   <div style={{ padding: "24px" }}>
-                    <div style={{ ...g2, marginBottom: 20 }}>
+                    <div style={{ ...g2, marginBottom: 16 }}>
                       <Field label="College Name" required>
                         <InputF
                           value={college.name}
@@ -755,6 +768,16 @@ export default function UniversityEntryForm() {
                           placeholder="e.g. Lalitpur"
                         />
                         <ErrMsg msg={errors[`col_${colIdx}_loc`]} />
+                      </Field>
+                    </div>
+
+                    <div style={{ marginBottom: 20 }}>
+                      <Field label="College Logo URL" hint="Optional image link">
+                        <InputF
+                          value={college.collegeLogoUrl}
+                          onChange={v => updateCollege(colIdx, "collegeLogoUrl", v)}
+                          placeholder="e.g. https://example.com/college-logo.png"
+                        />
                       </Field>
                     </div>
 
