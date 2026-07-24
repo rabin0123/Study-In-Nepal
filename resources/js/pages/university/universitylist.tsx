@@ -457,7 +457,7 @@ export default function UniversityIndex() {
       />
 
       {/* Header */}
-      <div style={{  padding: "48px 48px 36px", position: "relative", overflow: "hidden" }}>
+      <div style={{ borderBottom: `1px solid ${BORDER}`, padding: "48px 48px 36px", position: "relative", overflow: "hidden", background: SURFACE }}>
         <div style={{ position: "absolute", top: -80, right: -80, width: 320, height: 320, borderRadius: "50%", background: `${P}12`, pointerEvents: "none" }} />
         <div style={{ maxWidth: 1100, margin: "0 auto", position: "relative", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
           <div>
