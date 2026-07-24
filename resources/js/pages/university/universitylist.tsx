@@ -1,38 +1,53 @@
-import { useState, useEffect, useMemo, useRef } from "react";
-import type { CSSProperties, ReactNode } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import type { CSSProperties } from "react";
 
-// ── Shared Theme Constants (Updated for Light Mode) ─────────────────────────
-const P = "#008ce3";         // Primary Blue
-const AMBER = "#d97706";     // Darker amber for light mode contrast
-const BG = "#f8fafc";        // Light slate background
-const SURFACE = "#ffffff";   // White cards/panels
-const SURFACE2 = "#f1f5f9";  // Light grey for inputs/secondary areas
-const SURFACE3 = "#ffffff";  // White for popovers
-const BORDER = "#e2e8f0";    // Light grey border
-const TEXT = "#0f172a";      // Dark slate text
-const TEXT2 = "#475569";     // Muted slate text
-const TEXT3 = "#94a3b8";     // Lightest text (placeholders, icons)
-const DANGER = "#ef4444";    // Red
-const SUCCESS = "#16a34a";   // Green
+// ── Shared Theme Constants ───────────────────────────────────────────────────
+const P = "#008ce3";         
+const AMBER = "#d97706";     
+const BG = "#f8fafc";        
+const SURFACE = "#ffffff";   
+const SURFACE2 = "#f1f5f9";  
+const SURFACE3 = "#ffffff";  
+const BORDER = "#e2e8f0";    
+const TEXT = "#0f172a";      
+const TEXT2 = "#475569";     
+const TEXT3 = "#94a3b8";     
+const DANGER = "#ef4444";    
+const SUCCESS = "#16a34a";   
+
+const INITIAL_PAGE_SIZE = 100;
+const NEXT_PAGE_SIZE = 40;
+const SEARCH_DEBOUNCE_MS = 300;
 
 // ── Database Schema Mapping ──────────────────────────────────────────────────
 interface UniversityEntry {
   id: number;
-  University: string;
-  level: string;
-  Intake: string;
-  College: string;
-  Location: string;
-  Course: string;
-  stream: string;
+  University: string | null;
+  level: string | null;
+  Intake: string | null;
+  College: string | null;
+  Location: string | null;
+  Course: string | null;
+  stream: string | null;
   Amount: string | null;
   Scholarship: string | null;
-  requireddocuments: string | null;
-  ug_requirement: string | null;
-  pg_requirement: string | null;
+  requireddocuments: string | string[] | null; // Safely handle both array and string
   created_at: string;
   updated_at: string;
 }
+
+interface FilterOptions {
+  levels: string[];
+  streams: string[];
+  courses: string[];
+  universities: string[];
+  colleges: string[];
+  locations: string[];
+}
+
+const EMPTY_FILTER_OPTIONS: FilterOptions = {
+  levels: [], streams: [], courses: [], universities: [], colleges: [], locations: [],
+};
 
 // ── Base Styles ──────────────────────────────────────────────────────────────
 const inputBase = (focused: boolean): CSSProperties => ({
@@ -45,22 +60,10 @@ const inputBase = (focused: boolean): CSSProperties => ({
   letterSpacing: "0.02em", colorScheme: "light",
 });
 
-const selectFilterStyle = (active: boolean): CSSProperties => ({
-  background: SURFACE2,
-  border: `1px solid ${active ? P : BORDER}`,
-  borderRadius: 6, padding: "10px 32px 10px 14px",
-  fontSize: 12, color: active ? TEXT : TEXT2, fontFamily: "'Manrope', sans-serif",
-  outline: "none", cursor: "pointer", transition: "border-color .15s",
-  appearance: "none", WebkitAppearance: "none",
-  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='6' viewBox='0 0 11 6'%3E%3Cpath d='M1 1l4.5 4L10 1' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
-  backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center",
-  minWidth: "160px", flex: 1, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap"
-});
-
 const btnPrimary = (extra: CSSProperties = {}): CSSProperties => ({
   display: "flex", alignItems: "center", gap: 10,
   padding: "11px 26px", borderRadius: 999,
-  background: P, border: "none", color: "#ffffff", // Forced white for contrast
+  background: P, border: "none", color: "#ffffff", 
   fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
   fontSize: 12, letterSpacing: "0.18em", textTransform: "uppercase",
   cursor: "pointer", transition: "opacity 0.2s", ...extra,
@@ -69,7 +72,7 @@ const btnPrimary = (extra: CSSProperties = {}): CSSProperties => ({
 const btnDanger = (extra: CSSProperties = {}): CSSProperties => ({
   display: "flex", alignItems: "center", gap: 10,
   padding: "11px 26px", borderRadius: 999,
-  background: DANGER, border: "none", color: "#ffffff", // Forced white for contrast
+  background: DANGER, border: "none", color: "#ffffff", 
   fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
   fontSize: 12, letterSpacing: "0.18em", textTransform: "uppercase",
   cursor: "pointer", transition: "opacity 0.2s", ...extra,
@@ -86,19 +89,12 @@ const btnGhost: CSSProperties = {
 const gridLayoutRatio = "2.2fr 2.2fr 1.3fr 1fr 1.8fr auto";
 
 const headerTextStyle: CSSProperties = {
-  fontSize: 10,
-  fontFamily: "'Rajdhani', sans-serif",
-  fontWeight: 700,
-  letterSpacing: "0.18em",
-  textTransform: "uppercase",
-  color: TEXT3,
+  fontSize: 10, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
+  letterSpacing: "0.18em", textTransform: "uppercase", color: TEXT3,
 };
 
 const truncateStyle: CSSProperties = {
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-  width: "100%",
+  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%",
 };
 
 // ── Icons ────────────────────────────────────────────────────────────────────
@@ -154,6 +150,12 @@ const ImportIcon = () => (
   </svg>
 );
 
+const SpinnerIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={P} strokeWidth="2.5" strokeLinecap="round" style={{ animation: "spin 0.8s linear infinite" }}>
+    <path d="M12 2a10 10 0 0 1 10 10" />
+  </svg>
+);
+
 // ── Dropdown Popover Component (Multi-Select) ──────────────────────────────
 interface MultiSelectProps {
   label: string;
@@ -206,7 +208,7 @@ function MultiSelectDropdown({ label, options, selected, onChange }: MultiSelect
             maxHeight: 220, overflowY: "auto"
           }}>
             {options.length === 0 ? (
-              <div style={{ fontSize: 11, color: TEXT3, textAlign: "center", padding: "8px 0" }}>No relative options</div>
+              <div style={{ fontSize: 11, color: TEXT3, textAlign: "center", padding: "8px 0" }}>No options available</div>
             ) : (
               options.map(option => {
                 const isChecked = selected.includes(option);
@@ -224,9 +226,7 @@ function MultiSelectDropdown({ label, options, selected, onChange }: MultiSelect
                       type="checkbox"
                       checked={isChecked}
                       onChange={() => toggleOption(option)}
-                      style={{
-                        accentColor: P, width: 14, height: 14, cursor: "pointer"
-                      }}
+                      style={{ accentColor: P, width: 14, height: 14, cursor: "pointer" }}
                     />
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{option}</span>
                   </label>
@@ -241,7 +241,8 @@ function MultiSelectDropdown({ label, options, selected, onChange }: MultiSelect
 }
 
 // ── Small UI Elements ────────────────────────────────────────────────────────
-function StatusPill({ label, color = P }: { label: string; color?: string }) {
+function StatusPill({ label, color = P }: { label: string | null; color?: string }) {
+  if (!label) return null;
   return (
     <span style={{
       display: "inline-block", padding: "3px 10px", borderRadius: 999,
@@ -258,53 +259,146 @@ function StatusPill({ label, color = P }: { label: string; color?: string }) {
 export default function UniversityIndex() {
   const [data, setData] = useState<UniversityEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0); 
+
+  const [rawSearch, setRawSearch] = useState("");
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
 
-  // Filters state
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>(EMPTY_FILTER_OPTIONS);
   const [selectedUniversities, setSelectedUniversities] = useState<string[]>([]);
   const [selectedColleges, setSelectedColleges] = useState<string[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
   const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
+  const [selectedStreams, setSelectedStreams] = useState<string[]>([]);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
-
-  // Custom Delete Target State
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
-
-  // Confirmation Alert/Toast Feedback State
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
-  // Hidden File Input Reference for CSV Import
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const requestIdRef = useRef(0);
 
+  // 1. Debounce Search
   useEffect(() => {
-    fetchUniversities();
+    const t = setTimeout(() => setSearch(rawSearch || ""), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [rawSearch]);
+
+  // 2. Safely Fetch Filter Options
+  useEffect(() => {
+    fetch("/api/university/filter-options", { headers: { Accept: "application/json" } })
+      .then(res => (res.ok ? res.json() : null))
+      .then(json => {
+        if (!json) return;
+        
+        // Strip out any accidental nulls returned by the backend 
+        // to prevent `.trim()` crashes in Dropdown mappings downstream.
+        const sanitizeArray = (arr: any[]) => (arr || []).filter(Boolean).map(String);
+
+        setFilterOptions({
+          levels: sanitizeArray(json.levels),
+          streams: sanitizeArray(json.streams),
+          courses: sanitizeArray(json.courses),
+          universities: sanitizeArray(json.universities),
+          colleges: sanitizeArray(json.colleges),
+          locations: sanitizeArray(json.locations),
+        });
+      })
+      .catch(err => console.error("Failed to load filter options", err));
   }, []);
 
+  const buildQueryParams = useCallback((limit: number, cursor?: string | null) => {
+    const params = new URLSearchParams();
+    params.set("limit", String(limit));
+    if (cursor) params.set("cursor", cursor);
+    if (search) params.set("search", search);
+    selectedLevels.forEach(v => params.append("level[]", v));
+    selectedStreams.forEach(v => params.append("stream[]", v));
+    selectedCourses.forEach(v => params.append("course[]", v));
+    selectedUniversities.forEach(v => params.append("university[]", v));
+    selectedColleges.forEach(v => params.append("college[]", v));
+    selectedLocations.forEach(v => params.append("location[]", v));
+    return params;
+  }, [search, selectedLevels, selectedStreams, selectedCourses, selectedUniversities, selectedColleges, selectedLocations]);
+
+  // 3. Main Data Loading Trigger
+  useEffect(() => {
+    const myRequestId = ++requestIdRef.current;
+    
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    setLoading(true);
+    setHasMore(true);
+    setNextCursor(null);
+
+    const params = buildQueryParams(INITIAL_PAGE_SIZE);
+
+    fetch(`/api/university?${params.toString()}`, {
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    })
+      .then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+      .then(json => {
+        if (myRequestId !== requestIdRef.current) return;
+        setData(json.data || []);
+        setNextCursor(json.next_cursor ?? null);
+        setHasMore(Boolean(json.has_more));
+      })
+      .catch(err => {
+        if (err.name !== "AbortError") console.error("Failed to load records", err);
+      })
+      .finally(() => {
+        if (myRequestId === requestIdRef.current) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [buildQueryParams, refreshKey]);
+
+  // 4. Infinite Pagination Loader
+  const loadMore = useCallback(() => {
+    if (loading || loadingMore || !hasMore || !nextCursor) return;
+
+    const myRequestId = requestIdRef.current; 
+    setLoadingMore(true);
+
+    const params = buildQueryParams(NEXT_PAGE_SIZE, nextCursor);
+
+    fetch(`/api/university?${params.toString()}`, { headers: { Accept: "application/json" } })
+      .then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+      .then(json => {
+        if (myRequestId !== requestIdRef.current) return; 
+        setData(prev => [...prev, ...(json.data || [])]);
+        setNextCursor(json.next_cursor ?? null);
+        setHasMore(Boolean(json.has_more));
+      })
+      .catch(err => console.error("Failed to load more records", err))
+      .finally(() => setLoadingMore(false));
+  }, [loading, loadingMore, hasMore, nextCursor, buildQueryParams]);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => { if (entries[0].isIntersecting) loadMore(); },
+      { rootMargin: "400px" } 
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loadMore]);
+
+  // Handlers
   const triggerToast = (message: string, type: "success" | "error" = "success") => {
     setToast({ message, type });
-    setTimeout(() => {
-      setToast(null);
-    }, 4000);
-  };
-
-  const fetchUniversities = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/university", {
-        headers: { "Accept": "application/json" }
-      });
-      if (res.ok) {
-        const json = await res.json();
-        setData(json.data || json); 
-      }
-    } catch (error) {
-      console.error("Failed to fetch universities", error);
-    } finally {
-      setLoading(false);
-    }
+    setTimeout(() => { setToast(null); }, 4000);
   };
 
   const executeDelete = async (id: number) => {
@@ -328,14 +422,10 @@ export default function UniversityIndex() {
     }
   };
 
-  const handleExport = () => {
-    window.location.href = "/api/university/export";
-  };
+  const handleExport = () => window.location.href = "/api/university/export";
 
   const handleImportClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
+    if (fileInputRef.current) fileInputRef.current.click();
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -349,15 +439,13 @@ export default function UniversityIndex() {
       const res = await fetch("/api/university/import", {
         method: "POST",
         body: formData,
-        headers: {
-          "X-Requested-With": "XMLHttpRequest"
-        }
+        headers: { "X-Requested-With": "XMLHttpRequest" }
       });
       const result = await res.json();
 
       if (res.ok && result.success) {
         triggerToast(result.message, "success");
-        fetchUniversities();
+        setRefreshKey(prev => prev + 1); 
       } else {
         triggerToast(result.message || "Failed to import CSV dataset.", "error");
       }
@@ -374,6 +462,8 @@ export default function UniversityIndex() {
     setSelectedLocations([]);
     setSelectedCourses([]);
     setSelectedLevels([]);
+    setSelectedStreams([]);
+    setRawSearch("");
     setSearch("");
   };
 
@@ -381,83 +471,21 @@ export default function UniversityIndex() {
     return data.find(item => item.id === deleteTargetId);
   }, [deleteTargetId, data]);
 
-  // ── Dynamic / Cascade Filtering Options ────────────────────────────────────
-  const getSubsetFilteredByOthers = (excludeField?: string) => {
-    return data.filter(item => {
-      const matchesSearch = !search || (
-        item.University?.toLowerCase().includes(search.toLowerCase()) ||
-        item.Course?.toLowerCase().includes(search.toLowerCase()) ||
-        item.Location?.toLowerCase().includes(search.toLowerCase()) ||
-        item.College?.toLowerCase().includes(search.toLowerCase())
-      );
-
-      const matchesUniversity = excludeField === "University" || selectedUniversities.length === 0 || selectedUniversities.includes(item.University);
-      const matchesCollege = excludeField === "College" || selectedColleges.length === 0 || selectedColleges.includes(item.College);
-      const matchesLocation = excludeField === "Location" || selectedLocations.length === 0 || selectedLocations.includes(item.Location);
-      const matchesCourse = excludeField === "Course" || selectedCourses.length === 0 || selectedCourses.includes(item.Course);
-      const matchesLevel = excludeField === "level" || selectedLevels.length === 0 || selectedLevels.includes(item.level);
-
-      return matchesSearch && matchesUniversity && matchesCollege && matchesLocation && matchesCourse && matchesLevel;
-    });
-  };
-
-  const relativeUniversities = useMemo(() => 
-    Array.from(new Set(getSubsetFilteredByOthers("University").map(item => item.University).filter(Boolean))).sort()
-  , [data, search, selectedColleges, selectedLocations, selectedCourses, selectedLevels]);
-
-  const relativeColleges = useMemo(() => 
-    Array.from(new Set(getSubsetFilteredByOthers("College").map(item => item.College).filter(Boolean))).sort()
-  , [data, search, selectedUniversities, selectedLocations, selectedCourses, selectedLevels]);
-
-  const relativeLocations = useMemo(() => 
-    Array.from(new Set(getSubsetFilteredByOthers("Location").map(item => item.Location).filter(Boolean))).sort()
-  , [data, search, selectedUniversities, selectedColleges, selectedCourses, selectedLevels]);
-
-  const relativeCourses = useMemo(() => 
-    Array.from(new Set(getSubsetFilteredByOthers("Course").map(item => item.Course).filter(Boolean))).sort()
-  , [data, search, selectedUniversities, selectedColleges, selectedLocations, selectedLevels]);
-
-  const relativeLevels = useMemo(() => 
-    Array.from(new Set(getSubsetFilteredByOthers("level").map(item => item.level).filter(Boolean))).sort()
-  , [data, search, selectedUniversities, selectedColleges, selectedLocations, selectedCourses]);
-
-  const filteredData = useMemo(() => {
-    return data.filter(item => {
-      const q = search.toLowerCase();
-      const matchesSearch = !q || (
-        item.University?.toLowerCase().includes(q) ||
-        item.Course?.toLowerCase().includes(q) ||
-        item.Location?.toLowerCase().includes(q) ||
-        item.College?.toLowerCase().includes(q)
-      );
-
-      const matchesUniversity = selectedUniversities.length === 0 || selectedUniversities.includes(item.University);
-      const matchesCollege = selectedColleges.length === 0 || selectedColleges.includes(item.College);
-      const matchesLocation = selectedLocations.length === 0 || selectedLocations.includes(item.Location);
-      const matchesCourse = selectedCourses.length === 0 || selectedCourses.includes(item.Course);
-      const matchesLevel = selectedLevels.length === 0 || selectedLevels.includes(item.level);
-
-      return matchesSearch && matchesUniversity && matchesCollege && matchesLocation && matchesCourse && matchesLevel;
-    });
-  }, [data, search, selectedUniversities, selectedColleges, selectedLocations, selectedCourses, selectedLevels]);
-
-  const filtersActive = selectedUniversities.length > 0 || selectedColleges.length > 0 || selectedLocations.length > 0 || selectedCourses.length > 0 || selectedLevels.length > 0;
+  const filtersActive = selectedUniversities.length > 0 || selectedColleges.length > 0 || selectedLocations.length > 0 || selectedCourses.length > 0 || selectedLevels.length > 0 || selectedStreams.length > 0;
 
   return (
     <div style={{ background: BG, minHeight: "100vh", color: TEXT, fontFamily: "'Manrope', sans-serif", paddingBottom: 64, position: "relative" }}>
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+      `}</style>
       <link href="https://fonts.googleapis.com/css2?family=Castoro+Titling&family=Rajdhani:wght@600;700&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet" />
 
-      {/* Hidden File Input for CSV Import */}
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        onChange={handleFileChange} 
-        accept=".csv, .xlsx, .xls"
-        style={{ display: "none" }} 
-      />
+      <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".csv, .xlsx, .xls" style={{ display: "none" }} />
 
       {/* Header */}
-      <div style={{  padding: "48px 48px 36px", position: "relative", overflow: "hidden" }}>
+      <div style={{ padding: "48px 48px 36px", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -80, right: -80, width: 320, height: 320, borderRadius: "50%", background: `${P}12`, pointerEvents: "none" }} />
         <div style={{ maxWidth: 1100, margin: "0 auto", position: "relative", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
           <div>
@@ -475,14 +503,12 @@ export default function UniversityIndex() {
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
             <button style={btnGhost} onClick={handleExport} title="Export CSV Data">
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <ExportIcon />
-                <span>Export</span>
+                <ExportIcon /><span>Export</span>
               </div>
             </button>
             <button style={btnGhost} onClick={handleImportClick} title="Import CSV Data">
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <ImportIcon />
-                <span>Import</span>
+                <ImportIcon /><span>Import</span>
               </div>
             </button>
             <button style={btnPrimary()} onClick={() => window.location.href = '/universities'}>
@@ -500,9 +526,9 @@ export default function UniversityIndex() {
             <SearchIcon />
             <input 
               type="text" 
-              placeholder="Fuzzy search by keyword (University, Course, Location, College)..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by keyword (University, Course, Location, College)..."
+              value={rawSearch}
+              onChange={(e) => setRawSearch(e.target.value)}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
               style={inputBase(searchFocused)}
@@ -528,7 +554,7 @@ export default function UniversityIndex() {
           </button>
         </div>
 
-        {/* Collapsible Relative Filters Panel */}
+        {/* Collapsible Filters Panel */}
         {filtersOpen && (
           <div style={{
             background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12,
@@ -538,53 +564,25 @@ export default function UniversityIndex() {
               fontSize: 10, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
               letterSpacing: "0.14em", textTransform: "uppercase", color: TEXT3, marginBottom: 16
             }}>
-              Cascading Multi-Select Filters
+              Multi-Select Directory Filters
             </p>
             
             <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-              <MultiSelectDropdown 
-                label="Universities" 
-                options={relativeUniversities} 
-                selected={selectedUniversities} 
-                onChange={setSelectedUniversities} 
-              />
-              <MultiSelectDropdown 
-                label="Colleges" 
-                options={relativeColleges} 
-                selected={selectedColleges} 
-                onChange={setSelectedColleges} 
-              />
-              <MultiSelectDropdown 
-                label="Locations" 
-                options={relativeLocations} 
-                selected={selectedLocations} 
-                onChange={setSelectedLocations} 
-              />
-              <MultiSelectDropdown 
-                label="Courses" 
-                options={relativeCourses} 
-                selected={selectedCourses} 
-                onChange={setSelectedCourses} 
-              />
-              <MultiSelectDropdown 
-                label="Levels" 
-                options={relativeLevels} 
-                selected={selectedLevels} 
-                onChange={setSelectedLevels} 
-              />
+              <MultiSelectDropdown label="Universities" options={filterOptions.universities} selected={selectedUniversities} onChange={setSelectedUniversities} />
+              <MultiSelectDropdown label="Colleges" options={filterOptions.colleges} selected={selectedColleges} onChange={setSelectedColleges} />
+              <MultiSelectDropdown label="Locations" options={filterOptions.locations} selected={selectedLocations} onChange={setSelectedLocations} />
+              <MultiSelectDropdown label="Courses" options={filterOptions.courses} selected={selectedCourses} onChange={setSelectedCourses} />
+              <MultiSelectDropdown label="Streams" options={filterOptions.streams} selected={selectedStreams} onChange={setSelectedStreams} />
+              <MultiSelectDropdown label="Levels" options={filterOptions.levels} selected={selectedLevels} onChange={setSelectedLevels} />
             </div>
 
-            {/* Clear Filters Panel Action */}
-            {(filtersActive || search) && (
+            {(filtersActive || search || rawSearch) && (
               <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
                 <button 
                   onClick={handleClearAll}
                   style={{
-                    background: "transparent", border: `1px dashed ${DANGER}44`,
-                    color: DANGER, padding: "8px 14px", borderRadius: 6,
-                    fontFamily: "'Rajdhani', sans-serif", fontSize: 11, fontWeight: 700,
-                    letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer",
-                    transition: "background 0.2s"
+                    background: "transparent", border: `1px dashed ${DANGER}44`, color: DANGER, padding: "8px 14px", borderRadius: 6,
+                    fontFamily: "'Rajdhani', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer", transition: "background 0.2s"
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.background = `${DANGER}11`}
                   onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
@@ -597,14 +595,8 @@ export default function UniversityIndex() {
         )}
 
         {/* Directory Row Headers */}
-        {filteredData.length > 0 && !loading && (
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: gridLayoutRatio,
-            gap: "24px",
-            padding: "12px 28px",
-            marginBottom: "8px",
-          }}>
+        {data.length > 0 && !loading && (
+          <div style={{ display: "grid", gridTemplateColumns: gridLayoutRatio, gap: "24px", padding: "12px 28px", marginBottom: "8px" }}>
             <div style={headerTextStyle}>Institution</div>
             <div style={headerTextStyle}>Program & Stream</div>
             <div style={headerTextStyle}>Level & Intake</div>
@@ -617,56 +609,43 @@ export default function UniversityIndex() {
         {/* Standalone Directory Cards */}
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           {loading ? (
-            <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "48px", textAlign: "center", color: TEXT3, fontSize: 13 }}>
-              Loading records...
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "48px", color: TEXT3, fontSize: 13 }}>
+              <SpinnerIcon /> Loading directory records...
             </div>
-          ) : filteredData.length === 0 ? (
+          ) : data.length === 0 ? (
             <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "48px", textAlign: "center", color: TEXT3, fontSize: 13 }}>
               No course entries found matching your criteria.
             </div>
           ) : (
-            filteredData.map((item) => (
+            data.map((item) => (
               <div 
                 key={item.id} 
                 onClick={() => window.location.href = `/universities/${item.id}`}
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: gridLayoutRatio,
-                  alignItems: "center",
-                  gap: "24px",
-                  background: SURFACE,
-                  border: `1px solid ${BORDER}`,
-                  borderRadius: 12,
-                  padding: "20px 28px",
-                  cursor: "pointer",
-                  transition: "border-color 0.2s, background 0.2s"
+                  display: "grid", gridTemplateColumns: gridLayoutRatio, alignItems: "center", gap: "24px",
+                  background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "20px 28px",
+                  cursor: "pointer", transition: "border-color 0.2s, background 0.2s"
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#cbd5e1"; // Slightly darker border on hover for light mode
-                  e.currentTarget.style.background = SURFACE2;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = BORDER;
-                  e.currentTarget.style.background = SURFACE;
-                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.background = SURFACE2; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = BORDER; e.currentTarget.style.background = SURFACE; }}
               >
                 {/* 1. Institution */}
                 <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <div style={{ ...truncateStyle, fontSize: 14, color: TEXT, fontWeight: 600 }} title={item.University}>
-                    {item.University}
+                  <div style={{ ...truncateStyle, fontSize: 14, color: TEXT, fontWeight: 600 }} title={item.University || "N/A"}>
+                    {item.University || "N/A"}
                   </div>
-                  <div style={{ ...truncateStyle, fontSize: 11, color: TEXT3 }} title={`${item.College} • ${item.Location}`}>
-                    {item.College} • {item.Location}
+                  <div style={{ ...truncateStyle, fontSize: 11, color: TEXT3 }} title={`${item.College || 'N/A'} • ${item.Location || 'N/A'}`}>
+                    {item.College || 'N/A'} • {item.Location || 'N/A'}
                   </div>
                 </div>
 
                 {/* 2. Program & Stream */}
                 <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <div style={{ ...truncateStyle, fontSize: 14, color: TEXT, fontWeight: 500 }} title={item.Course}>
-                    {item.Course}
+                  <div style={{ ...truncateStyle, fontSize: 14, color: TEXT, fontWeight: 500 }} title={item.Course || "N/A"}>
+                    {item.Course || "N/A"}
                   </div>
-                  <div style={{ ...truncateStyle, fontSize: 11, color: P }} title={item.stream}>
-                    {item.stream}
+                  <div style={{ ...truncateStyle, fontSize: 11, color: P }} title={item.stream || "N/A"}>
+                    {item.stream || "N/A"}
                   </div>
                 </div>
 
@@ -677,7 +656,7 @@ export default function UniversityIndex() {
                   </div>
                   <div style={{ fontSize: 11, color: TEXT3, display: "flex", alignItems: "center", gap: 6 }}>
                     <CalendarIcon />
-                    Intake: {item.Intake}
+                    Intake: {item.Intake || "N/A"}
                   </div>
                 </div>
 
@@ -693,39 +672,46 @@ export default function UniversityIndex() {
                   )}
                 </div>
 
-                {/* 5. Required Documents */}
+                {/* 5. Required Documents (Safeguarded against ALL null/array crashes) */}
                 <div>
                   {item.requireddocuments ? (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", maxWidth: "240px", maxHeight: "80px", overflow: "hidden" }}>
-                      {item.requireddocuments.split(",").map((doc, i) => (
-                        <span key={i} style={{ 
-                          fontSize: 10, color: TEXT2, background: SURFACE2, 
-                          padding: "3px 8px", borderRadius: 4, border: `1px solid ${BORDER}`,
-                          fontFamily: "'Rajdhani', sans-serif", fontWeight: 600,
-                          whiteSpace: "nowrap"
-                        }} title={doc.trim()}>
-                          {doc.trim()}
-                        </span>
-                      ))}
+                      {(typeof item.requireddocuments === 'string' 
+                          ? item.requireddocuments.split(",") 
+                          : Array.isArray(item.requireddocuments) ? item.requireddocuments : []
+                      ).map((doc: any, i: number) => {
+                        
+                        // Strict validation prevents `.trim()` from ever receiving `null`
+                        const safeDoc = (doc && typeof doc === 'string') 
+                                        ? doc.trim() 
+                                        : (doc ? String(doc).trim() : "");
+                                        
+                        if (!safeDoc) return null;
+
+                        return (
+                          <span key={i} style={{ 
+                            fontSize: 10, color: TEXT2, background: SURFACE2, padding: "3px 8px", borderRadius: 4, 
+                            border: `1px solid ${BORDER}`, fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, whiteSpace: "nowrap"
+                          }} title={safeDoc}>
+                            {safeDoc}
+                          </span>
+                        );
+                      })}
                     </div>
                   ) : (
                     <span style={{ fontSize: 11, color: TEXT3 }}>None specified</span>
                   )}
                 </div>
 
-                {/* 6. Actions (Only Delete Button) */}
+                {/* 6. Actions */}
                 <div style={{ display: "flex", justifyContent: "flex-end", width: "42px", marginLeft: "auto" }}>
                   <button 
                     style={{
                       display: "flex", alignItems: "center", justifyContent: "center",
                       width: "32px", height: "32px", borderRadius: 6, background: "transparent",
-                      border: "1px solid rgba(248,113,113,0.25)", color: DANGER, cursor: "pointer",
-                      transition: "all 0.2s"
+                      border: "1px solid rgba(248,113,113,0.25)", color: DANGER, cursor: "pointer", transition: "all 0.2s"
                     }}
-                    onClick={(e) => {
-                      e.stopPropagation(); 
-                      setDeleteTargetId(item.id); 
-                    }}
+                    onClick={(e) => { e.stopPropagation(); setDeleteTargetId(item.id); }}
                     title="Delete Entry"
                   >
                     <TrashIcon />
@@ -734,56 +720,43 @@ export default function UniversityIndex() {
               </div>
             ))
           )}
-        </div>
 
+          {/* Pagination Sentinel */}
+          <div ref={sentinelRef} style={{ height: 1 }} />
+          {loadingMore && (
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, padding: "16px 0", color: TEXT3, fontSize: 12 }}>
+              <SpinnerIcon /> Loading more entries...
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── CUSTOM DELETE CONFIRMATION POPUP MODAL ─────────────────────────── */}
       {deleteTargetId !== null && targetItemToDelete && (
         <div style={{
-          position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh",
-          backgroundColor: "rgba(0, 0, 0, 0.4)", backdropFilter: "blur(4px)",
-          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999,
-          animation: "fadeIn 0.15s ease-out"
+          position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", backgroundColor: "rgba(0, 0, 0, 0.4)", backdropFilter: "blur(4px)",
+          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, animation: "fadeIn 0.15s ease-out"
         }}>
           <div style={{
-            background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 16,
-            padding: "32px 40px", maxWidth: 440, width: "90%", textAlign: "center",
+            background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "32px 40px", maxWidth: 440, width: "90%", textAlign: "center",
             boxShadow: "0 25px 50px rgba(0, 0, 0, 0.15)"
           }}>
-            {/* Warning Circular Icon */}
             <div style={{
-              width: 56, height: 56, borderRadius: "50%", background: "rgba(248,113,113,0.1)",
-              border: `1.5px solid ${DANGER}`, display: "flex", alignItems: "center", justifyContent: "center",
-              margin: "0 auto 20px", fontSize: 22, color: DANGER
-            }}>
-              ⚠
-            </div>
+              width: 56, height: 56, borderRadius: "50%", background: "rgba(248,113,113,0.1)", border: `1.5px solid ${DANGER}`, 
+              display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", fontSize: 22, color: DANGER
+            }}>⚠</div>
 
-            <h3 style={{
-              fontFamily: "'Castoro Titling', serif", fontSize: 20, fontWeight: 400,
-              textTransform: "uppercase", letterSpacing: "0.08em", color: TEXT, margin: "0 0 10px"
-            }}>
+            <h3 style={{ fontFamily: "'Castoro Titling', serif", fontSize: 20, fontWeight: 400, textTransform: "uppercase", letterSpacing: "0.08em", color: TEXT, margin: "0 0 10px" }}>
               Confirm Deletion
             </h3>
 
             <p style={{ color: TEXT2, fontSize: 13, lineHeight: 1.6, marginBottom: 24, fontFamily: "'Manrope', sans-serif" }}>
-              Are you sure you want to permanently delete <strong style={{ color: TEXT }}>{targetItemToDelete.Course}</strong> at <strong style={{ color: TEXT }}>{targetItemToDelete.University}</strong>? This action cannot be undone.
+              Are you sure you want to permanently delete <strong style={{ color: TEXT }}>{targetItemToDelete.Course || 'this entry'}</strong>? This action cannot be undone.
             </p>
 
             <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-              <button 
-                onClick={() => setDeleteTargetId(null)} 
-                style={btnGhost}
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={() => executeDelete(targetItemToDelete.id)} 
-                style={btnDanger()}
-              >
-                Delete Entry
-              </button>
+              <button onClick={() => setDeleteTargetId(null)} style={btnGhost}>Cancel</button>
+              <button onClick={() => executeDelete(targetItemToDelete.id)} style={btnDanger()}>Delete Entry</button>
             </div>
           </div>
         </div>
@@ -792,13 +765,9 @@ export default function UniversityIndex() {
       {/* ── ALERTS / TOAST FEEDBACK PANEL ────────────────────────────────── */}
       {toast && (
         <div style={{
-          position: "fixed", bottom: 32, right: 32,
-          background: toast.type === "success" ? SUCCESS : DANGER,
-          color: "#ffffff", padding: "14px 28px", borderRadius: 8,
-          boxShadow: "0 20px 40px rgba(0,0,0,0.15)", zIndex: 10000,
-          fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
-          fontSize: 12, letterSpacing: "0.15em", textTransform: "uppercase",
-          animation: "slideUp 0.3s ease-out"
+          position: "fixed", bottom: 32, right: 32, background: toast.type === "success" ? SUCCESS : DANGER, color: "#ffffff", padding: "14px 28px", 
+          borderRadius: 8, boxShadow: "0 20px 40px rgba(0,0,0,0.15)", zIndex: 10000, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
+          fontSize: 12, letterSpacing: "0.15em", textTransform: "uppercase", animation: "slideUp 0.3s ease-out"
         }}>
           {toast.message}
         </div>
