@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
 // ── Light / White-Blue Theme Colors ──────────────────────────────────────────
@@ -110,11 +110,15 @@ function InputF({ value, onChange, placeholder, type = "text" }: { value: string
 
 function SelectF({ value, onChange, options, placeholder }: { value: string; onChange: (v: string) => void; options: string[]; placeholder: string; }) {
   const [f, setF] = useState(false);
+  
+  // If the value exists but isn't in the standard dropdown, inject it dynamically so it shows properly
+  const displayOptions = (value && !options.includes(value)) ? [...options, value] : options;
+  
   return (
     <select value={value} style={selectBase(f)} onChange={e => onChange(e.target.value)}
       onFocus={() => setF(true)} onBlur={() => setF(false)}>
       <option value="">{placeholder}</option>
-      {options.map(o => <option key={o} value={o} style={{ background: "#ffffff", color: TEXT }}>{o}</option>)}
+      {displayOptions.map(o => <option key={o} value={o} style={{ background: "#ffffff", color: TEXT }}>{o}</option>)}
     </select>
   );
 }
@@ -179,7 +183,7 @@ function SubPanel({ title, children, accent }: { title: string; children: ReactN
 
 function DocPill({ label, selected, onToggle }: { label: string; selected: boolean; onToggle: () => void; }) {
   return (
-    <button onClick={onToggle} style={{
+    <button type="button" onClick={onToggle} style={{
       padding: "5px 12px", borderRadius: 999, cursor: "pointer",
       border: `1px solid ${selected ? P : BORDER}`,
       background: selected ? `${P}11` : SURFACE,
@@ -225,6 +229,15 @@ function reconstructFormState(rows: FlatDatabaseRow[]): FormState {
   if (!rows || rows.length === 0) return initial;
 
   const firstRow = rows[0];
+
+  // Map odd values like "Bachelor" automatically to "Undergraduate"
+  let normalizedLevel = firstRow.level || "";
+  const l = normalizedLevel.toLowerCase();
+  if (l === "bachelor" || l === "bachelors") {
+    normalizedLevel = "Undergraduate";
+  } else if (l === "master" || l === "masters") {
+    normalizedLevel = "Postgraduate";
+  }
 
   // 1. Group shared course templates
   const templatesMap = new Map<string, CourseTemplate>();
@@ -282,8 +295,8 @@ function reconstructFormState(rows: FlatDatabaseRow[]): FormState {
   return {
     universityName: firstRow.University,
     universityLogoUrl: firstRow.university_logo_url || "",
-    level: firstRow.level,
-    intake: firstRow.Intake,
+    level: normalizedLevel,
+    intake: firstRow.Intake || "",
     courses,
     colleges: Array.from(collegesMap.values())
   };
@@ -392,6 +405,19 @@ export default function UniversityEditForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  // Dynamically generate upcoming 24 months based on current time (Format: MMM-YY)
+  const UPCOMING_INTAKES = useMemo(() => {
+    const months = [];
+    const now = new Date();
+    for (let i = 0; i < 24; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      const m = d.toLocaleString('en-US', { month: 'short' });
+      const y = d.getFullYear().toString().slice(-2);
+      months.push(`${m}-${y}`);
+    }
+    return months;
+  }, []);
+
   // Styling Helpers inside main component scope
   const btnPrimary = (extra: CSSProperties = {}): CSSProperties => ({
     display: "flex", alignItems: "center", gap: 10,
@@ -431,6 +457,9 @@ export default function UniversityEditForm() {
         let structuredState: FormState;
         if (payload && payload.universityName && Array.isArray(payload.colleges)) {
           structuredState = payload;
+          const l = (structuredState.level || "").toLowerCase();
+          if (l === "bachelor" || l === "bachelors") structuredState.level = "Undergraduate";
+          else if (l === "master" || l === "masters") structuredState.level = "Postgraduate";
         } else if (Array.isArray(payload)) {
           structuredState = reconstructFormState(payload);
         } else if (payload && typeof payload === "object") {
@@ -572,7 +601,7 @@ export default function UniversityEditForm() {
     const e: Record<string, string> = {};
     if (!form.universityName.trim()) e.universityName = "University name is required";
     if (!form.level) e.level = "Study level is required";
-    if (!form.intake.trim()) e.intake = "Intake period is required";
+    if (!form.intake.trim()) e.intake = "At least one intake period is required";
 
     form.courses.forEach((c, idx) => {
       if (!c.courseName.trim()) e[`course_tpl_${idx}_name`] = `Program ${idx + 1}: Name is required`;
@@ -681,6 +710,10 @@ export default function UniversityEditForm() {
     );
   }
 
+  // Combine existing DB intake values with our auto-generated ones to make sure old entries aren't hidden
+  const currentIntakeSet = form.intake ? form.intake.split(",").map(s => s.trim()).filter(Boolean) : [];
+  const combinedIntakeDisplay = Array.from(new Set([...currentIntakeSet, ...UPCOMING_INTAKES]));
+
   return (
     <div style={{ background: BG, minHeight: "100vh", color: TEXT, fontFamily: "'Manrope', sans-serif", position: "relative" }}>
       <link href="https://fonts.googleapis.com/css2?family=Castoro+Titling&family=Rajdhani:wght@600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -745,12 +778,28 @@ export default function UniversityEditForm() {
               />
               <ErrMsg msg={errors.level} />
             </Field>
-            <Field label="Intake Period" required hint="Applies globally to all courses">
-              <InputF
-                type="month"
-                value={form.intake}
-                onChange={v => { setForm(f => ({ ...f, intake: v })); clearError("intake"); }}
-              />
+            
+            <Field label="Intake Period (Select Multiple)" required hint="Applies globally. Toggle upcoming months below.">
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 4 }}>
+                {combinedIntakeDisplay.map(month => {
+                  const isSelected = currentIntakeSet.includes(month);
+                  return (
+                    <DocPill
+                      key={month}
+                      label={month}
+                      selected={isSelected}
+                      onToggle={() => {
+                        if (isSelected) {
+                          setForm(f => ({ ...f, intake: currentIntakeSet.filter(m => m !== month).join(", ") }));
+                        } else {
+                          setForm(f => ({ ...f, intake: [...currentIntakeSet, month].join(", ") }));
+                        }
+                        clearError("intake");
+                      }}
+                    />
+                  );
+                })}
+              </div>
               <ErrMsg msg={errors.intake} />
             </Field>
           </div>
@@ -777,7 +826,7 @@ export default function UniversityEditForm() {
               />
             ))}
 
-            <button onClick={addCourseTemplate} style={{
+            <button type="button" onClick={addCourseTemplate} style={{
               width: "100%", padding: "11px", borderRadius: 8, cursor: "pointer",
               border: `1px dashed ${P}44`, background: `${P}0A`,
               color: P, fontSize: 11, fontFamily: "'Rajdhani', sans-serif",
@@ -837,6 +886,7 @@ export default function UniversityEditForm() {
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     {form.colleges.length > 1 && (
                       <button
+                        type="button"
                         onClick={e => {
                           e.stopPropagation();
                           removeCollege(colIdx);
@@ -948,6 +998,7 @@ export default function UniversityEditForm() {
 
                           {college.collegeCourses.length > 1 ? (
                             <button
+                              type="button"
                               onClick={() => removeCollegeCoursePrice(colIdx, ccIdx)}
                               style={{
                                 height: 41, padding: "0 14px", borderRadius: 6, cursor: "pointer",
@@ -963,7 +1014,7 @@ export default function UniversityEditForm() {
                         </div>
                       ))}
 
-                      <button onClick={() => addCollegeCoursePrice(colIdx)} style={{
+                      <button type="button" onClick={() => addCollegeCoursePrice(colIdx)} style={{
                         width: "100%", padding: "11px", borderRadius: 8, cursor: "pointer",
                         border: `1px dashed ${P}44`, background: `${P}0A`,
                         color: P, fontSize: 11, fontFamily: "'Rajdhani', sans-serif",
@@ -979,7 +1030,7 @@ export default function UniversityEditForm() {
             );
           })}
 
-          <button onClick={addCollege} style={{
+          <button type="button" onClick={addCollege} style={{
             width: "100%", padding: "14px", borderRadius: 8, cursor: "pointer",
             border: `1px dashed ${AMBER}66`, background: `${AMBER}0A`,
             color: AMBER, fontSize: 12, fontFamily: "'Rajdhani', sans-serif",
@@ -1001,8 +1052,8 @@ export default function UniversityEditForm() {
             </p>
           </div>
           <div style={{ display: "flex", gap: 12 }}>
-            <button onClick={() => window.location.href = "/university"} style={btnGhost}>Cancel</button>
-            <button onClick={handleSubmit} disabled={submitting} style={btnPrimary({ padding: "11px 28px", fontSize: 13 })}>
+            <button type="button" onClick={() => window.location.href = "/university"} style={btnGhost}>Cancel</button>
+            <button type="button" onClick={handleSubmit} disabled={submitting} style={btnPrimary({ padding: "11px 28px", fontSize: 13 })}>
               {submitting ? "Updating..." : <><span>Apply Changes</span><CircleArrow /></>}
             </button>
           </div>
