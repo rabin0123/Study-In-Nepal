@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Cache;
 
 class UniversityApiControler extends Controller
 {
+
     public function index(Request $request): JsonResponse
     {
         $limit = (int) $request->query('limit', 200);
@@ -28,6 +29,11 @@ class UniversityApiControler extends Controller
         |--------------------------------------------------------------------------
         | Search — partial, as-you-type matching on any relevant field
         |--------------------------------------------------------------------------
+        | Using LIKE '%term%' here on purpose, not FULLTEXT. FULLTEXT only matches
+        | whole indexed tokens (subject to min token length + stopword rules), so
+        | "Ace" would never match "Ace International College" until the full word
+        | boundary lines up. With ~1,300 rows, LIKE is fast enough and gives true
+        | substring matching (Ace -> Ace International, anywhere in the string).
         */
         if ($search = trim((string) $request->query('search', ''))) {
             $query->where(function ($q) use ($search) {
@@ -93,8 +99,15 @@ class UniversityApiControler extends Controller
         return response()->json($data);
     }
 
+
     /**
      * GET /api/university/filter-options
+     *
+     * Powers the dropdown filter lists without shipping all 5000+ rows to
+     * the browser just to compute distinct values client-side. Cached for
+     * 60s — data changes frequently, but the *set of distinct values*
+     * (which universities/colleges/streams exist at all) changes much less
+     * often than individual rows, so a short TTL is safe.
      */
     public function filterOptions(): JsonResponse
     {
@@ -120,8 +133,8 @@ class UniversityApiControler extends Controller
             'intake'                          => 'required|string|max:20',
             'colleges'                        => 'required|array|min:1',
             'colleges.*.name'                 => 'required|string|max:255',
-            'universityLogoUrl'               => 'nullable|string|max:500',
-            'colleges.*.logoUrl'              => 'nullable|string|max:500',
+            'universityLogoUrl'               => 'nullable|url|max:500',
+            'colleges.*.logoUrl'              => 'nullable|url|max:500',
             'colleges.*.location'             => 'required|string|max:255',
             'colleges.*.courses'              => 'required|array|min:1',
             'colleges.*.courses.*.courseName'  => 'required|string|max:255',
@@ -174,16 +187,13 @@ class UniversityApiControler extends Controller
         $target = University::findOrFail($id);
         $oldUniversityName = $target->University;
 
-        // Validation mapping directly adjusted to match React frontend payload
         $validated = $request->validate([
             'universityName'                  => 'required|string|max:255',
-            'university_logo_url'             => 'nullable|string|max:500', 
             'level'                           => 'required|string|max:255',
             'intake'                          => 'required|string|max:20',
             'colleges'                        => 'required|array|min:1',
             'colleges.*.name'                 => 'required|string|max:255',
             'colleges.*.location'             => 'required|string|max:255',
-            'colleges.*.college_logo_url'     => 'nullable|string|max:500',
             'colleges.*.courses'              => 'required|array|min:1',
             'colleges.*.courses.*.courseName'  => 'required|string|max:255',
             'colleges.*.courses.*.stream'      => 'required|string|max:255',
@@ -200,13 +210,11 @@ class UniversityApiControler extends Controller
             // Populate new rows
             foreach ($validated['colleges'] as $college) {
                 foreach ($college['courses'] as $course) {
-                    $newRow = University::create([
+                    University::create([
                         'University'         => $validated['universityName'],
-                        'university_logo_url'=> $validated['university_logo_url'] ?? null,
                         'level'              => $validated['level'],
                         'Intake'             => $validated['intake'],
                         'College'            => $college['name'],
-                        'college_logo_url'   => $college['college_logo_url'] ?? null,
                         'Location'           => $college['location'],
                         'Course'             => $course['courseName'],
                         'stream'             => $course['stream'],
@@ -216,9 +224,6 @@ class UniversityApiControler extends Controller
                                                     ? implode(', ', $course['allDocs'])
                                                     : null,
                     ]);
-                    
-                    // Re-link properly for course details
-                    $newRow->linkMatchingCourseDetail();
                 }
             }
         });
@@ -236,28 +241,10 @@ class UniversityApiControler extends Controller
         $entry = University::findOrFail($id);
 
         // Retrieve all database rows that share the exact same University Name
-        // We MAP the response to guarantee exact string keys so React picks it up properly.
         $universityRows = University::where('University', $entry->University)
             ->orderBy('College', 'asc')
             ->orderBy('Course', 'asc')
-            ->get()
-            ->map(function ($row) {
-                return [
-                    'id'                  => $row->id,
-                    'University'          => $row->University,
-                    'university_logo_url' => $row->university_logo_url,
-                    'level'               => $row->level ?? $row->Level ?? $row->LEVEL ?? '',
-                    'Intake'              => $row->Intake ?? $row->intake ?? $row->INTAKE ?? '',
-                    'College'             => $row->College,
-                    'college_logo_url'    => $row->college_logo_url,
-                    'Location'            => $row->Location,
-                    'Course'              => $row->Course,
-                    'stream'              => $row->stream,
-                    'Amount'              => $row->Amount,
-                    'Scholarship'         => $row->Scholarship,
-                    'requireddocuments'   => $row->requireddocuments,
-                ];
-            });
+            ->get();
 
         return response()->json($universityRows);
     }
@@ -413,9 +400,7 @@ class UniversityApiControler extends Controller
                         'college_logo_url'    => isset($data['college_logo_url']) ? trim($data['college_logo_url']) : null,
                     ]
                 );
-                
                 $record->linkMatchingCourseDetail();
-                
                 if ($record->wasRecentlyCreated) {
                     $createdCount++;
                 } else {
@@ -440,4 +425,5 @@ class UniversityApiControler extends Controller
             ], 500);
         }
     }
+
 }
