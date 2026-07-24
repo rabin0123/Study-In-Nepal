@@ -39,13 +39,13 @@ interface CollegeEntry {
   id: string;
   name: string;
   location: string;
-  collegeLogoUrl: string; // Added field
+  collegeLogoUrl: string;
   collegeCourses: CollegeCourseMapping[];
 }
 
 interface FormState {
   universityName: string;
-  universityLogoUrl: string; // Added field
+  universityLogoUrl: string;
   level: string;
   intake: string;
   courses: CourseTemplate[];
@@ -110,8 +110,6 @@ function InputF({ value, onChange, placeholder, type = "text" }: { value: string
 
 function SelectF({ value, onChange, options, placeholder }: { value: string; onChange: (v: string) => void; options: string[]; placeholder: string; }) {
   const [f, setF] = useState(false);
-  
-  // If the value exists but isn't in the standard dropdown, inject it dynamically so it shows properly
   const displayOptions = (value && !options.includes(value)) ? [...options, value] : options;
   
   return (
@@ -120,6 +118,67 @@ function SelectF({ value, onChange, options, placeholder }: { value: string; onC
       <option value="">{placeholder}</option>
       {displayOptions.map(o => <option key={o} value={o} style={{ background: "#ffffff", color: TEXT }}>{o}</option>)}
     </select>
+  );
+}
+
+function MultiSelectDropdown({ selected, options, onChange, placeholder }: { selected: string[], options: string[], onChange: (s: string[]) => void, placeholder: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const toggleOption = (opt: string) => {
+    if (selected.includes(opt)) {
+      onChange(selected.filter(x => x !== opt));
+    } else {
+      onChange([...selected, opt]);
+    }
+  };
+
+  return (
+    <div style={{ position: "relative" }}>
+      <div
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          ...inputBase(isOpen),
+          minHeight: 41, cursor: "pointer", display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center",
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='6' viewBox='0 0 11 6'%3E%3Cpath d='M1 1l4.5 4L10 1' stroke='%23475569' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
+          backgroundRepeat: "no-repeat", backgroundPosition: "right 14px center", paddingRight: 32
+        }}
+      >
+        {selected.length === 0 ? (
+          <span style={{ color: TEXT3, fontSize: 13 }}>{placeholder}</span>
+        ) : (
+          selected.map(s => (
+            <span key={s} style={{ background: `${P}11`, color: P, padding: "3px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700, fontFamily: "'Rajdhani', sans-serif", letterSpacing: "0.05em" }}>
+              {s}
+            </span>
+          ))
+        )}
+      </div>
+      
+      {isOpen && (
+        <>
+          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 9 }} onClick={() => setIsOpen(false)} />
+          <div style={{
+            position: "absolute", top: "100%", left: 0, right: 0, marginTop: 4,
+            background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 8,
+            boxShadow: "0 10px 25px rgba(0,15,30,0.1)", zIndex: 10,
+            maxHeight: 250, overflowY: "auto", padding: "6px"
+          }}>
+            {options.map(opt => (
+              <label key={opt} style={{
+                display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
+                cursor: "pointer", borderRadius: 6, fontSize: 13, color: TEXT, fontFamily: "'Manrope', sans-serif", userSelect: "none", transition: "background .15s"
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = SURFACE2}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+              >
+                <input type="checkbox" checked={selected.includes(opt)} onChange={() => toggleOption(opt)} style={{ cursor: "pointer", width: 16, height: 16, accentColor: P }} />
+                {opt}
+              </label>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -230,7 +289,6 @@ function reconstructFormState(rows: FlatDatabaseRow[]): FormState {
 
   const firstRow = rows[0];
 
-  // Map odd values like "Bachelor" automatically to "Undergraduate"
   let normalizedLevel = firstRow.level || "";
   const l = normalizedLevel.toLowerCase();
   if (l === "bachelor" || l === "bachelors") {
@@ -239,7 +297,6 @@ function reconstructFormState(rows: FlatDatabaseRow[]): FormState {
     normalizedLevel = "Postgraduate";
   }
 
-  // 1. Group shared course templates
   const templatesMap = new Map<string, CourseTemplate>();
   
   rows.forEach(row => {
@@ -260,8 +317,6 @@ function reconstructFormState(rows: FlatDatabaseRow[]): FormState {
   });
 
   const courses = Array.from(templatesMap.values());
-
-  // 2. Map pricing setups back inside each college
   const collegesMap = new Map<string, CollegeEntry>();
 
   rows.forEach(row => {
@@ -405,20 +460,19 @@ export default function UniversityEditForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  // Dynamically generate upcoming 24 months based on current time (Format: MMM-YY)
+  // Generates upcoming 24 months in full year format (Format: Jan 2027)
   const UPCOMING_INTAKES = useMemo(() => {
     const months = [];
     const now = new Date();
     for (let i = 0; i < 24; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
       const m = d.toLocaleString('en-US', { month: 'short' });
-      const y = d.getFullYear().toString().slice(-2);
-      months.push(`${m}-${y}`);
+      const y = d.getFullYear(); // Full 4 digit year
+      months.push(`${m} ${y}`);
     }
     return months;
   }, []);
 
-  // Styling Helpers inside main component scope
   const btnPrimary = (extra: CSSProperties = {}): CSSProperties => ({
     display: "flex", alignItems: "center", gap: 10,
     padding: "11px 26px", borderRadius: 999,
@@ -779,27 +833,16 @@ export default function UniversityEditForm() {
               <ErrMsg msg={errors.level} />
             </Field>
             
-            <Field label="Intake Period (Select Multiple)" required hint="Applies globally. Toggle upcoming months below.">
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 4 }}>
-                {combinedIntakeDisplay.map(month => {
-                  const isSelected = currentIntakeSet.includes(month);
-                  return (
-                    <DocPill
-                      key={month}
-                      label={month}
-                      selected={isSelected}
-                      onToggle={() => {
-                        if (isSelected) {
-                          setForm(f => ({ ...f, intake: currentIntakeSet.filter(m => m !== month).join(", ") }));
-                        } else {
-                          setForm(f => ({ ...f, intake: [...currentIntakeSet, month].join(", ") }));
-                        }
-                        clearError("intake");
-                      }}
-                    />
-                  );
-                })}
-              </div>
+            <Field label="Intake Period (Select Multiple)" required hint="Applies globally. Select upcoming months.">
+              <MultiSelectDropdown
+                selected={currentIntakeSet}
+                options={combinedIntakeDisplay}
+                onChange={arr => {
+                  setForm(f => ({ ...f, intake: arr.join(", ") }));
+                  clearError("intake");
+                }}
+                placeholder="Select intakes..."
+              />
               <ErrMsg msg={errors.intake} />
             </Field>
           </div>
