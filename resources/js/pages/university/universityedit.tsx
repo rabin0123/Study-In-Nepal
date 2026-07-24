@@ -100,7 +100,7 @@ const selectBase = (focused: boolean): CSSProperties => ({
 
 function InputF({ value, onChange, placeholder, type = "text" }: { value: string; onChange: (v: string) => void; placeholder?: string; type?: string; }) {
   const [f, setF] = useState(false);
-  return <input type={type} value={value} placeholder={placeholder} style={inputBase(f)}
+  return <input type={type} value={value || ""} placeholder={placeholder} style={inputBase(f)}
     onChange={e => onChange(e.target.value)} onFocus={() => setF(true)} onBlur={() => setF(false)} />;
 }
 
@@ -108,7 +108,7 @@ function SelectF({ value, onChange, options, placeholder }: { value: string; onC
   const [f, setF] = useState(false);
   const displayOptions = (value && !options.includes(value)) ? [...options, value] : options;
   return (
-    <select value={value} style={selectBase(f)} onChange={e => onChange(e.target.value)}
+    <select value={value || ""} style={selectBase(f)} onChange={e => onChange(e.target.value)}
       onFocus={() => setF(true)} onBlur={() => setF(false)}>
       <option value="">{placeholder}</option>
       {displayOptions.map(o => <option key={o} value={o} style={{ background: "#ffffff", color: TEXT }}>{o}</option>)}
@@ -179,7 +179,7 @@ function MultiSelectDropdown({ selected, options, onChange, placeholder }: { sel
 
 function TextareaF({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string; }) {
   const [f, setF] = useState(false);
-  return <textarea value={value} placeholder={placeholder}
+  return <textarea value={value || ""} placeholder={placeholder}
     style={{ ...inputBase(f), minHeight: 70, resize: "vertical", lineHeight: 1.6 }}
     onChange={e => onChange(e.target.value)} onFocus={() => setF(true)} onBlur={() => setF(false)} />;
 }
@@ -261,21 +261,21 @@ function CircleArrow() {
 
 const g2: CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 };
 
-// ── Added the missing FlatDatabaseRow interface back ────────────────────────
+// ── Fixed Database Row Types to Handle Possible Nulls ───────────────────────
 interface FlatDatabaseRow {
   id: number;
-  University: string;
+  University: string | null;
   university_logo_url: string | null;
-  level: string;
-  Intake: string;
-  College: string;
+  level: string | null;
+  Intake: string | null;
+  College: string | null;
   college_logo_url: string | null;
-  Location: string;
-  Course: string;
-  stream: string;
+  Location: string | null;
+  Course: string | null;
+  stream: string | null;
   Amount: string | null;
   Scholarship: string | null;
-  requireddocuments: string | null;
+  requireddocuments: string | string[] | null;
 }
 
 function reconstructFormState(rows: FlatDatabaseRow[]): FormState {
@@ -283,7 +283,8 @@ function reconstructFormState(rows: FlatDatabaseRow[]): FormState {
 
   const firstRow = rows[0];
 
-  let normalizedLevel = firstRow.level || "";
+  // Safe level parsing
+  let normalizedLevel = firstRow.level ? String(firstRow.level).trim() : "";
   const l = normalizedLevel.toLowerCase();
   if (l === "bachelor" || l === "bachelors") {
     normalizedLevel = "Undergraduate";
@@ -294,17 +295,28 @@ function reconstructFormState(rows: FlatDatabaseRow[]): FormState {
   const templatesMap = new Map<string, CourseTemplate>();
   
   rows.forEach(row => {
-    const courseKey = `${row.Course.trim().toLowerCase()}_${row.stream.trim().toLowerCase()}`;
+    // 💥 THIS WAS THE FIX: Safely fallback to an empty string before calling trim() 
+    const safeCourse = row.Course ? String(row.Course).trim() : "";
+    const safeStream = row.stream ? String(row.stream).trim() : "";
+
+    const courseKey = `${safeCourse.toLowerCase()}_${safeStream.toLowerCase()}`;
+    
     if (!templatesMap.has(courseKey)) {
-      // Explicitly typed (d: string) to fix the implicit "any" errors
-      const rawDocs = row.requireddocuments ? row.requireddocuments.split(",").map((d: string) => d.trim()).filter(Boolean) : [];
-      const docs = rawDocs.filter((d: string) => STD_DOCS.includes(d));
-      const customDocs = rawDocs.filter((d: string) => !STD_DOCS.includes(d)).join(", ");
+      // Safe array extraction for docs
+      let rawDocs: string[] = [];
+      if (typeof row.requireddocuments === 'string') {
+          rawDocs = row.requireddocuments.split(",").map(d => d.trim()).filter(Boolean);
+      } else if (Array.isArray(row.requireddocuments)) {
+          rawDocs = row.requireddocuments.map(d => (d ? String(d).trim() : "")).filter(Boolean);
+      }
+
+      const docs = rawDocs.filter(d => STD_DOCS.includes(d));
+      const customDocs = rawDocs.filter(d => !STD_DOCS.includes(d)).join(", ");
 
       templatesMap.set(courseKey, {
         id: Math.random().toString(36).slice(2),
-        courseName: row.Course,
-        stream: row.stream,
+        courseName: safeCourse,
+        stream: safeStream,
         docs,
         customDocs
       });
@@ -315,15 +327,21 @@ function reconstructFormState(rows: FlatDatabaseRow[]): FormState {
   const collegesMap = new Map<string, CollegeEntry>();
 
   rows.forEach(row => {
-    const collegeKey = `${row.College.trim().toLowerCase()}_${row.Location.trim().toLowerCase()}`;
-    const courseKey = `${row.Course.trim().toLowerCase()}_${row.stream.trim().toLowerCase()}`;
+    // 💥 THIS WAS THE FIX: Also fallback safely for college keys
+    const safeCollege = row.College ? String(row.College).trim() : "";
+    const safeLocation = row.Location ? String(row.Location).trim() : "";
+    const safeCourse = row.Course ? String(row.Course).trim() : "";
+    const safeStream = row.stream ? String(row.stream).trim() : "";
+
+    const collegeKey = `${safeCollege.toLowerCase()}_${safeLocation.toLowerCase()}`;
+    const courseKey = `${safeCourse.toLowerCase()}_${safeStream.toLowerCase()}`;
     const template = templatesMap.get(courseKey);
     const courseTemplateId = template ? template.id : "";
 
     const mapping: CollegeCourseMapping = {
       courseTemplateId,
-      annualFee: row.Amount || "",
-      scholarship: row.Scholarship || ""
+      annualFee: row.Amount ? String(row.Amount) : "",
+      scholarship: row.Scholarship ? String(row.Scholarship) : ""
     };
 
     if (collegesMap.has(collegeKey)) {
@@ -334,8 +352,8 @@ function reconstructFormState(rows: FlatDatabaseRow[]): FormState {
     } else {
       collegesMap.set(collegeKey, {
         id: Math.random().toString(36).slice(2),
-        name: row.College,
-        location: row.Location,
+        name: safeCollege,
+        location: safeLocation,
         collegeLogoUrl: row.college_logo_url || "",
         collegeCourses: [mapping]
       });
@@ -343,10 +361,10 @@ function reconstructFormState(rows: FlatDatabaseRow[]): FormState {
   });
 
   return {
-    universityName: firstRow.University,
+    universityName: firstRow.University ? String(firstRow.University) : "",
     universityLogoUrl: firstRow.university_logo_url || "",
     level: normalizedLevel,
-    intake: firstRow.Intake || "",
+    intake: firstRow.Intake ? String(firstRow.Intake) : "",
     courses,
     colleges: Array.from(collegesMap.values())
   };
@@ -368,7 +386,7 @@ function SharedCourseCard({
     onChange("docs", next);
   };
 
-  const headerLabel = course.courseName.trim() || `Course Template ${index + 1}`;
+  const headerLabel = (course.courseName || "").trim() || `Course Template ${index + 1}`;
 
   return (
     <div style={{
@@ -487,7 +505,6 @@ export default function UniversityEditForm() {
     return pathParts[pathParts.length - 1];
   };
 
-  // USE REF keeps track of the ID without triggering unnecessary re-renders
   const activeId = useRef<string>(getRecordId());
 
   useEffect(() => {
@@ -645,18 +662,18 @@ export default function UniversityEditForm() {
 
   const validate = (): Record<string, string> => {
     const e: Record<string, string> = {};
-    if (!form.universityName.trim()) e.universityName = "University name is required";
+    if (!form.universityName?.trim()) e.universityName = "University name is required";
     if (!form.level) e.level = "Study level is required";
-    if (!form.intake.trim()) e.intake = "At least one intake period is required";
+    if (!form.intake?.trim()) e.intake = "At least one intake period is required";
 
     form.courses.forEach((c, idx) => {
-      if (!c.courseName.trim()) e[`course_tpl_${idx}_name`] = `Program ${idx + 1}: Name is required`;
-      if (!c.stream.trim()) e[`course_tpl_${idx}_stream`] = `Program ${idx + 1}: Stream/Faculty is required`;
+      if (!c.courseName?.trim()) e[`course_tpl_${idx}_name`] = `Program ${idx + 1}: Name is required`;
+      if (!c.stream?.trim()) e[`course_tpl_${idx}_stream`] = `Program ${idx + 1}: Stream/Faculty is required`;
     });
 
     form.colleges.forEach((col, colIdx) => {
-      if (!col.name.trim()) e[`col_${colIdx}_name`] = `College ${colIdx + 1}: Name is required`;
-      if (!col.location.trim()) e[`col_${colIdx}_loc`] = `College ${colIdx + 1}: Location is required`;
+      if (!col.name?.trim()) e[`col_${colIdx}_name`] = `College ${colIdx + 1}: Name is required`;
+      if (!col.location?.trim()) e[`col_${colIdx}_loc`] = `College ${colIdx + 1}: Location is required`;
       
       if (col.collegeCourses.length === 0) {
         e[`col_${colIdx}_empty`] = `College ${colIdx + 1} (${col.name || "unnamed"}) must have at least one course fee record assigned`;
@@ -703,10 +720,9 @@ export default function UniversityEditForm() {
             stream: matchingTemplate?.stream ?? "",
             annualFee: cc.annualFee,
             scholarship: cc.scholarship,
-            // Added explicit typing here as well (s: string)
             allDocs: matchingTemplate ? [
               ...matchingTemplate.docs,
-              ...matchingTemplate.customDocs.split(",").map((s: string) => s.trim()).filter(Boolean),
+              ...(matchingTemplate.customDocs || "").split(",").map(s => s.trim()).filter(Boolean),
             ] : [],
           };
         }),
@@ -724,10 +740,9 @@ export default function UniversityEditForm() {
       
       if (res.ok) {
         if (d.new_id) {
-            // Update URL dynamically so Keep Editing doesn't query the deleted ID!
             const newPath = window.location.pathname.replace(`/${activeId.current}`, `/${d.new_id}`);
             window.history.replaceState(null, "", newPath);
-            activeId.current = d.new_id.toString(); // Update ref context!
+            activeId.current = d.new_id.toString(); 
         }
         setSubmitted(true);
       } else {
@@ -759,14 +774,13 @@ export default function UniversityEditForm() {
         <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&display=swap" rel="stylesheet" />
         <div style={{ textAlign: "center", fontFamily: "'Manrope', sans-serif" }}>
           <p style={{ color: "#ef4444", fontSize: 14, marginBottom: 16 }}>{errors.general}</p>
-          <button onClick={() => window.location.href = "/universities"} style={btnPrimary()}>Back to Directory</button>
+          <button onClick={() => window.location.href = "/university"} style={btnPrimary()}>Back to Directory</button>
         </div>
       </div>
     );
   }
 
-  // Combine existing DB intake values with our auto-generated ones to make sure old entries aren't hidden
-  const currentIntakeSet = form.intake ? form.intake.split(",").map((s: string) => s.trim()).filter(Boolean) : [];
+  const currentIntakeSet = form.intake ? form.intake.split(",").map(s => s.trim()).filter(Boolean) : [];
   const combinedIntakeDisplay = Array.from(new Set([...currentIntakeSet, ...UPCOMING_INTAKES]));
 
   return (
@@ -791,7 +805,6 @@ export default function UniversityEditForm() {
 
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "36px 48px 64px" }}>
 
-        {/* Validation summary */}
         {hasErrors && (
           <div style={{ background: "#fef2f2", border: "1px solid rgba(239, 68, 68, 0.3)", borderRadius: 8, padding: "14px 20px", marginBottom: 20 }}>
             <p style={{ fontSize: 12, color: "#b91c1c", fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", margin: "0 0 8px" }}>
@@ -803,7 +816,6 @@ export default function UniversityEditForm() {
           </div>
         )}
 
-        {/* 01 Institution & Global Courses */}
         <SectionCard number={1} title="Central University Registrations" subtitle="Primary settings and shared course configurations">
           <div style={{ ...g2, marginBottom: 20 }}>
             <Field label="University Name" required>
@@ -848,7 +860,6 @@ export default function UniversityEditForm() {
             </Field>
           </div>
 
-          {/* SHARED COURSES DEFINITION */}
           <SubPanel title="Shared Course Registry (Define templates here first)" accent="#0066cc">
             <p style={{ fontSize: 11, color: TEXT3, margin: "0 0 14px", lineHeight: 1.5 }}>
               Modify templates here. Updates apply automatically across colleges mapping to these programs.
@@ -882,12 +893,11 @@ export default function UniversityEditForm() {
           </SubPanel>
         </SectionCard>
 
-        {/* 02 Colleges Setup & Pricing */}
         <SectionCard number={2} title="Affiliated Colleges & Pricing Configuration" subtitle="Assign prices and scholarship programs to central courses inside each college">
           
           {form.colleges.map((college, colIdx) => {
             const isColOpen = openCollegeId === college.id;
-            const colHeaderLabel = college.name.trim() || `College ${colIdx + 1}`;
+            const colHeaderLabel = (college.name || "").trim() || `College ${colIdx + 1}`;
             const coursesCount = college.collegeCourses.length;
 
             return (
@@ -1015,7 +1025,7 @@ export default function UniversityEditForm() {
                               <option value="">-- Choose Course --</option>
                               {form.courses.map((t, tIdx) => (
                                 <option key={t.id} value={t.id} style={{ background: "#ffffff", color: TEXT }}>
-                                  {t.courseName.trim() || `Program Template ${tIdx + 1}`}
+                                  {(t.courseName || "").trim() || `Program Template ${tIdx + 1}`}
                                 </option>
                               ))}
                             </select>
