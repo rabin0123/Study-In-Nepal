@@ -23,9 +23,11 @@ const SEARCH_DEBOUNCE_MS = 300;
 interface UniversityEntry {
   id: number;
   University: string;
+  university_logo_url: string | null;
   level: string;
   Intake: string;
   College: string;
+  college_logo_url: string | null;
   Location: string;
   Course: string;
   stream: string;
@@ -34,6 +36,17 @@ interface UniversityEntry {
   requireddocuments: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// A grouped "university" card — one per distinct University name, aggregating
+// every row (across colleges/courses/levels) that shares that name.
+interface UniversityGroup {
+  name: string;
+  logoUrl: string | null;
+  levels: string[];       // distinct level values under this university, in first-seen order
+  collegeCount: number;
+  courseCount: number;
+  sampleId: number;       // an id belonging to this group, used as a fallback route target
 }
 
 interface FilterOptions {
@@ -86,8 +99,6 @@ const btnGhost: CSSProperties = {
 };
 
 // ── Shared Layout Utilities ──────────────────────────────────────────────────
-const gridLayoutRatio = "2.2fr 2.2fr 1.3fr 1fr 1.8fr auto";
-
 const headerTextStyle: CSSProperties = {
   fontSize: 10, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
   letterSpacing: "0.18em", textTransform: "uppercase", color: TEXT3,
@@ -119,15 +130,6 @@ const TrashIcon = () => (
   </svg>
 );
 
-const CalendarIcon = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: TEXT3 }}>
-    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-    <line x1="16" y1="2" x2="16" y2="6" />
-    <line x1="8" y1="2" x2="8" y2="6" />
-    <line x1="3" y1="10" x2="21" y2="10" />
-  </svg>
-);
-
 const FilterIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
@@ -153,6 +155,21 @@ const ImportIcon = () => (
 const SpinnerIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={P} strokeWidth="2.5" strokeLinecap="round" style={{ animation: "spin 0.8s linear infinite" }}>
     <path d="M12 2a10 10 0 0 1 10 10" />
+  </svg>
+);
+
+const ChevronIcon = ({ open }: { open: boolean }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+    style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform .2s" }}>
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
+const BuildingIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={TEXT3} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 21h18" />
+    <path d="M5 21V7l7-4 7 4v14" />
+    <path d="M9 9h1M14 9h1M9 13h1M14 13h1M9 17h1M14 17h1" />
   </svg>
 );
 
@@ -241,16 +258,49 @@ function MultiSelectDropdown({ label, options, selected, onChange }: MultiSelect
 }
 
 // ── Small UI Elements ────────────────────────────────────────────────────────
-function StatusPill({ label, color = P }: { label: string; color?: string }) {
+function StatusPill({ label, color = P, onClick }: { label: string; color?: string; onClick?: () => void }) {
   return (
-    <span style={{
-      display: "inline-block", padding: "3px 10px", borderRadius: 999,
-      background: `${color}18`, border: `1px solid ${color}33`,
-      color: color, fontSize: 10, fontFamily: "'Rajdhani', sans-serif",
-      fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase"
-    }}>
+    <span
+      onClick={onClick}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 999,
+        background: `${color}18`, border: `1px solid ${color}33`,
+        color: color, fontSize: 11, fontFamily: "'Rajdhani', sans-serif",
+        fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase",
+        cursor: onClick ? "pointer" : "default", transition: "background .15s, transform .1s",
+      }}
+      onMouseEnter={onClick ? (e) => { e.currentTarget.style.background = `${color}2a`; } : undefined}
+      onMouseLeave={onClick ? (e) => { e.currentTarget.style.background = `${color}18`; } : undefined}
+    >
       {label}
+      {onClick && <span style={{ fontSize: 12 }}>→</span>}
     </span>
+  );
+}
+
+function UniversityLogo({ url, size = 48 }: { url: string | null; size?: number }) {
+  const [errored, setErrored] = useState(false);
+  const showFallback = !url || errored;
+
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: 10, flexShrink: 0,
+      background: showFallback ? SURFACE2 : "#ffffff",
+      border: `1px solid ${BORDER}`,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      overflow: "hidden",
+    }}>
+      {showFallback ? (
+        <BuildingIcon />
+      ) : (
+        <img
+          src={url}
+          alt=""
+          onError={() => setErrored(true)}
+          style={{ width: "100%", height: "100%", objectFit: "contain", padding: 4, boxSizing: "border-box" }}
+        />
+      )}
+    </div>
   );
 }
 
@@ -281,6 +331,9 @@ export default function UniversityIndex() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  // Which university group (by name) is currently expanded to show its level pills
+  const [expandedUniversity, setExpandedUniversity] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -398,6 +451,44 @@ export default function UniversityIndex() {
     return () => observer.disconnect();
   }, [loadMore]);
 
+  // ── Group flat rows into one card per University name ─────────────────────
+  const universityGroups = useMemo<UniversityGroup[]>(() => {
+    const map = new Map<string, UniversityGroup>();
+
+    for (const row of data) {
+      const key = row.University || "Unnamed University";
+      let group = map.get(key);
+      if (!group) {
+        group = {
+          name: key,
+          logoUrl: row.university_logo_url || null,
+          levels: [],
+          collegeCount: 0,
+          courseCount: 0,
+          sampleId: row.id,
+        };
+        map.set(key, group);
+      }
+      // Prefer the first non-empty logo url encountered
+      if (!group.logoUrl && row.university_logo_url) group.logoUrl = row.university_logo_url;
+      if (row.level && !group.levels.includes(row.level)) group.levels.push(row.level);
+      group.courseCount += 1;
+    }
+
+    // Compute distinct college counts per group
+    const collegeSets = new Map<string, Set<string>>();
+    for (const row of data) {
+      const key = row.University || "Unnamed University";
+      if (!collegeSets.has(key)) collegeSets.set(key, new Set());
+      collegeSets.get(key)!.add(row.College || "");
+    }
+    for (const [key, group] of map.entries()) {
+      group.collegeCount = collegeSets.get(key)?.size ?? 0;
+    }
+
+    return Array.from(map.values());
+  }, [data]);
+
   // Helpers / Handlers
   const triggerToast = (message: string, type: "success" | "error" = "success") => {
     setToast({ message, type });
@@ -474,6 +565,13 @@ export default function UniversityIndex() {
     setSearch("");
   };
 
+  // Navigate to the edit form for a university, scoped to one level
+  const goToLevelEdit = (group: UniversityGroup, level: string) => {
+    const params = new URLSearchParams();
+    params.set("level", level);
+    window.location.href = `/universities/${group.sampleId}/edit?${params.toString()}`;
+  };
+
   const targetItemToDelete = useMemo(() => {
     return data.find(item => item.id === deleteTargetId);
   }, [deleteTargetId, data]);
@@ -486,6 +584,7 @@ export default function UniversityIndex() {
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes expandDown { from { opacity: 0; max-height: 0; } to { opacity: 1; max-height: 300px; } }
       `}</style>
       <link href="https://fonts.googleapis.com/css2?family=Castoro+Titling&family=Rajdhani:wght@600;700&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet" />
 
@@ -507,7 +606,7 @@ export default function UniversityIndex() {
               University Management — Directory
             </p>
             <h1 style={{ fontFamily: "'Castoro Titling', serif", fontSize: 40, fontWeight: 400, textTransform: "uppercase", letterSpacing: "0.08em", color: TEXT, margin: "0 0 12px", lineHeight: 1.15 }}>
-              Registered <span style={{ color: P }}>Courses</span>
+              Registered <span style={{ color: P }}>Universities</span>
             </h1>
             <p style={{ fontSize: 13, color: TEXT2, maxWidth: 560, lineHeight: 1.7, margin: 0 }}>
               Manage all uploaded university programs, streams, and fee structures from the database.
@@ -645,143 +744,117 @@ export default function UniversityIndex() {
         )}
 
         {/* Directory Row Headers */}
-        {data.length > 0 && !loading && (
+        {universityGroups.length > 0 && !loading && (
           <div style={{
             display: "grid",
-            gridTemplateColumns: gridLayoutRatio,
+            gridTemplateColumns: "1fr auto",
             gap: "24px",
             padding: "12px 28px",
             marginBottom: "8px",
           }}>
-            <div style={headerTextStyle}>Institution</div>
-            <div style={headerTextStyle}>Program & Stream</div>
-            <div style={headerTextStyle}>Level & Intake</div>
-            <div style={headerTextStyle}>Financials</div>
-            <div style={headerTextStyle}>Required Docs</div>
-            <div style={{ ...headerTextStyle, textAlign: "right", width: "42px" }}>Delete</div>
+            <div style={headerTextStyle}>University</div>
+            <div style={{ ...headerTextStyle, textAlign: "right" }}>Levels Offered</div>
           </div>
         )}
 
-        {/* Standalone Directory Cards */}
+        {/* University Cards (grouped) */}
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           {loading ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "48px", color: TEXT3, fontSize: 13 }}>
               <SpinnerIcon />
               Loading directory records...
             </div>
-          ) : data.length === 0 ? (
+          ) : universityGroups.length === 0 ? (
             <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "48px", textAlign: "center", color: TEXT3, fontSize: 13 }}>
-              No course entries found matching your criteria.
+              No universities found matching your criteria.
             </div>
           ) : (
-            data.map((item) => (
-              <div 
-                key={item.id} 
-                onClick={() => window.location.href = `/universities/${item.id}`}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: gridLayoutRatio,
-                  alignItems: "center",
-                  gap: "24px",
-                  background: SURFACE,
-                  border: `1px solid ${BORDER}`,
-                  borderRadius: 12,
-                  padding: "20px 28px",
-                  cursor: "pointer",
-                  transition: "border-color 0.2s, background 0.2s"
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#cbd5e1"; 
-                  e.currentTarget.style.background = SURFACE2;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = BORDER;
-                  e.currentTarget.style.background = SURFACE;
-                }}
-              >
-                {/* 1. Institution */}
-                <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <div style={{ ...truncateStyle, fontSize: 14, color: TEXT, fontWeight: 600 }} title={item.University}>
-                    {item.University}
-                  </div>
-                  <div style={{ ...truncateStyle, fontSize: 11, color: TEXT3 }} title={`${item.College} • ${item.Location}`}>
-                    {item.College} • {item.Location}
-                  </div>
-                </div>
-
-                {/* 2. Program & Stream */}
-                <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <div style={{ ...truncateStyle, fontSize: 14, color: TEXT, fontWeight: 500 }} title={item.Course}>
-                    {item.Course}
-                  </div>
-                  <div style={{ ...truncateStyle, fontSize: 11, color: P }} title={item.stream}>
-                    {item.stream}
-                  </div>
-                </div>
-
-                {/* 3. Level & Intake */}
-                <div>
-                  <div style={{ marginBottom: 6 }}>
-                    <StatusPill label={item.level} color={AMBER} />
-                  </div>
-                  <div style={{ fontSize: 11, color: TEXT3, display: "flex", alignItems: "center", gap: 6 }}>
-                    <CalendarIcon />
-                    Intake: {item.Intake || "N/A"}
-                  </div>
-                </div>
-
-                {/* 4. Financials */}
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ ...truncateStyle, fontSize: 14, color: TEXT, fontWeight: 600 }} title={item.Amount || "N/A"}>
-                   NPR {item.Amount || <span style={{ color: TEXT3 }}>N/A</span>}
-                  </div>
-                  {item.Scholarship && (
-                    <div style={{ ...truncateStyle, fontSize: 11, color: SUCCESS, display: "flex", alignItems: "center", gap: 4 }} title={item.Scholarship}>
-                     NPR {item.Scholarship}
-                      </div>
-                  )}
-                </div>
-
-                {/* 5. Required Documents */}
-                <div>
-                  {item.requireddocuments ? (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", maxWidth: "240px", maxHeight: "80px", overflow: "hidden" }}>
-                      {item.requireddocuments.split(",").map((doc, i) => (
-                        <span key={i} style={{ 
-                          fontSize: 10, color: TEXT2, background: SURFACE2, 
-                          padding: "3px 8px", borderRadius: 4, border: `1px solid ${BORDER}`,
-                          fontFamily: "'Rajdhani', sans-serif", fontWeight: 600,
-                          whiteSpace: "nowrap"
-                        }} title={doc.trim()}>
-                          {doc.trim()}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <span style={{ fontSize: 11, color: TEXT3 }}>None specified</span>
-                  )}
-                </div>
-
-                {/* 6. Actions (Only Delete Button) */}
-                <div style={{ display: "flex", justifyContent: "flex-end", width: "42px", marginLeft: "auto" }}>
-                  <button 
+            universityGroups.map((group) => {
+              const isExpanded = expandedUniversity === group.name;
+              return (
+                <div
+                  key={group.name}
+                  style={{
+                    background: SURFACE,
+                    border: `1px solid ${isExpanded ? P : BORDER}`,
+                    borderRadius: 12,
+                    overflow: "hidden",
+                    transition: "border-color 0.2s",
+                  }}
+                >
+                  {/* Card header row — click to expand/collapse level pills */}
+                  <div
+                    onClick={() => setExpandedUniversity(isExpanded ? null : group.name)}
                     style={{
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      width: "32px", height: "32px", borderRadius: 6, background: "transparent",
-                      border: "1px solid rgba(248,113,113,0.25)", color: DANGER, cursor: "pointer",
-                      transition: "all 0.2s"
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      gap: "24px", padding: "18px 28px", cursor: "pointer",
+                      background: isExpanded ? `${P}08` : "transparent",
+                      transition: "background 0.2s",
                     }}
-                    onClick={(e) => {
-                      e.stopPropagation(); 
-                      setDeleteTargetId(item.id); 
-                    }}
-                    title="Delete Entry"
+                    onMouseEnter={(e) => { if (!isExpanded) e.currentTarget.style.background = SURFACE2; }}
+                    onMouseLeave={(e) => { if (!isExpanded) e.currentTarget.style.background = "transparent"; }}
                   >
-                    <TrashIcon />
-                  </button>
+                    <div style={{ display: "flex", alignItems: "center", gap: 16, minWidth: 0 }}>
+                      <UniversityLogo url={group.logoUrl} />
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ ...truncateStyle, fontSize: 15, color: TEXT, fontWeight: 700, fontFamily: "'Manrope', sans-serif" }} title={group.name}>
+                          {group.name}
+                        </div>
+                        <div style={{ fontSize: 11, color: TEXT3, marginTop: 2 }}>
+                          {group.collegeCount} college{group.collegeCount !== 1 ? "s" : ""} • {group.courseCount} course{group.courseCount !== 1 ? "s" : ""}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                        {group.levels.length === 0 ? (
+                          <span style={{ fontSize: 11, color: TEXT3 }}>No level set</span>
+                        ) : (
+                          group.levels.map(lvl => (
+                            <StatusPill key={lvl} label={lvl} color={AMBER} />
+                          ))
+                        )}
+                      </div>
+                      <span style={{ color: isExpanded ? P : TEXT3 }}>
+                        <ChevronIcon open={isExpanded} />
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Expanded panel — clickable level pills that route to scoped edit */}
+                  {isExpanded && (
+                    <div style={{
+                      borderTop: `1px solid ${BORDER}`, padding: "18px 28px",
+                      background: SURFACE2, animation: "expandDown 0.2s ease-out"
+                    }}>
+                      <p style={{
+                        fontSize: 10, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
+                        letterSpacing: "0.14em", textTransform: "uppercase", color: TEXT3, margin: "0 0 12px"
+                      }}>
+                        Select a level to edit its colleges & courses
+                      </p>
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                        {group.levels.length === 0 ? (
+                          <span style={{ fontSize: 12, color: TEXT3 }}>
+                            This university has no level assigned yet.
+                          </span>
+                        ) : (
+                          group.levels.map(lvl => (
+                            <StatusPill
+                              key={lvl}
+                              label={lvl}
+                              color={P}
+                              onClick={() => goToLevelEdit(group, lvl)}
+                            />
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
 
           {/* Pagination Sentinel */}
