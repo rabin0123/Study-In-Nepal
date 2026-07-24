@@ -1,17 +1,18 @@
 import { useState, useEffect } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
-const P = "#008ce3";
-const AMBER = "#fbbf24";
-const BG = "#0a0a0a";
-const SURFACE = "#111111";
-const SURFACE2 = "#1a1a1a";
-const SURFACE3 = "#141414";
-const BORDER = "rgba(255,255,255,0.10)";
-const TEXT = "#ffffff";
-const TEXT2 = "rgba(255,255,255,0.70)";
-const TEXT3 = "rgba(255,255,255,0.40)";
-const SUCCESS = "#22c55e";
+// ── Light / Professional Blue Theme ──────────────────────────────────────────
+const P = "#006ac7"; // Primary Professional Blue
+const ACCENT = "#0284c7"; // Secondary Sky Blue Accent
+const BG = "#f0f4f9"; // Soft white-blue mixed background
+const SURFACE = "#ffffff"; // Pure white cards
+const SURFACE2 = "#f8fafc"; // Very light blue/slate for inner panels
+const SURFACE3 = "#f1f5f9"; // Slightly darker slate for nested items
+const BORDER = "#cbd5e1"; // Clean grey border
+const TEXT = "#0f172a"; // Almost black (Slate 900)
+const TEXT2 = "#334155"; // Dark Grey (Slate 700)
+const TEXT3 = "#64748b"; // Medium Grey (Slate 500)
+const SUCCESS = "#16a34a"; // Standard Green
 
 const LEVELS = ["Undergraduate", "Postgraduate", "Both UG & PG", "Doctoral / PhD"];
 const STD_DOCS = [
@@ -38,13 +39,13 @@ interface CollegeEntry {
   id: string;
   name: string;
   location: string;
-  collegeLogoUrl: string; // Added college logo URL
+  collegeLogoUrl: string;
   collegeCourses: CollegeCourseMapping[];
 }
 
 interface FormState {
   universityName: string;
-  universityLogoUrl: string; // Added university logo URL
+  universityLogoUrl: string;
   level: string;
   intake: string;
   courses: CourseTemplate[];
@@ -82,19 +83,20 @@ const initial: FormState = {
 
 const inputBase = (focused: boolean): CSSProperties => ({
   width: "100%", boxSizing: "border-box",
-  background: focused ? "#1e1e1e" : SURFACE2,
+  background: focused ? "#ffffff" : SURFACE2,
   border: `1px solid ${focused ? P : BORDER}`,
   borderRadius: 6, padding: "11px 14px",
   fontSize: 13, color: TEXT, fontFamily: "'Manrope', sans-serif",
-  outline: "none", transition: "border-color .15s, background .15s",
-  letterSpacing: "0.02em", colorScheme: "dark",
+  outline: "none", transition: "all .15s",
+  boxShadow: focused ? `0 0 0 3px ${P}22` : "none",
+  letterSpacing: "0.02em", colorScheme: "light",
 });
 
 const selectBase = (focused: boolean): CSSProperties => ({
   ...inputBase(focused),
   appearance: "none", WebkitAppearance: "none",
-  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='6' viewBox='0 0 11 6'%3E%3Cpath d='M1 1l4.5 4L10 1' stroke='%23666' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
-  backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center",
+  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='6' viewBox='0 0 11 6'%3E%3Cpath d='M1 1l4.5 4L10 1' stroke='%2364748b' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
+  backgroundRepeat: "no-repeat", backgroundPosition: "right 14px center",
   paddingRight: 32, cursor: "pointer",
 });
 
@@ -102,7 +104,6 @@ const selectBase = (focused: boolean): CSSProperties => ({
 
 function InputF({ value, onChange, placeholder, type = "text" }: { value: string; onChange: (v: string) => void; placeholder?: string; type?: string; }) {
   const [f, setF] = useState(false);
-  // Default to "" to prevent React uncontrolled input warnings on missing draft properties
   return <input type={type} value={value || ""} placeholder={placeholder} style={inputBase(f)}
     onChange={e => onChange(e.target.value)} onFocus={() => setF(true)} onBlur={() => setF(false)} />;
 }
@@ -113,7 +114,7 @@ function SelectF({ value, onChange, options, placeholder }: { value: string; onC
     <select value={value || ""} style={selectBase(f)} onChange={e => onChange(e.target.value)}
       onFocus={() => setF(true)} onBlur={() => setF(false)}>
       <option value="">{placeholder}</option>
-      {options.map(o => <option key={o} value={o} style={{ background: "#1a1a1a" }}>{o}</option>)}
+      {options.map(o => <option key={o} value={o}>{o}</option>)}
     </select>
   );
 }
@@ -144,14 +145,14 @@ function Field({ label, required, hint, children }: { label: string; required?: 
 }
 
 function ErrMsg({ msg }: { msg?: string; }) {
-  return msg ? <span style={{ fontSize: 11, color: "#f87171", marginTop: 4, fontFamily: "'Manrope', sans-serif" }}>{msg}</span> : null;
+  return msg ? <span style={{ fontSize: 11, color: "#ef4444", marginTop: 4, fontFamily: "'Manrope', sans-serif" }}>{msg}</span> : null;
 }
 
 function SectionCard({ number, title, subtitle, children }: { number: number; title: string; subtitle: string; children: ReactNode; }) {
   return (
-    <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, overflow: "hidden", marginBottom: 20 }}>
-      <div style={{ borderBottom: `1px solid ${BORDER}`, padding: "20px 28px", display: "flex", alignItems: "center", gap: 16 }}>
-        <span style={{ fontFamily: "'Castoro Titling', 'Georgia', serif", fontSize: 28, fontWeight: 400, color: AMBER, lineHeight: 1 }}>
+    <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, overflow: "hidden", marginBottom: 20, boxShadow: "0 2px 10px rgba(0,0,0,0.02)" }}>
+      <div style={{ borderBottom: `1px solid ${BORDER}`, padding: "20px 28px", display: "flex", alignItems: "center", gap: 16, background: SURFACE2 }}>
+        <span style={{ fontFamily: "'Castoro Titling', 'Georgia', serif", fontSize: 28, fontWeight: 400, color: P, lineHeight: 1 }}>
           {String(number).padStart(2, "0")}
         </span>
         <div>
@@ -181,7 +182,7 @@ function DocPill({ label, selected, onToggle }: { label: string; selected: boole
     <button onClick={onToggle} style={{
       padding: "5px 12px", borderRadius: 999, cursor: "pointer",
       border: `1px solid ${selected ? P : BORDER}`,
-      background: selected ? `${P}22` : "transparent",
+      background: selected ? `${P}15` : SURFACE,
       color: selected ? P : TEXT3,
       fontSize: 11, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
       letterSpacing: "0.12em", textTransform: "uppercase", transition: "all .15s",
@@ -240,12 +241,12 @@ function SharedCourseCard({
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span style={{
             fontSize: 10, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
-            color: isOpen ? P : TEXT3, background: isOpen ? `${P}18` : "rgba(255,255,255,0.06)",
+            color: isOpen ? P : TEXT3, background: isOpen ? `${P}18` : "rgba(0,0,0,0.05)",
             padding: "3px 10px", borderRadius: 999,
           }}>
             Prog {index + 1}
           </span>
-          <span style={{ fontSize: 13, color: course.courseName ? TEXT : TEXT3, fontFamily: "'Manrope', sans-serif", fontWeight: 500 }}>
+          <span style={{ fontSize: 13, color: course.courseName ? TEXT : TEXT3, fontFamily: "'Manrope', sans-serif", fontWeight: 600 }}>
             {headerLabel}
           </span>
         </div>
@@ -255,8 +256,8 @@ function SharedCourseCard({
               onClick={e => { e.stopPropagation(); onRemove(); }}
               style={{
                 padding: "3px 10px", borderRadius: 6, cursor: "pointer",
-                border: "1px solid rgba(248,113,113,0.25)", background: "transparent",
-                color: "#f87171", fontSize: 11, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
+                border: "1px solid rgba(239,68,68,0.25)", background: "transparent",
+                color: "#ef4444", fontSize: 11, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
               }}
             >
               Remove
@@ -267,7 +268,7 @@ function SharedCourseCard({
       </div>
 
       {isOpen && (
-        <div style={{ padding: "20px", borderTop: `1px solid ${BORDER}` }}>
+        <div style={{ padding: "20px", borderTop: `1px solid ${BORDER}`, background: SURFACE }}>
           <div style={{ ...g2, marginBottom: 16 }}>
             <Field label="Program / Course Name" required>
               <InputF value={course.courseName} onChange={v => onChange("courseName", v)} placeholder="e.g. Bachelor of Business Administration" />
@@ -277,7 +278,7 @@ function SharedCourseCard({
             </Field>
           </div>
 
-          <SubPanel title="Shared Course Requirements" accent="#a78bfa">
+          <SubPanel title="Shared Course Requirements" accent="#8b5cf6">
             <Label>Required Documents</Label>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 14, marginTop: 4 }}>
               {STD_DOCS.map(doc => (
@@ -331,13 +332,8 @@ export default function UniversityEntryForm() {
   const [submitted, setSubmitted] = useState(false);
 
   // Helper functions
-  const openCourse = (id: string) => {
-    setOpenCourseId(prev => prev === id ? "" : id);
-  };
-
-  const openCollege = (id: string) => {
-    setOpenCollegeId(prev => prev === id ? "" : id);
-  };
+  const openCourse = (id: string) => setOpenCourseId(prev => prev === id ? "" : id);
+  const openCollege = (id: string) => setOpenCollegeId(prev => prev === id ? "" : id);
 
   const clearError = (...keys: string[]) => {
     setErrors(e => {
@@ -349,13 +345,10 @@ export default function UniversityEntryForm() {
 
   useEffect(() => { saveDraft(form, openCourseId, openCollegeId); }, [form, openCourseId, openCollegeId]);
 
-  // Global Program templates (Pure immutable state)
+  // Global Program templates
   const addCourseTemplate = () => {
     const nextId = Math.random().toString(36).slice(2);
-    setForm(f => {
-      const next = makeCourseTemplate(nextId);
-      return { ...f, courses: [...f.courses, next] };
-    });
+    setForm(f => ({ ...f, courses: [...f.courses, makeCourseTemplate(nextId)] }));
     setOpenCourseId(nextId);
   };
 
@@ -363,8 +356,7 @@ export default function UniversityEntryForm() {
     setForm(f => {
       const nextCourses = f.courses.filter(c => c.id !== id);
       const nextColleges = f.colleges.map(col => ({
-        ...col,
-        collegeCourses: col.collegeCourses.filter(cc => cc.courseTemplateId !== id),
+        ...col, collegeCourses: col.collegeCourses.filter(cc => cc.courseTemplateId !== id),
       }));
       return { ...f, courses: nextCourses, colleges: nextColleges };
     });
@@ -375,19 +367,13 @@ export default function UniversityEntryForm() {
   };
 
   const updateCourseTemplate = (id: string, field: keyof CourseTemplate, value: string | string[]) => {
-    setForm(f => ({
-      ...f,
-      courses: f.courses.map(c => c.id === id ? { ...c, [field]: value } : c),
-    }));
+    setForm(f => ({ ...f, courses: f.courses.map(c => c.id === id ? { ...c, [field]: value } : c) }));
   };
 
-  // Affiliated Colleges (Pure immutable state)
+  // Affiliated Colleges
   const addCollege = () => {
     const nextId = Math.random().toString(36).slice(2);
-    setForm(f => {
-      const next = makeCollegeEntry(f.courses[0]?.id ?? "", nextId);
-      return { ...f, colleges: [...f.colleges, next] };
-    });
+    setForm(f => ({ ...f, colleges: [...f.colleges, makeCollegeEntry(f.courses[0]?.id ?? "", nextId)] }));
     setOpenCollegeId(nextId);
   };
 
@@ -401,61 +387,37 @@ export default function UniversityEntryForm() {
   };
 
   const updateCollege = (colIdx: number, field: "name" | "location" | "collegeLogoUrl", value: string) => {
-    setForm(f => {
-      const nextColleges = f.colleges.map((col, idx) => {
-        if (idx !== colIdx) return col;
-        return { ...col, [field]: value };
-      });
-      return { ...f, colleges: nextColleges };
-    });
+    setForm(f => ({
+      ...f, colleges: f.colleges.map((col, idx) => idx !== colIdx ? col : { ...col, [field]: value })
+    }));
   };
 
-  // Assign specific prices/scholarship (Pure deeply immutable state updates)
+  // Assign specific prices/scholarship
   const addCollegeCoursePrice = (colIdx: number) => {
-    setForm(f => {
-      const nextColleges = f.colleges.map((col, idx) => {
-        if (idx !== colIdx) return col;
-        return {
-          ...col,
-          collegeCourses: [
-            ...col.collegeCourses,
-            {
-              courseTemplateId: f.courses[0]?.id ?? "",
-              annualFee: "",
-              scholarship: "",
-            }
-          ]
-        };
-      });
-      return { ...f, colleges: nextColleges };
-    });
+    setForm(f => ({
+      ...f, colleges: f.colleges.map((col, idx) => idx !== colIdx ? col : {
+        ...col, collegeCourses: [...col.collegeCourses, { courseTemplateId: f.courses[0]?.id ?? "", annualFee: "", scholarship: "" }]
+      })
+    }));
   };
 
   const removeCollegeCoursePrice = (colIdx: number, itemIdx: number) => {
-    setForm(f => {
-      const nextColleges = f.colleges.map((col, idx) => {
-        if (idx !== colIdx) return col;
-        return {
-          ...col,
-          collegeCourses: col.collegeCourses.filter((_, i) => i !== itemIdx)
-        };
-      });
-      return { ...f, colleges: nextColleges };
-    });
+    setForm(f => ({
+      ...f, colleges: f.colleges.map((col, idx) => idx !== colIdx ? col : {
+        ...col, collegeCourses: col.collegeCourses.filter((_, i) => i !== itemIdx)
+      })
+    }));
   };
 
   const updateCollegeCourseMapping = (colIdx: number, itemIdx: number, field: keyof CollegeCourseMapping, value: string) => {
-    setForm(f => {
-      const nextColleges = f.colleges.map((col, idx) => {
+    setForm(f => ({
+      ...f, colleges: f.colleges.map((col, idx) => {
         if (idx !== colIdx) return col;
-        const nextCourses = col.collegeCourses.map((cc, i) => {
-          if (i !== itemIdx) return cc;
-          return { ...cc, [field]: value };
-        });
-        return { ...col, collegeCourses: nextCourses };
-      });
-      return { ...f, colleges: nextColleges };
-    });
+        return {
+          ...col, collegeCourses: col.collegeCourses.map((cc, i) => i !== itemIdx ? cc : { ...cc, [field]: value })
+        };
+      })
+    }));
   };
 
   const validate = (): Record<string, string> => {
@@ -504,13 +466,13 @@ export default function UniversityEntryForm() {
 
     const payload = {
       universityName: form.universityName,
-      university_logo_url: form.universityLogoUrl, // Matched with migration
+      university_logo_url: form.universityLogoUrl,
       level: form.level,
       intake: form.intake,
       colleges: form.colleges.map(col => ({
         name: col.name,
         location: col.location,
-        college_logo_url: col.collegeLogoUrl, // Matched with migration
+        college_logo_url: col.collegeLogoUrl,
         courses: col.collegeCourses.map(cc => {
           const matchingTemplate = form.courses.find(t => t.id === cc.courseTemplateId);
           return {
@@ -542,11 +504,7 @@ export default function UniversityEntryForm() {
   const handleReset = () => {
     const defaultTpl = makeCourseTemplate();
     const defaultCol = makeCollegeEntry(defaultTpl.id);
-    const fresh: FormState = {
-      ...initial,
-      courses: [defaultTpl],
-      colleges: [defaultCol],
-    };
+    const fresh: FormState = { ...initial, courses: [defaultTpl], colleges: [defaultCol] };
     setForm(fresh);
     setOpenCourseId(defaultTpl.id);
     setOpenCollegeId(defaultCol.id);
@@ -558,14 +516,14 @@ export default function UniversityEntryForm() {
   const btnPrimary = (extra: CSSProperties = {}): CSSProperties => ({
     display: "flex", alignItems: "center", gap: 10,
     padding: "11px 26px", borderRadius: 999,
-    background: loading ? "#0060a0" : P, border: "none", color: TEXT,
+    background: loading ? "#93c5fd" : P, border: "none", color: "#ffffff",
     fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
     fontSize: 12, letterSpacing: "0.18em", textTransform: "uppercase",
     cursor: loading ? "default" : "pointer", ...extra,
   });
 
   const btnGhost: CSSProperties = {
-    padding: "11px 22px", borderRadius: 999, background: "transparent",
+    padding: "11px 22px", borderRadius: 999, background: SURFACE,
     border: `1px solid ${BORDER}`, color: TEXT2,
     fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
     fontSize: 12, letterSpacing: "0.16em", textTransform: "uppercase", cursor: "pointer",
@@ -575,10 +533,10 @@ export default function UniversityEntryForm() {
 
   return (
     <div style={{ background: BG, minHeight: "100vh", color: TEXT, fontFamily: "'Manrope', sans-serif", position: "relative" }}>
-      <link href="https://fonts.googleapis.com/css2?family=Castoro+Titling&family=Rajdhani:wght@600;700&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Castoro+Titling&family=Rajdhani:wght@600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
       {/* Header */}
-      <div style={{ borderBottom: `1px solid ${BORDER}`, padding: "48px 48px 36px", position: "relative", overflow: "hidden" }}>
+      <div style={{ borderBottom: `1px solid ${BORDER}`, padding: "48px 48px 36px", position: "relative", overflow: "hidden", background: SURFACE }}>
         <div style={{ position: "absolute", top: -80, right: -80, width: 320, height: 320, borderRadius: "50%", background: `${P}08`, pointerEvents: "none" }} />
         <div style={{ maxWidth: 960, margin: "0 auto", position: "relative" }}>
           <p style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, fontSize: 10, letterSpacing: "0.25em", textTransform: "uppercase", color: P, margin: "0 0 14px" }}>
@@ -597,12 +555,12 @@ export default function UniversityEntryForm() {
 
         {/* Validation summary */}
         {hasErrors && (
-          <div style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 8, padding: "14px 20px", marginBottom: 20 }}>
-            <p style={{ fontSize: 12, color: "#f87171", fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", margin: "0 0 8px" }}>
+          <div style={{ background: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 8, padding: "14px 20px", marginBottom: 20 }}>
+            <p style={{ fontSize: 12, color: "#ef4444", fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", margin: "0 0 8px" }}>
               Please correct the validation errors below
             </p>
             {Object.values(errors).map((msg, i) => (
-              <p key={i} style={{ fontSize: 12, color: "#fca5a5", fontFamily: "'Manrope', sans-serif", margin: "2px 0" }}>• {msg}</p>
+              <p key={i} style={{ fontSize: 12, color: "#ef4444", fontFamily: "'Manrope', sans-serif", margin: "2px 0" }}>• {msg}</p>
             ))}
           </div>
         )}
@@ -648,24 +606,20 @@ export default function UniversityEntryForm() {
           </div>
 
           {/* SHARED COURSES DEFINITION */}
-          <SubPanel title="Shared Course Registry (Define templates here first)" accent="#a78bfa">
+          <SubPanel title="Shared Course Registry (Define templates here first)" accent="#8b5cf6">
             <p style={{ fontSize: 11, color: TEXT3, margin: "0 0 14px", lineHeight: 1.5 }}>
               Create course templates once. This prevents repetitive typing when multiple colleges share identical courses.
             </p>
             
             {form.courses.map((course, idx) => (
               <SharedCourseCard
-                key={course.id}
-                course={course}
-                index={idx}
-                total={form.courses.length}
+                key={course.id} course={course} index={idx} total={form.courses.length}
                 isOpen={openCourseId === course.id}
                 onChange={(field, value) => {
                   updateCourseTemplate(course.id, field, value);
                   clearError(`course_tpl_${idx}_name`, `course_tpl_${idx}_stream`);
                 }}
-                onRemove={() => removeCourseTemplate(course.id)}
-                onOpen={() => openCourse(course.id)}
+                onRemove={() => removeCourseTemplate(course.id)} onOpen={() => openCourse(course.id)}
               />
             ))}
 
@@ -692,10 +646,8 @@ export default function UniversityEntryForm() {
             return (
               <div key={college.id} style={{
                 background: SURFACE,
-                border: `1px solid ${isColOpen ? `${AMBER}55` : BORDER}`,
-                borderRadius: 10,
-                overflow: "hidden",
-                marginBottom: 16,
+                border: `1px solid ${isColOpen ? `${ACCENT}55` : BORDER}`,
+                borderRadius: 10, overflow: "hidden", marginBottom: 16,
                 transition: "border-color .2s",
               }}>
                 <div
@@ -703,20 +655,20 @@ export default function UniversityEntryForm() {
                   style={{
                     display: "flex", alignItems: "center", justifyContent: "space-between",
                     padding: "16px 24px", cursor: "pointer",
-                    background: isColOpen ? `${AMBER}08` : "transparent",
+                    background: isColOpen ? `${ACCENT}08` : "transparent",
                     borderBottom: isColOpen ? `1px solid ${BORDER}` : "none",
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <span style={{
                       fontSize: 10, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
-                      color: isColOpen ? AMBER : TEXT3,
-                      background: isColOpen ? `${AMBER}18` : "rgba(255,255,255,0.06)",
+                      color: isColOpen ? ACCENT : TEXT3,
+                      background: isColOpen ? `${ACCENT}18` : "rgba(0,0,0,0.05)",
                       padding: "3px 10px", borderRadius: 999,
                     }}>
                       College {colIdx + 1}
                     </span>
-                    <span style={{ fontSize: 13, color: college.name ? TEXT : TEXT3, fontFamily: "'Manrope', sans-serif", fontWeight: 500 }}>
+                    <span style={{ fontSize: 13, color: college.name ? TEXT : TEXT3, fontFamily: "'Manrope', sans-serif", fontWeight: 600 }}>
                       {colHeaderLabel} {college.location ? `· ${college.location}` : ""}
                     </span>
                     {!isColOpen && (
@@ -729,21 +681,18 @@ export default function UniversityEntryForm() {
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     {form.colleges.length > 1 && (
                       <button
-                        onClick={e => {
-                          e.stopPropagation();
-                          removeCollege(colIdx);
-                        }}
+                        onClick={e => { e.stopPropagation(); removeCollege(colIdx); }}
                         style={{
                           padding: "3px 10px", borderRadius: 6, cursor: "pointer",
-                          border: "1px solid rgba(248,113,113,0.25)", background: "transparent",
-                          color: "#f87171", fontSize: 11, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
+                          border: "1px solid rgba(239,68,68,0.25)", background: "transparent",
+                          color: "#ef4444", fontSize: 11, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
                         }}
                       >
                         Remove
                       </button>
                     )}
                     <span style={{
-                      color: isColOpen ? AMBER : TEXT3, fontSize: 14,
+                      color: isColOpen ? ACCENT : TEXT3, fontSize: 14,
                       transform: isColOpen ? "rotate(0deg)" : "rotate(-90deg)",
                       transition: "transform .2s", display: "inline-block"
                     }}>▾</span>
@@ -751,7 +700,7 @@ export default function UniversityEntryForm() {
                 </div>
 
                 {isColOpen && (
-                  <div style={{ padding: "24px" }}>
+                  <div style={{ padding: "24px", background: SURFACE }}>
                     <div style={{ ...g2, marginBottom: 16 }}>
                       <Field label="College Name" required>
                         <InputF
@@ -786,25 +735,18 @@ export default function UniversityEntryForm() {
                         Offered Courses & Fees Mapping
                       </div>
 
-                      {errors[`col_${colIdx}_empty`] && <div style={{ color: "#f87171", fontSize: 12, marginBottom: 10 }}>{errors[`col_${colIdx}_empty`]}</div>}
+                      {errors[`col_${colIdx}_empty`] && <div style={{ color: "#ef4444", fontSize: 12, marginBottom: 10 }}>{errors[`col_${colIdx}_empty`]}</div>}
 
                       {college.collegeCourses.map((cc, ccIdx) => (
                         <div key={ccIdx} style={{
-                          display: "grid",
-                          gridTemplateColumns: "1.5fr 1fr 1fr auto",
-                          gap: 12,
-                          alignItems: "flex-start",
-                          marginBottom: 12,
-                          background: SURFACE3,
-                          padding: "12px",
-                          borderRadius: 8,
-                          border: `1px solid ${BORDER}`
+                          display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr auto", gap: 12,
+                          alignItems: "flex-start", marginBottom: 12,
+                          background: SURFACE3, padding: "12px", borderRadius: 8, border: `1px solid ${BORDER}`
                         }}>
                           <div>
                             <Label required>Course</Label>
                             <select
-                              value={cc.courseTemplateId}
-                              style={selectBase(false)}
+                              value={cc.courseTemplateId} style={selectBase(false)}
                               onChange={e => {
                                 updateCollegeCourseMapping(colIdx, ccIdx, "courseTemplateId", e.target.value);
                                 clearError(`col_${colIdx}_cc_${ccIdx}_id`);
@@ -812,7 +754,7 @@ export default function UniversityEntryForm() {
                             >
                               <option value="">-- Choose Course --</option>
                               {form.courses.map((t, tIdx) => (
-                                <option key={t.id} value={t.id} style={{ background: "#1a1a1a" }}>
+                                <option key={t.id} value={t.id}>
                                   {t.courseName.trim() || `Program Template ${tIdx + 1}`}
                                 </option>
                               ))}
@@ -822,20 +764,12 @@ export default function UniversityEntryForm() {
 
                           <div>
                             <Label>Annual Fee</Label>
-                            <InputF
-                              value={cc.annualFee}
-                              onChange={v => updateCollegeCourseMapping(colIdx, ccIdx, "annualFee", v)}
-                              placeholder="e.g. $1,200"
-                            />
+                            <InputF value={cc.annualFee} onChange={v => updateCollegeCourseMapping(colIdx, ccIdx, "annualFee", v)} placeholder="e.g. $1,200" />
                           </div>
 
                           <div>
                             <Label>Scholarship</Label>
-                            <InputF
-                              value={cc.scholarship}
-                              onChange={v => updateCollegeCourseMapping(colIdx, ccIdx, "scholarship", v)}
-                              placeholder="e.g. 10% Merit"
-                            />
+                            <InputF value={cc.scholarship} onChange={v => updateCollegeCourseMapping(colIdx, ccIdx, "scholarship", v)} placeholder="e.g. 10% Merit" />
                           </div>
 
                           {college.collegeCourses.length > 1 ? (
@@ -843,15 +777,11 @@ export default function UniversityEntryForm() {
                               onClick={() => removeCollegeCoursePrice(colIdx, ccIdx)}
                               style={{
                                 height: 41, padding: "0 14px", borderRadius: 6, cursor: "pointer",
-                                border: "1px solid rgba(248,113,113,0.25)", background: "transparent",
-                                color: "#f87171", fontSize: 14, marginTop: 22
+                                border: "1px solid rgba(239,68,68,0.25)", background: SURFACE,
+                                color: "#ef4444", fontSize: 14, marginTop: 22
                               }}
-                            >
-                              ✕
-                            </button>
-                          ) : (
-                            <div style={{ width: 42, height: 41 }} />
-                          )}
+                            >✕</button>
+                          ) : <div style={{ width: 42, height: 41 }} />}
                         </div>
                       ))}
 
@@ -873,8 +803,8 @@ export default function UniversityEntryForm() {
 
           <button onClick={addCollege} style={{
             width: "100%", padding: "14px", borderRadius: 8, cursor: "pointer",
-            border: `1px dashed ${AMBER}66`, background: `${AMBER}08`,
-            color: AMBER, fontSize: 12, fontFamily: "'Rajdhani', sans-serif",
+            border: `1px dashed ${ACCENT}66`, background: `${ACCENT}08`,
+            color: ACCENT, fontSize: 12, fontFamily: "'Rajdhani', sans-serif",
             fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase",
             marginTop: 10,
           }}>
@@ -883,7 +813,7 @@ export default function UniversityEntryForm() {
         </SectionCard>
 
         {/* Action Panel */}
-        <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "20px 28px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "20px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: "0 2px 10px rgba(0,0,0,0.02)" }}>
           <div>
             <p style={{ fontSize: 11, color: TEXT3, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", margin: 0 }}>
               <span style={{ color: P }}>*</span> Required fields must be completed
@@ -905,14 +835,14 @@ export default function UniversityEntryForm() {
       {submitted && (
         <div style={{
           position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh",
-          backgroundColor: "rgba(0, 0, 0, 0.8)", backdropFilter: "blur(4px)",
+          backgroundColor: "rgba(15, 23, 42, 0.5)", backdropFilter: "blur(4px)",
           display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999,
           animation: "fadeIn 0.2s ease-out"
         }}>
           <div style={{
             background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 16,
             padding: "40px", maxWidth: 540, width: "90%", maxHeight: "90vh", overflowY: "auto",
-            textAlign: "center", boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)", position: "relative"
+            textAlign: "center", boxShadow: "0 20px 40px rgba(0, 0, 0, 0.1)", position: "relative"
           }}>
             <div style={{
               width: 64, height: 64, borderRadius: "50%", border: `1.5px solid ${SUCCESS}`,
@@ -941,7 +871,7 @@ export default function UniversityEntryForm() {
                 <div key={college.id} style={{ marginBottom: colIdx < form.colleges.length - 1 ? 20 : 0 }}>
                   <div style={{
                     fontSize: 11, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
-                    letterSpacing: "0.1em", color: AMBER, textTransform: "uppercase", marginBottom: 8
+                    letterSpacing: "0.1em", color: ACCENT, textTransform: "uppercase", marginBottom: 8
                   }}>
                     {college.name || "Unnamed College"} ({college.location || "No Location"})
                   </div>
@@ -971,9 +901,7 @@ export default function UniversityEntryForm() {
             </div>
 
             <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-              <button onClick={() => setSubmitted(false)} style={btnGhost}>
-                Dismiss
-              </button>
+              <button onClick={() => setSubmitted(false)} style={btnGhost}>Dismiss</button>
               <button onClick={handleReset} style={btnPrimary({ margin: "0" })}>
                 Add Another University <CircleArrow />
               </button>
