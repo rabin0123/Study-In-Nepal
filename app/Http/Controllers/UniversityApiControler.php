@@ -156,6 +156,15 @@ class UniversityApiControler extends Controller
         ], 201);
     }
 
+    /**
+     * Update a university's colleges/courses.
+     *
+     * By default this deletes and recreates every row sharing the same
+     * University name (legacy behavior). When the request includes
+     * `scopeLevel`, only rows for that University + level combination are
+     * replaced — rows belonging to other levels under the same university
+     * (e.g. Postgraduate rows while editing Undergraduate) are left intact.
+     */
     public function update(Request $request, $id): JsonResponse
     {
         $target = University::findOrFail($id);
@@ -165,9 +174,11 @@ class UniversityApiControler extends Controller
             'universityName'                  => 'required|string|max:255',
             'level'                           => 'required|string|max:255',
             'intake'                          => 'required|string|max:255',
+            'scopeLevel'                       => 'nullable|string|max:255',
             'colleges'                        => 'required|array|min:1',
             'colleges.*.name'                 => 'required|string|max:255',
             'colleges.*.location'             => 'required|string|max:255',
+            'colleges.*.college_logo_url'     => 'nullable|url|max:500',
             'colleges.*.courses'              => 'required|array|min:1',
             'colleges.*.courses.*.courseName'  => 'required|string|max:255',
             'colleges.*.courses.*.stream'      => 'required|string|max:255',
@@ -177,10 +188,17 @@ class UniversityApiControler extends Controller
             'colleges.*.courses.*.allDocs.*'   => 'string|max:255',
         ]);
 
+        // The level rows to delete before recreating: prefer the explicit
+        // scope sent by the client, falling back to the existing record's
+        // own level so unscoped edits keep working exactly as before.
+        $scopeLevel = $validated['scopeLevel'] ?? $target->level;
+
         $firstNewId = null; // Track the newly generated row ID
 
-        DB::transaction(function() use ($oldUniversityName, $validated, &$firstNewId) {
-            University::where('University', $oldUniversityName)->delete();
+        DB::transaction(function() use ($oldUniversityName, $validated, $scopeLevel, &$firstNewId) {
+            University::where('University', $oldUniversityName)
+                ->where('level', $scopeLevel)
+                ->delete();
 
             foreach ($validated['colleges'] as $college) {
                 foreach ($college['courses'] as $course) {
@@ -190,6 +208,7 @@ class UniversityApiControler extends Controller
                         'Intake'             => $validated['intake'],
                         'College'            => $college['name'],
                         'Location'           => $college['location'],
+                        'college_logo_url'   => $college['college_logo_url'] ?? null,
                         'Course'             => $course['courseName'],
                         'stream'             => $course['stream'],
                         'Amount'             => $course['annualFee'] ?? null,
@@ -219,11 +238,27 @@ class UniversityApiControler extends Controller
         ]);
     }
 
-    public function show($id): JsonResponse
+    /**
+     * Return all rows for the university that owns $id.
+     *
+     * Optionally pass ?level=Undergraduate to scope the result to a single
+     * level. If the requested level doesn't match any row (e.g. stale link),
+     * all rows for the university are returned instead of an empty set.
+     */
+    public function show(Request $request, $id): JsonResponse
     {
         $entry = University::findOrFail($id);
 
-        $universityRows = University::where('University', $entry->University)
+        $query = University::where('University', $entry->University);
+
+        if ($level = trim((string) $request->query('level', ''))) {
+            $matching = (clone $query)->where('level', $level);
+            if ($matching->exists()) {
+                $query = $matching;
+            }
+        }
+
+        $universityRows = $query
             ->orderBy('College', 'asc')
             ->orderBy('Course', 'asc')
             ->get();
