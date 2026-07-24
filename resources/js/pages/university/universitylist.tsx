@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import type { CSSProperties } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 // ── Shared Theme Constants (Updated for Light Mode) ─────────────────────────
 const P = "#008ce3";         // Primary Blue
@@ -15,10 +15,6 @@ const TEXT3 = "#94a3b8";     // Lightest text (placeholders, icons)
 const DANGER = "#ef4444";    // Red
 const SUCCESS = "#16a34a";   // Green
 
-const INITIAL_PAGE_SIZE = 100;
-const NEXT_PAGE_SIZE = 40;
-const SEARCH_DEBOUNCE_MS = 300;
-
 // ── Database Schema Mapping ──────────────────────────────────────────────────
 interface UniversityEntry {
   id: number;
@@ -32,22 +28,11 @@ interface UniversityEntry {
   Amount: string | null;
   Scholarship: string | null;
   requireddocuments: string | null;
+  ug_requirement: string | null;
+  pg_requirement: string | null;
   created_at: string;
   updated_at: string;
 }
-
-interface FilterOptions {
-  levels: string[];
-  streams: string[];
-  courses: string[];
-  universities: string[];
-  colleges: string[];
-  locations: string[];
-}
-
-const EMPTY_FILTER_OPTIONS: FilterOptions = {
-  levels: [], streams: [], courses: [], universities: [], colleges: [], locations: [],
-};
 
 // ── Base Styles ──────────────────────────────────────────────────────────────
 const inputBase = (focused: boolean): CSSProperties => ({
@@ -60,10 +45,22 @@ const inputBase = (focused: boolean): CSSProperties => ({
   letterSpacing: "0.02em", colorScheme: "light",
 });
 
+const selectFilterStyle = (active: boolean): CSSProperties => ({
+  background: SURFACE2,
+  border: `1px solid ${active ? P : BORDER}`,
+  borderRadius: 6, padding: "10px 32px 10px 14px",
+  fontSize: 12, color: active ? TEXT : TEXT2, fontFamily: "'Manrope', sans-serif",
+  outline: "none", cursor: "pointer", transition: "border-color .15s",
+  appearance: "none", WebkitAppearance: "none",
+  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='6' viewBox='0 0 11 6'%3E%3Cpath d='M1 1l4.5 4L10 1' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
+  backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center",
+  minWidth: "160px", flex: 1, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap"
+});
+
 const btnPrimary = (extra: CSSProperties = {}): CSSProperties => ({
   display: "flex", alignItems: "center", gap: 10,
   padding: "11px 26px", borderRadius: 999,
-  background: P, border: "none", color: "#ffffff", 
+  background: P, border: "none", color: "#ffffff", // Forced white for contrast
   fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
   fontSize: 12, letterSpacing: "0.18em", textTransform: "uppercase",
   cursor: "pointer", transition: "opacity 0.2s", ...extra,
@@ -72,7 +69,7 @@ const btnPrimary = (extra: CSSProperties = {}): CSSProperties => ({
 const btnDanger = (extra: CSSProperties = {}): CSSProperties => ({
   display: "flex", alignItems: "center", gap: 10,
   padding: "11px 26px", borderRadius: 999,
-  background: DANGER, border: "none", color: "#ffffff", 
+  background: DANGER, border: "none", color: "#ffffff", // Forced white for contrast
   fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
   fontSize: 12, letterSpacing: "0.18em", textTransform: "uppercase",
   cursor: "pointer", transition: "opacity 0.2s", ...extra,
@@ -89,12 +86,19 @@ const btnGhost: CSSProperties = {
 const gridLayoutRatio = "2.2fr 2.2fr 1.3fr 1fr 1.8fr auto";
 
 const headerTextStyle: CSSProperties = {
-  fontSize: 10, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
-  letterSpacing: "0.18em", textTransform: "uppercase", color: TEXT3,
+  fontSize: 10,
+  fontFamily: "'Rajdhani', sans-serif",
+  fontWeight: 700,
+  letterSpacing: "0.18em",
+  textTransform: "uppercase",
+  color: TEXT3,
 };
 
 const truncateStyle: CSSProperties = {
-  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  width: "100%",
 };
 
 // ── Icons ────────────────────────────────────────────────────────────────────
@@ -150,12 +154,6 @@ const ImportIcon = () => (
   </svg>
 );
 
-const SpinnerIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={P} strokeWidth="2.5" strokeLinecap="round" style={{ animation: "spin 0.8s linear infinite" }}>
-    <path d="M12 2a10 10 0 0 1 10 10" />
-  </svg>
-);
-
 // ── Dropdown Popover Component (Multi-Select) ──────────────────────────────
 interface MultiSelectProps {
   label: string;
@@ -208,7 +206,7 @@ function MultiSelectDropdown({ label, options, selected, onChange }: MultiSelect
             maxHeight: 220, overflowY: "auto"
           }}>
             {options.length === 0 ? (
-              <div style={{ fontSize: 11, color: TEXT3, textAlign: "center", padding: "8px 0" }}>No options available</div>
+              <div style={{ fontSize: 11, color: TEXT3, textAlign: "center", padding: "8px 0" }}>No relative options</div>
             ) : (
               options.map(option => {
                 const isChecked = selected.includes(option);
@@ -226,7 +224,9 @@ function MultiSelectDropdown({ label, options, selected, onChange }: MultiSelect
                       type="checkbox"
                       checked={isChecked}
                       onChange={() => toggleOption(option)}
-                      style={{ accentColor: P, width: 14, height: 14, cursor: "pointer" }}
+                      style={{
+                        accentColor: P, width: 14, height: 14, cursor: "pointer"
+                      }}
                     />
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{option}</span>
                   </label>
@@ -256,152 +256,55 @@ function StatusPill({ label, color = P }: { label: string; color?: string }) {
 
 // ── Main Index Page ──────────────────────────────────────────────────────────
 export default function UniversityIndex() {
-  // Pagination & Data states
   const [data, setData] = useState<UniversityEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0); // Used to force refresh after imports
-
-  // Search states
-  const [rawSearch, setRawSearch] = useState("");
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
 
   // Filters state
-  const [filterOptions, setFilterOptions] = useState<FilterOptions>(EMPTY_FILTER_OPTIONS);
   const [selectedUniversities, setSelectedUniversities] = useState<string[]>([]);
   const [selectedColleges, setSelectedColleges] = useState<string[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
   const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
-  const [selectedStreams, setSelectedStreams] = useState<string[]>([]);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
+
+  // Custom Delete Target State
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+
+  // Confirmation Alert/Toast Feedback State
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
+  // Hidden File Input Reference for CSV Import
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  const abortRef = useRef<AbortController | null>(null);
-  const requestIdRef = useRef(0);
 
-  // 1. Debounce the search input
   useEffect(() => {
-    const t = setTimeout(() => setSearch(rawSearch), SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(t);
-  }, [rawSearch]);
-
-  // 2. Fetch Base Filter Options once on mount
-  useEffect(() => {
-    fetch("/api/university/filter-options", { headers: { Accept: "application/json" } })
-      .then(res => (res.ok ? res.json() : null))
-      .then(json => {
-        if (!json) return;
-        setFilterOptions({
-          levels: json.levels || [],
-          streams: json.streams || [],
-          courses: json.courses || [],
-          universities: json.universities || [],
-          colleges: json.colleges || [],
-          locations: json.locations || [],
-        });
-      })
-      .catch(err => console.error("Failed to load filter options", err));
+    fetchUniversities();
   }, []);
 
-  // Query Builder helper
-  const buildQueryParams = useCallback((limit: number, cursor?: string | null) => {
-    const params = new URLSearchParams();
-    params.set("limit", String(limit));
-    if (cursor) params.set("cursor", cursor);
-    if (search) params.set("search", search);
-    selectedLevels.forEach(v => params.append("level[]", v));
-    selectedStreams.forEach(v => params.append("stream[]", v));
-    selectedCourses.forEach(v => params.append("course[]", v));
-    selectedUniversities.forEach(v => params.append("university[]", v));
-    selectedColleges.forEach(v => params.append("college[]", v));
-    selectedLocations.forEach(v => params.append("location[]", v));
-    return params;
-  }, [search, selectedLevels, selectedStreams, selectedCourses, selectedUniversities, selectedColleges, selectedLocations]);
-
-  // 3. Initial Load & Reaction to filter/search changes
-  useEffect(() => {
-    const myRequestId = ++requestIdRef.current;
-    
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    setLoading(true);
-    setHasMore(true);
-    setNextCursor(null);
-
-    const params = buildQueryParams(INITIAL_PAGE_SIZE);
-
-    fetch(`/api/university?${params.toString()}`, {
-      headers: { Accept: "application/json" },
-      signal: controller.signal,
-    })
-      .then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
-      .then(json => {
-        if (myRequestId !== requestIdRef.current) return;
-        setData(json.data || []);
-        setNextCursor(json.next_cursor ?? null);
-        setHasMore(Boolean(json.has_more));
-      })
-      .catch(err => {
-        if (err.name !== "AbortError") console.error("Failed to load records", err);
-      })
-      .finally(() => {
-        if (myRequestId === requestIdRef.current) setLoading(false);
-      });
-
-    return () => controller.abort();
-  }, [buildQueryParams, refreshKey]);
-
-  // 4. Load More (Pagination logic via Scroll)
-  const loadMore = useCallback(() => {
-    if (loading || loadingMore || !hasMore || !nextCursor) return;
-
-    const myRequestId = requestIdRef.current; 
-    setLoadingMore(true);
-
-    const params = buildQueryParams(NEXT_PAGE_SIZE, nextCursor);
-
-    fetch(`/api/university?${params.toString()}`, { headers: { Accept: "application/json" } })
-      .then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
-      .then(json => {
-        if (myRequestId !== requestIdRef.current) return; 
-        setData(prev => [...prev, ...(json.data || [])]);
-        setNextCursor(json.next_cursor ?? null);
-        setHasMore(Boolean(json.has_more));
-      })
-      .catch(err => console.error("Failed to load more records", err))
-      .finally(() => setLoadingMore(false));
-  }, [loading, loadingMore, hasMore, nextCursor, buildQueryParams]);
-
-  // IntersectionObserver on Sentinel
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) loadMore();
-      },
-      { rootMargin: "400px" } 
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [loadMore]);
-
-  // Helpers / Handlers
   const triggerToast = (message: string, type: "success" | "error" = "success") => {
     setToast({ message, type });
-    setTimeout(() => { setToast(null); }, 4000);
+    setTimeout(() => {
+      setToast(null);
+    }, 4000);
+  };
+
+  const fetchUniversities = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/university", {
+        headers: { "Accept": "application/json" }
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setData(json.data || json); 
+      }
+    } catch (error) {
+      console.error("Failed to fetch universities", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const executeDelete = async (id: number) => {
@@ -446,13 +349,15 @@ export default function UniversityIndex() {
       const res = await fetch("/api/university/import", {
         method: "POST",
         body: formData,
-        headers: { "X-Requested-With": "XMLHttpRequest" }
+        headers: {
+          "X-Requested-With": "XMLHttpRequest"
+        }
       });
       const result = await res.json();
 
       if (res.ok && result.success) {
         triggerToast(result.message, "success");
-        setRefreshKey(prev => prev + 1); // Trigger refresh
+        fetchUniversities();
       } else {
         triggerToast(result.message || "Failed to import CSV dataset.", "error");
       }
@@ -469,8 +374,6 @@ export default function UniversityIndex() {
     setSelectedLocations([]);
     setSelectedCourses([]);
     setSelectedLevels([]);
-    setSelectedStreams([]);
-    setRawSearch("");
     setSearch("");
   };
 
@@ -478,15 +381,70 @@ export default function UniversityIndex() {
     return data.find(item => item.id === deleteTargetId);
   }, [deleteTargetId, data]);
 
-  const filtersActive = selectedUniversities.length > 0 || selectedColleges.length > 0 || selectedLocations.length > 0 || selectedCourses.length > 0 || selectedLevels.length > 0 || selectedStreams.length > 0;
+  // ── Dynamic / Cascade Filtering Options ────────────────────────────────────
+  const getSubsetFilteredByOthers = (excludeField?: string) => {
+    return data.filter(item => {
+      const matchesSearch = !search || (
+        item.University?.toLowerCase().includes(search.toLowerCase()) ||
+        item.Course?.toLowerCase().includes(search.toLowerCase()) ||
+        item.Location?.toLowerCase().includes(search.toLowerCase()) ||
+        item.College?.toLowerCase().includes(search.toLowerCase())
+      );
+
+      const matchesUniversity = excludeField === "University" || selectedUniversities.length === 0 || selectedUniversities.includes(item.University);
+      const matchesCollege = excludeField === "College" || selectedColleges.length === 0 || selectedColleges.includes(item.College);
+      const matchesLocation = excludeField === "Location" || selectedLocations.length === 0 || selectedLocations.includes(item.Location);
+      const matchesCourse = excludeField === "Course" || selectedCourses.length === 0 || selectedCourses.includes(item.Course);
+      const matchesLevel = excludeField === "level" || selectedLevels.length === 0 || selectedLevels.includes(item.level);
+
+      return matchesSearch && matchesUniversity && matchesCollege && matchesLocation && matchesCourse && matchesLevel;
+    });
+  };
+
+  const relativeUniversities = useMemo(() => 
+    Array.from(new Set(getSubsetFilteredByOthers("University").map(item => item.University).filter(Boolean))).sort()
+  , [data, search, selectedColleges, selectedLocations, selectedCourses, selectedLevels]);
+
+  const relativeColleges = useMemo(() => 
+    Array.from(new Set(getSubsetFilteredByOthers("College").map(item => item.College).filter(Boolean))).sort()
+  , [data, search, selectedUniversities, selectedLocations, selectedCourses, selectedLevels]);
+
+  const relativeLocations = useMemo(() => 
+    Array.from(new Set(getSubsetFilteredByOthers("Location").map(item => item.Location).filter(Boolean))).sort()
+  , [data, search, selectedUniversities, selectedColleges, selectedCourses, selectedLevels]);
+
+  const relativeCourses = useMemo(() => 
+    Array.from(new Set(getSubsetFilteredByOthers("Course").map(item => item.Course).filter(Boolean))).sort()
+  , [data, search, selectedUniversities, selectedColleges, selectedLocations, selectedLevels]);
+
+  const relativeLevels = useMemo(() => 
+    Array.from(new Set(getSubsetFilteredByOthers("level").map(item => item.level).filter(Boolean))).sort()
+  , [data, search, selectedUniversities, selectedColleges, selectedLocations, selectedCourses]);
+
+  const filteredData = useMemo(() => {
+    return data.filter(item => {
+      const q = search.toLowerCase();
+      const matchesSearch = !q || (
+        item.University?.toLowerCase().includes(q) ||
+        item.Course?.toLowerCase().includes(q) ||
+        item.Location?.toLowerCase().includes(q) ||
+        item.College?.toLowerCase().includes(q)
+      );
+
+      const matchesUniversity = selectedUniversities.length === 0 || selectedUniversities.includes(item.University);
+      const matchesCollege = selectedColleges.length === 0 || selectedColleges.includes(item.College);
+      const matchesLocation = selectedLocations.length === 0 || selectedLocations.includes(item.Location);
+      const matchesCourse = selectedCourses.length === 0 || selectedCourses.includes(item.Course);
+      const matchesLevel = selectedLevels.length === 0 || selectedLevels.includes(item.level);
+
+      return matchesSearch && matchesUniversity && matchesCollege && matchesLocation && matchesCourse && matchesLevel;
+    });
+  }, [data, search, selectedUniversities, selectedColleges, selectedLocations, selectedCourses, selectedLevels]);
+
+  const filtersActive = selectedUniversities.length > 0 || selectedColleges.length > 0 || selectedLocations.length > 0 || selectedCourses.length > 0 || selectedLevels.length > 0;
 
   return (
     <div style={{ background: BG, minHeight: "100vh", color: TEXT, fontFamily: "'Manrope', sans-serif", paddingBottom: 64, position: "relative" }}>
-      <style>{`
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-      `}</style>
       <link href="https://fonts.googleapis.com/css2?family=Castoro+Titling&family=Rajdhani:wght@600;700&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet" />
 
       {/* Hidden File Input for CSV Import */}
@@ -499,7 +457,7 @@ export default function UniversityIndex() {
       />
 
       {/* Header */}
-      <div style={{ padding: "48px 48px 36px", position: "relative", overflow: "hidden" }}>
+      <div style={{  padding: "48px 48px 36px", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -80, right: -80, width: 320, height: 320, borderRadius: "50%", background: `${P}12`, pointerEvents: "none" }} />
         <div style={{ maxWidth: 1100, margin: "0 auto", position: "relative", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
           <div>
@@ -543,8 +501,8 @@ export default function UniversityIndex() {
             <input 
               type="text" 
               placeholder="Fuzzy search by keyword (University, Course, Location, College)..."
-              value={rawSearch}
-              onChange={(e) => setRawSearch(e.target.value)}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
               style={inputBase(searchFocused)}
@@ -570,7 +528,7 @@ export default function UniversityIndex() {
           </button>
         </div>
 
-        {/* Collapsible Filters Panel */}
+        {/* Collapsible Relative Filters Panel */}
         {filtersOpen && (
           <div style={{
             background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12,
@@ -580,50 +538,44 @@ export default function UniversityIndex() {
               fontSize: 10, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
               letterSpacing: "0.14em", textTransform: "uppercase", color: TEXT3, marginBottom: 16
             }}>
-              Multi-Select Directory Filters
+              Cascading Multi-Select Filters
             </p>
             
             <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
               <MultiSelectDropdown 
                 label="Universities" 
-                options={filterOptions.universities} 
+                options={relativeUniversities} 
                 selected={selectedUniversities} 
                 onChange={setSelectedUniversities} 
               />
               <MultiSelectDropdown 
                 label="Colleges" 
-                options={filterOptions.colleges} 
+                options={relativeColleges} 
                 selected={selectedColleges} 
                 onChange={setSelectedColleges} 
               />
               <MultiSelectDropdown 
                 label="Locations" 
-                options={filterOptions.locations} 
+                options={relativeLocations} 
                 selected={selectedLocations} 
                 onChange={setSelectedLocations} 
               />
               <MultiSelectDropdown 
                 label="Courses" 
-                options={filterOptions.courses} 
+                options={relativeCourses} 
                 selected={selectedCourses} 
                 onChange={setSelectedCourses} 
               />
               <MultiSelectDropdown 
-                label="Streams" 
-                options={filterOptions.streams} 
-                selected={selectedStreams} 
-                onChange={setSelectedStreams} 
-              />
-              <MultiSelectDropdown 
                 label="Levels" 
-                options={filterOptions.levels} 
+                options={relativeLevels} 
                 selected={selectedLevels} 
                 onChange={setSelectedLevels} 
               />
             </div>
 
             {/* Clear Filters Panel Action */}
-            {(filtersActive || search || rawSearch) && (
+            {(filtersActive || search) && (
               <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
                 <button 
                   onClick={handleClearAll}
@@ -645,7 +597,7 @@ export default function UniversityIndex() {
         )}
 
         {/* Directory Row Headers */}
-        {data.length > 0 && !loading && (
+        {filteredData.length > 0 && !loading && (
           <div style={{
             display: "grid",
             gridTemplateColumns: gridLayoutRatio,
@@ -665,16 +617,15 @@ export default function UniversityIndex() {
         {/* Standalone Directory Cards */}
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           {loading ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "48px", color: TEXT3, fontSize: 13 }}>
-              <SpinnerIcon />
-              Loading directory records...
+            <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "48px", textAlign: "center", color: TEXT3, fontSize: 13 }}>
+              Loading records...
             </div>
-          ) : data.length === 0 ? (
+          ) : filteredData.length === 0 ? (
             <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "48px", textAlign: "center", color: TEXT3, fontSize: 13 }}>
               No course entries found matching your criteria.
             </div>
           ) : (
-            data.map((item) => (
+            filteredData.map((item) => (
               <div 
                 key={item.id} 
                 onClick={() => window.location.href = `/universities/${item.id}`}
@@ -691,7 +642,7 @@ export default function UniversityIndex() {
                   transition: "border-color 0.2s, background 0.2s"
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#cbd5e1"; 
+                  e.currentTarget.style.borderColor = "#cbd5e1"; // Slightly darker border on hover for light mode
                   e.currentTarget.style.background = SURFACE2;
                 }}
                 onMouseLeave={(e) => {
@@ -726,7 +677,7 @@ export default function UniversityIndex() {
                   </div>
                   <div style={{ fontSize: 11, color: TEXT3, display: "flex", alignItems: "center", gap: 6 }}>
                     <CalendarIcon />
-                    Intake: {item.Intake || "N/A"}
+                    Intake: {item.Intake}
                   </div>
                 </div>
 
@@ -783,14 +734,6 @@ export default function UniversityIndex() {
               </div>
             ))
           )}
-
-          {/* Pagination Sentinel */}
-          <div ref={sentinelRef} style={{ height: 1 }} />
-          {loadingMore && (
-            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, padding: "16px 0", color: TEXT3, fontSize: 12 }}>
-              <SpinnerIcon /> Loading more entries...
-            </div>
-          )}
         </div>
 
       </div>
@@ -829,10 +772,16 @@ export default function UniversityIndex() {
             </p>
 
             <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-              <button onClick={() => setDeleteTargetId(null)} style={btnGhost}>
+              <button 
+                onClick={() => setDeleteTargetId(null)} 
+                style={btnGhost}
+              >
                 Cancel
               </button>
-              <button onClick={() => executeDelete(targetItemToDelete.id)} style={btnDanger()}>
+              <button 
+                onClick={() => executeDelete(targetItemToDelete.id)} 
+                style={btnDanger()}
+              >
                 Delete Entry
               </button>
             </div>
