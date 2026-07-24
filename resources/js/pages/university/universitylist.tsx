@@ -86,8 +86,6 @@ const btnGhost: CSSProperties = {
 };
 
 // ── Shared Layout Utilities ──────────────────────────────────────────────────
-const gridLayoutRatio = "2.2fr 2.2fr 1.3fr 1fr 1.8fr auto";
-
 const headerTextStyle: CSSProperties = {
   fontSize: 10, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
   letterSpacing: "0.18em", textTransform: "uppercase", color: TEXT3,
@@ -153,6 +151,16 @@ const ImportIcon = () => (
 const SpinnerIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={P} strokeWidth="2.5" strokeLinecap="round" style={{ animation: "spin 0.8s linear infinite" }}>
     <path d="M12 2a10 10 0 0 1 10 10" />
+  </svg>
+);
+
+const ChevronIcon = ({ expanded }: { expanded: boolean }) => (
+  <svg 
+    width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+    style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}
+  >
+    <polyline points="6 9 12 15 18 9" />
   </svg>
 );
 
@@ -262,12 +270,15 @@ export default function UniversityIndex() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0); // Used to force refresh after imports
+  const [refreshKey, setRefreshKey] = useState(0); 
 
   // Search states
   const [rawSearch, setRawSearch] = useState("");
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
+
+  // Accordion State
+  const [expandedUnis, setExpandedUnis] = useState<Set<string>>(new Set());
 
   // Filters state
   const [filterOptions, setFilterOptions] = useState<FilterOptions>(EMPTY_FILTER_OPTIONS);
@@ -474,6 +485,27 @@ export default function UniversityIndex() {
     setSearch("");
   };
 
+  const toggleUni = (uni: string) => {
+    setExpandedUnis(prev => {
+      const next = new Set(prev);
+      if (next.has(uni)) next.delete(uni);
+      else next.add(uni);
+      return next;
+    });
+  };
+
+  const groupedData = useMemo(() => {
+    const map = new Map<string, UniversityEntry[]>();
+    for (const item of data) {
+      const uName = item.University || "Unknown University";
+      if (!map.has(uName)) {
+        map.set(uName, []);
+      }
+      map.get(uName)!.push(item);
+    }
+    return Array.from(map.entries());
+  }, [data]);
+
   const targetItemToDelete = useMemo(() => {
     return data.find(item => item.id === deleteTargetId);
   }, [deleteTargetId, data]);
@@ -537,7 +569,7 @@ export default function UniversityIndex() {
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "36px 48px" }}>
         
         {/* Top toolbar */}
-        <div style={{ display: "flex", gap: "14px", marginBottom: "16px", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "14px", marginBottom: "24px", alignItems: "center" }}>
           <div style={{ position: "relative", flex: 1 }}>
             <SearchIcon />
             <input 
@@ -644,27 +676,9 @@ export default function UniversityIndex() {
           </div>
         )}
 
-        {/* Directory Row Headers */}
-        {data.length > 0 && !loading && (
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: gridLayoutRatio,
-            gap: "24px",
-            padding: "12px 28px",
-            marginBottom: "8px",
-          }}>
-            <div style={headerTextStyle}>Institution</div>
-            <div style={headerTextStyle}>Program & Stream</div>
-            <div style={headerTextStyle}>Level & Intake</div>
-            <div style={headerTextStyle}>Financials</div>
-            <div style={headerTextStyle}>Required Docs</div>
-            <div style={{ ...headerTextStyle, textAlign: "right", width: "42px" }}>Delete</div>
-          </div>
-        )}
-
-        {/* Standalone Directory Cards */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          {loading ? (
+        {/* Grouped Accordion Directory */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          {loading && data.length === 0 ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "48px", color: TEXT3, fontSize: 13 }}>
               <SpinnerIcon />
               Loading directory records...
@@ -674,112 +688,164 @@ export default function UniversityIndex() {
               No course entries found matching your criteria.
             </div>
           ) : (
-            data.map((item) => (
-              <div 
-                key={item.id} 
-                onClick={() => window.location.href = `/universities/${item.id}`}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: gridLayoutRatio,
-                  alignItems: "center",
-                  gap: "24px",
-                  background: SURFACE,
-                  border: `1px solid ${BORDER}`,
-                  borderRadius: 12,
-                  padding: "20px 28px",
-                  cursor: "pointer",
-                  transition: "border-color 0.2s, background 0.2s"
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#cbd5e1"; 
-                  e.currentTarget.style.background = SURFACE2;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = BORDER;
-                  e.currentTarget.style.background = SURFACE;
-                }}
-              >
-                {/* 1. Institution */}
-                <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <div style={{ ...truncateStyle, fontSize: 14, color: TEXT, fontWeight: 600 }} title={item.University}>
-                    {item.University}
-                  </div>
-                  <div style={{ ...truncateStyle, fontSize: 11, color: TEXT3 }} title={`${item.College} • ${item.Location}`}>
-                    {item.College} • {item.Location}
-                  </div>
-                </div>
-
-                {/* 2. Program & Stream */}
-                <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <div style={{ ...truncateStyle, fontSize: 14, color: TEXT, fontWeight: 500 }} title={item.Course}>
-                    {item.Course}
-                  </div>
-                  <div style={{ ...truncateStyle, fontSize: 11, color: P }} title={item.stream}>
-                    {item.stream}
-                  </div>
-                </div>
-
-                {/* 3. Level & Intake */}
-                <div>
-                  <div style={{ marginBottom: 6 }}>
-                    <StatusPill label={item.level} color={AMBER} />
-                  </div>
-                  <div style={{ fontSize: 11, color: TEXT3, display: "flex", alignItems: "center", gap: 6 }}>
-                    <CalendarIcon />
-                    Intake: {item.Intake || "N/A"}
-                  </div>
-                </div>
-
-                {/* 4. Financials */}
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ ...truncateStyle, fontSize: 14, color: TEXT, fontWeight: 600 }} title={item.Amount || "N/A"}>
-                   NPR {item.Amount || <span style={{ color: TEXT3 }}>N/A</span>}
-                  </div>
-                  {item.Scholarship && (
-                    <div style={{ ...truncateStyle, fontSize: 11, color: SUCCESS, display: "flex", alignItems: "center", gap: 4 }} title={item.Scholarship}>
-                     NPR {item.Scholarship}
-                      </div>
-                  )}
-                </div>
-
-                {/* 5. Required Documents */}
-                <div>
-                  {item.requireddocuments ? (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", maxWidth: "240px", maxHeight: "80px", overflow: "hidden" }}>
-                      {item.requireddocuments.split(",").map((doc, i) => (
-                        <span key={i} style={{ 
-                          fontSize: 10, color: TEXT2, background: SURFACE2, 
-                          padding: "3px 8px", borderRadius: 4, border: `1px solid ${BORDER}`,
-                          fontFamily: "'Rajdhani', sans-serif", fontWeight: 600,
-                          whiteSpace: "nowrap"
-                        }} title={doc.trim()}>
-                          {doc.trim()}
-                        </span>
-                      ))}
+            groupedData.map(([university, items]) => (
+              <div key={university} style={{ 
+                display: "flex", flexDirection: "column", background: SURFACE, 
+                border: `1px solid ${BORDER}`, borderRadius: 12, overflow: "hidden",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
+              }}>
+                {/* University Header (Accordion Toggle) */}
+                <div 
+                  onClick={() => toggleUni(university)}
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    padding: "20px 28px", 
+                    cursor: "pointer",
+                    background: expandedUnis.has(university) ? SURFACE2 : SURFACE,
+                    borderBottom: expandedUnis.has(university) ? `1px solid ${BORDER}` : "none",
+                    transition: "background 0.2s"
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = SURFACE2}
+                  onMouseLeave={e => e.currentTarget.style.background = expandedUnis.has(university) ? SURFACE2 : SURFACE}
+                >
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <h2 style={{ margin: 0, fontSize: 16, color: TEXT, fontWeight: 700 }}>
+                      {university}
+                    </h2>
+                    <div style={{ fontSize: 12, color: TEXT3 }}>
+                      {items[0].Location} • {items.length} {items.length === 1 ? "Program" : "Programs"}
                     </div>
-                  ) : (
-                    <span style={{ fontSize: 11, color: TEXT3 }}>None specified</span>
-                  )}
+                  </div>
+                  <div style={{ color: TEXT3 }}>
+                    <ChevronIcon expanded={expandedUnis.has(university)} />
+                  </div>
                 </div>
 
-                {/* 6. Actions (Only Delete Button) */}
-                <div style={{ display: "flex", justifyContent: "flex-end", width: "42px", marginLeft: "auto" }}>
-                  <button 
-                    style={{
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      width: "32px", height: "32px", borderRadius: 6, background: "transparent",
-                      border: "1px solid rgba(248,113,113,0.25)", color: DANGER, cursor: "pointer",
-                      transition: "all 0.2s"
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation(); 
-                      setDeleteTargetId(item.id); 
-                    }}
-                    title="Delete Entry"
-                  >
-                    <TrashIcon />
-                  </button>
-                </div>
+                {/* Expanded Degrees */}
+                {expandedUnis.has(university) && (
+                  <div style={{ 
+                    background: BG,
+                    padding: "16px 24px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px"
+                  }}>
+                    {/* Headers for the degrees */}
+                    <div style={{
+                      display: "grid",
+                      gridTemplateColumns: "2.5fr 1.2fr 1.2fr 1.8fr 42px",
+                      gap: "24px",
+                      padding: "8px 16px",
+                      marginBottom: "4px"
+                    }}>
+                      <div style={headerTextStyle}>Program & Stream</div>
+                      <div style={headerTextStyle}>Level & Intake</div>
+                      <div style={headerTextStyle}>Financials</div>
+                      <div style={headerTextStyle}>Required Docs</div>
+                      <div style={{ ...headerTextStyle, textAlign: "right" }}>Delete</div>
+                    </div>
+
+                    {/* Degree Rows */}
+                    {items.map(item => (
+                      <div 
+                        key={item.id}
+                        onClick={() => window.location.href = `/universities/${item.id}`}
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "2.5fr 1.2fr 1.2fr 1.8fr 42px",
+                          alignItems: "center",
+                          gap: "24px",
+                          background: SURFACE,
+                          border: `1px solid ${BORDER}`,
+                          borderRadius: 8,
+                          padding: "16px",
+                          cursor: "pointer",
+                          transition: "border-color 0.2s, background 0.2s"
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = "#cbd5e1"; 
+                          e.currentTarget.style.background = SURFACE2;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = BORDER;
+                          e.currentTarget.style.background = SURFACE;
+                        }}
+                      >
+                        {/* 1. Program & Stream */}
+                        <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
+                          <div style={{ ...truncateStyle, fontSize: 14, color: TEXT, fontWeight: 600 }} title={item.Course}>
+                            {item.Course}
+                          </div>
+                          <div style={{ ...truncateStyle, fontSize: 12, color: P, fontWeight: 500 }} title={item.stream}>
+                            {item.stream}
+                          </div>
+                        </div>
+
+                        {/* 2. Level & Intake */}
+                        <div>
+                          <div style={{ marginBottom: 6 }}>
+                            <StatusPill label={item.level} color={AMBER} />
+                          </div>
+                          <div style={{ fontSize: 11, color: TEXT3, display: "flex", alignItems: "center", gap: 6 }}>
+                            <CalendarIcon />
+                            Intake: {item.Intake || "N/A"}
+                          </div>
+                        </div>
+
+                        {/* 3. Financials */}
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ ...truncateStyle, fontSize: 14, color: TEXT, fontWeight: 600 }} title={item.Amount || "N/A"}>
+                           NPR {item.Amount || <span style={{ color: TEXT3 }}>N/A</span>}
+                          </div>
+                          {item.Scholarship && (
+                            <div style={{ ...truncateStyle, fontSize: 11, color: SUCCESS, display: "flex", alignItems: "center", gap: 4 }} title={item.Scholarship}>
+                             NPR {item.Scholarship}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 4. Required Documents */}
+                        <div>
+                          {item.requireddocuments ? (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", maxWidth: "240px", maxHeight: "80px", overflow: "hidden" }}>
+                              {item.requireddocuments.split(",").map((doc, i) => (
+                                <span key={i} style={{ 
+                                  fontSize: 10, color: TEXT2, background: SURFACE2, 
+                                  padding: "3px 8px", borderRadius: 4, border: `1px solid ${BORDER}`,
+                                  fontFamily: "'Rajdhani', sans-serif", fontWeight: 600,
+                                  whiteSpace: "nowrap"
+                                }} title={doc.trim()}>
+                                  {doc.trim()}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: 11, color: TEXT3 }}>None specified</span>
+                          )}
+                        </div>
+
+                        {/* 5. Delete Action */}
+                        <div style={{ display: "flex", justifyContent: "flex-end", width: "42px", marginLeft: "auto" }}>
+                          <button 
+                            style={{
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              width: "32px", height: "32px", borderRadius: 6, background: "transparent",
+                              border: "1px solid rgba(248,113,113,0.25)", color: DANGER, cursor: "pointer",
+                              transition: "all 0.2s"
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation(); 
+                              setDeleteTargetId(item.id); 
+                            }}
+                            title="Delete Entry"
+                          >
+                            <TrashIcon />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))
           )}
