@@ -565,11 +565,13 @@ export default function UniversityIndex() {
     setSearch("");
   };
 
-  // Navigate to the edit form for a university, scoped to one level
+  // Navigate to the edit form for a university, scoped to one level.
+  // Registered route is Route::inertia('/universities/{id}', 'university/universityedit')
+  // — there is no "/edit" suffix, so we must not append one.
   const goToLevelEdit = (group: UniversityGroup, level: string) => {
     const params = new URLSearchParams();
     params.set("level", level);
-    window.location.href = `/universities/${group.sampleId}/edit?${params.toString()}`;
+    window.location.href = `/universities/${group.sampleId}?${params.toString()}`;
   };
 
   const targetItemToDelete = useMemo(() => {
