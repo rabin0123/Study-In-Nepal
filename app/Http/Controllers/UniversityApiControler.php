@@ -15,7 +15,7 @@ class UniversityApiControler extends Controller
     public function index(Request $request): JsonResponse
     {
         $limit = (int) $request->query('limit', 200);
-        $limit = max(1, min($limit, 200)); // hard cap so a bad request can't pull everything at once
+        $limit = max(1, min($limit, 200));
 
         $query = University::query()
             ->leftJoin('course_details', function ($join) {
@@ -25,11 +25,6 @@ class UniversityApiControler extends Controller
             })
             ->select('universities.*', 'course_details.uuid as course_detail_uuid');
 
-        /*
-        |--------------------------------------------------------------------------
-        | Search — partial, as-you-type matching on any relevant field
-        |--------------------------------------------------------------------------
-        */
         if ($search = trim((string) $request->query('search', ''))) {
             $query->where(function ($q) use ($search) {
                 $q->where('universities.University', 'LIKE', "%{$search}%")
@@ -42,11 +37,6 @@ class UniversityApiControler extends Controller
             });
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Filters
-        |--------------------------------------------------------------------------
-        */
         $filterMap = [
             'level'      => 'universities.level',
             'stream'     => 'universities.stream',
@@ -81,23 +71,17 @@ class UniversityApiControler extends Controller
 
     public function coursedetailscreate(): JsonResponse
     {
-        // Join course_details to fetch the uuid along with the university data
         $data = University::leftJoin('course_details', function ($join) {
                 $join->on('universities.University', '=', 'course_details.university_name')
                      ->on('universities.College', '=', 'course_details.college_name')
                      ->on('universities.Course', '=', 'course_details.course_name');
             })
-            // Select all university columns, and grab the course_details UUID
             ->select('universities.*', 'course_details.uuid as course_detail_uuid')
             ->get();
 
         return response()->json($data);
     }
 
-
-    /**
-     * GET /api/university/filter-options
-     */
     public function filterOptions(): JsonResponse
     {
         return response()->json(
@@ -119,7 +103,7 @@ class UniversityApiControler extends Controller
         $validated = $request->validate([
             'universityName'                  => 'required|string|max:255',
             'level'                           => 'required|string|max:255',
-            'intake'                          => 'required|string|max:255', // Increased to 255 to allow multiple comma-separated months
+            'intake'                          => 'required|string|max:255',
             'colleges'                        => 'required|array|min:1',
             'colleges.*.name'                 => 'required|string|max:255',
             'universityLogoUrl'               => 'nullable|url|max:500',
@@ -136,7 +120,6 @@ class UniversityApiControler extends Controller
 
         $results = [];
 
-        // Save a record for each course nested under each college
         foreach ($validated['colleges'] as $college) {
             foreach ($college['courses'] as $course) {
                 $university = University::create([
@@ -155,7 +138,10 @@ class UniversityApiControler extends Controller
                                                 ? implode(', ', $course['allDocs'])
                                                 : null,
                 ]);
-                $university->linkMatchingCourseDetail();
+                
+                if (method_exists($university, 'linkMatchingCourseDetail')) {
+                    $university->linkMatchingCourseDetail();
+                }
 
                 $results[] = $university;
             }
@@ -172,14 +158,13 @@ class UniversityApiControler extends Controller
 
     public function update(Request $request, $id): JsonResponse
     {
-        // Locate the target entry to obtain the old name identifier
         $target = University::findOrFail($id);
         $oldUniversityName = $target->University;
 
         $validated = $request->validate([
             'universityName'                  => 'required|string|max:255',
             'level'                           => 'required|string|max:255',
-            'intake'                          => 'required|string|max:255', // Increased to 255 to allow multiple comma-separated months
+            'intake'                          => 'required|string|max:255',
             'colleges'                        => 'required|array|min:1',
             'colleges.*.name'                 => 'required|string|max:255',
             'colleges.*.location'             => 'required|string|max:255',
@@ -192,14 +177,14 @@ class UniversityApiControler extends Controller
             'colleges.*.courses.*.allDocs.*'   => 'string|max:255',
         ]);
 
-        DB::transaction(function() use ($oldUniversityName, $validated) {
-            // Delete all old rows for this university name to clean up configurations
+        $firstNewId = null; // Track the newly generated row ID
+
+        DB::transaction(function() use ($oldUniversityName, $validated, &$firstNewId) {
             University::where('University', $oldUniversityName)->delete();
 
-            // Populate new rows
             foreach ($validated['colleges'] as $college) {
                 foreach ($college['courses'] as $course) {
-                    University::create([
+                    $u = University::create([
                         'University'         => $validated['universityName'],
                         'level'              => $validated['level'],
                         'Intake'             => $validated['intake'],
@@ -213,6 +198,15 @@ class UniversityApiControler extends Controller
                                                     ? implode(', ', $course['allDocs'])
                                                     : null,
                     ]);
+                    
+                    if (method_exists($u, 'linkMatchingCourseDetail')) {
+                        $u->linkMatchingCourseDetail();
+                    }
+                    
+                    // Capture the ID of the first newly generated record
+                    if (!$firstNewId) {
+                        $firstNewId = $u->id;
+                    }
                 }
             }
         });
@@ -220,16 +214,15 @@ class UniversityApiControler extends Controller
         Cache::forget('university_filter_options');
 
         return response()->json([
-            'message' => 'University updated successfully.'
+            'message' => 'University updated successfully.',
+            'new_id'  => $firstNewId // Pass this back to frontend
         ]);
     }
 
     public function show($id): JsonResponse
     {
-        // Find the entry that was clicked in the directory
         $entry = University::findOrFail($id);
 
-        // Retrieve all database rows that share the exact same University Name
         $universityRows = University::where('University', $entry->University)
             ->orderBy('College', 'asc')
             ->orderBy('Course', 'asc')
@@ -250,7 +243,6 @@ class UniversityApiControler extends Controller
                 ], 404);
             }
 
-            // Deletes the record
             $entry->delete();
 
             Cache::forget('university_filter_options');
@@ -315,9 +307,8 @@ class UniversityApiControler extends Controller
 
     public function import(Request $request): JsonResponse
     {
-        // Support xlsx, xls, csv, and txt formats
         $request->validate([
-            'file' => 'required|file|mimes:csv,txt,xlsx,xls|max:10240' // max 10MB
+            'file' => 'required|file|mimes:csv,txt,xlsx,xls|max:10240'
         ]);
 
         $file = $request->file('file');
@@ -328,11 +319,8 @@ class UniversityApiControler extends Controller
 
         DB::beginTransaction();
         try {
-            // Load CSV or Excel via PhpSpreadsheet factory
             $spreadsheet = IOFactory::load($filePath);
             $worksheet = $spreadsheet->getActiveSheet();
-
-            // Convert worksheet to array of rows
             $rows = $worksheet->toArray();
 
             if (count($rows) < 2) {
@@ -342,19 +330,16 @@ class UniversityApiControler extends Controller
                 ], 400);
             }
 
-            // Extract headers from first row
             $header = array_shift($rows);
             $header = array_map(function($val) {
                 return is_null($val) ? '' : trim($val);
             }, $header);
 
             foreach ($rows as $row) {
-                // Skip completely empty rows
                 if (empty(array_filter($row))) {
                     continue;
                 }
 
-                // Match row count to header count
                 if (count($row) !== count($header)) {
                     if (count($row) < count($header)) {
                         $row = array_pad($row, count($header), null);
@@ -365,12 +350,10 @@ class UniversityApiControler extends Controller
 
                 $data = array_combine($header, $row);
 
-                // Skip rows that lack mandatory identifiers
                 if (empty($data['University']) || empty($data['Course'])) {
                     continue;
                 }
 
-                // Match strictly by University and Course
                 $record = University::updateOrCreate(
                     [
                         'University' => trim($data['University']),
@@ -389,7 +372,11 @@ class UniversityApiControler extends Controller
                         'college_logo_url'    => isset($data['college_logo_url']) ? trim($data['college_logo_url']) : null,
                     ]
                 );
-                $record->linkMatchingCourseDetail();
+                
+                if (method_exists($record, 'linkMatchingCourseDetail')) {
+                    $record->linkMatchingCourseDetail();
+                }
+
                 if ($record->wasRecentlyCreated) {
                     $createdCount++;
                 } else {
