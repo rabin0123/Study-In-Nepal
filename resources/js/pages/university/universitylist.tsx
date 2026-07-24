@@ -1,19 +1,19 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
-// ── Shared Theme Constants ──────────────────────────────────────────────────
-const P = "#008ce3";
-const AMBER = "#fbbf24";
-const BG = "#0a0a0a";
-const SURFACE = "#111111";
-const SURFACE2 = "#1a1a1a";
-const SURFACE3 = "#141414";
-const BORDER = "rgba(255,255,255,0.10)";
-const TEXT = "#ffffff";
-const TEXT2 = "rgba(255,255,255,0.70)";
-const TEXT3 = "rgba(255,255,255,0.40)";
-const DANGER = "#f87171";
-const SUCCESS = "#22c55e";
+// ── Shared Theme Constants (Updated for Light Mode) ─────────────────────────
+const P = "#008ce3";         // Primary Blue
+const AMBER = "#d97706";     // Darker amber for light mode contrast
+const BG = "#f8fafc";        // Light slate background
+const SURFACE = "#ffffff";   // White cards/panels
+const SURFACE2 = "#f1f5f9";  // Light grey for inputs/secondary areas
+const SURFACE3 = "#ffffff";  // White for popovers
+const BORDER = "#e2e8f0";    // Light grey border
+const TEXT = "#0f172a";      // Dark slate text
+const TEXT2 = "#475569";     // Muted slate text
+const TEXT3 = "#94a3b8";     // Lightest text (placeholders, icons)
+const DANGER = "#ef4444";    // Red
+const SUCCESS = "#16a34a";   // Green
 
 // ── Database Schema Mapping ──────────────────────────────────────────────────
 interface UniversityEntry {
@@ -37,12 +37,12 @@ interface UniversityEntry {
 // ── Base Styles ──────────────────────────────────────────────────────────────
 const inputBase = (focused: boolean): CSSProperties => ({
   width: "100%", boxSizing: "border-box",
-  background: focused ? "#1e1e1e" : SURFACE2,
+  background: focused ? "#ffffff" : SURFACE2,
   border: `1px solid ${focused ? P : BORDER}`,
   borderRadius: 8, padding: "12px 14px 12px 38px",
   fontSize: 13, color: TEXT, fontFamily: "'Manrope', sans-serif",
   outline: "none", transition: "border-color .15s, background .15s",
-  letterSpacing: "0.02em", colorScheme: "dark",
+  letterSpacing: "0.02em", colorScheme: "light",
 });
 
 const selectFilterStyle = (active: boolean): CSSProperties => ({
@@ -60,7 +60,7 @@ const selectFilterStyle = (active: boolean): CSSProperties => ({
 const btnPrimary = (extra: CSSProperties = {}): CSSProperties => ({
   display: "flex", alignItems: "center", gap: 10,
   padding: "11px 26px", borderRadius: 999,
-  background: P, border: "none", color: TEXT,
+  background: P, border: "none", color: "#ffffff", // Forced white for contrast
   fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
   fontSize: 12, letterSpacing: "0.18em", textTransform: "uppercase",
   cursor: "pointer", transition: "opacity 0.2s", ...extra,
@@ -69,7 +69,7 @@ const btnPrimary = (extra: CSSProperties = {}): CSSProperties => ({
 const btnDanger = (extra: CSSProperties = {}): CSSProperties => ({
   display: "flex", alignItems: "center", gap: 10,
   padding: "11px 26px", borderRadius: 999,
-  background: DANGER, border: "none", color: TEXT,
+  background: DANGER, border: "none", color: "#ffffff", // Forced white for contrast
   fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
   fontSize: 12, letterSpacing: "0.18em", textTransform: "uppercase",
   cursor: "pointer", transition: "opacity 0.2s", ...extra,
@@ -202,7 +202,7 @@ function MultiSelectDropdown({ label, options, selected, onChange }: MultiSelect
           <div style={{
             position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0,
             background: SURFACE3, border: `1px solid ${BORDER}`, borderRadius: 8,
-            boxShadow: "0 10px 25px rgba(0,0,0,0.5)", padding: 12, zIndex: 999,
+            boxShadow: "0 10px 25px rgba(0,0,0,0.08)", padding: 12, zIndex: 999,
             maxHeight: 220, overflowY: "auto"
           }}>
             {options.length === 0 ? (
@@ -217,7 +217,7 @@ function MultiSelectDropdown({ label, options, selected, onChange }: MultiSelect
                     fontSize: 12, color: isChecked ? TEXT : TEXT2, fontFamily: "'Manrope', sans-serif",
                     userSelect: "none"
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.03)"}
+                  onMouseEnter={e => e.currentTarget.style.background = "#f1f5f9"}
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                   >
                     <input
@@ -307,7 +307,6 @@ export default function UniversityIndex() {
     }
   };
 
-  // Perform final confirmed delete
   const executeDelete = async (id: number) => {
     try {
       const res = await fetch(`/api/universities/${id}`, {
@@ -329,19 +328,16 @@ export default function UniversityIndex() {
     }
   };
 
-  // Trigger browser download of CSV data
   const handleExport = () => {
     window.location.href = "/api/university/export";
   };
 
-  // Open local file window
   const handleImportClick = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
 
-  // Handle local CSV selection and upload to the server
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -361,7 +357,7 @@ export default function UniversityIndex() {
 
       if (res.ok && result.success) {
         triggerToast(result.message, "success");
-        fetchUniversities(); // Refresh table dataset
+        fetchUniversities();
       } else {
         triggerToast(result.message || "Failed to import CSV dataset.", "error");
       }
@@ -381,7 +377,6 @@ export default function UniversityIndex() {
     setSearch("");
   };
 
-  // Extract selected item details for custom confirmation popup
   const targetItemToDelete = useMemo(() => {
     return data.find(item => item.id === deleteTargetId);
   }, [deleteTargetId, data]);
@@ -426,7 +421,6 @@ export default function UniversityIndex() {
     Array.from(new Set(getSubsetFilteredByOthers("level").map(item => item.level).filter(Boolean))).sort()
   , [data, search, selectedUniversities, selectedColleges, selectedLocations, selectedCourses]);
 
-  // Unified final filtered dataset for output listing
   const filteredData = useMemo(() => {
     return data.filter(item => {
       const q = search.toLowerCase();
@@ -458,13 +452,13 @@ export default function UniversityIndex() {
         type="file" 
         ref={fileInputRef} 
         onChange={handleFileChange} 
-       accept=".csv, .xlsx, .xls"
+        accept=".csv, .xlsx, .xls"
         style={{ display: "none" }} 
       />
 
       {/* Header */}
-      <div style={{ borderBottom: `1px solid ${BORDER}`, padding: "48px 48px 36px", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", top: -80, right: -80, width: 320, height: 320, borderRadius: "50%", background: `${P}08`, pointerEvents: "none" }} />
+      <div style={{ borderBottom: `1px solid ${BORDER}`, padding: "48px 48px 36px", position: "relative", overflow: "hidden", background: SURFACE }}>
+        <div style={{ position: "absolute", top: -80, right: -80, width: 320, height: 320, borderRadius: "50%", background: `${P}12`, pointerEvents: "none" }} />
         <div style={{ maxWidth: 1100, margin: "0 auto", position: "relative", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
           <div>
             <p style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, fontSize: 10, letterSpacing: "0.25em", textTransform: "uppercase", color: P, margin: "0 0 14px" }}>
@@ -500,7 +494,7 @@ export default function UniversityIndex() {
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "36px 48px" }}>
         
-        {/* Top toolbar (Search is placed outside the filter panel) */}
+        {/* Top toolbar */}
         <div style={{ display: "flex", gap: "14px", marginBottom: "16px", alignItems: "center" }}>
           <div style={{ position: "relative", flex: 1 }}>
             <SearchIcon />
@@ -648,7 +642,7 @@ export default function UniversityIndex() {
                   transition: "border-color 0.2s, background 0.2s"
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.20)";
+                  e.currentTarget.style.borderColor = "#cbd5e1"; // Slightly darker border on hover for light mode
                   e.currentTarget.style.background = SURFACE2;
                 }}
                 onMouseLeave={(e) => {
@@ -748,14 +742,14 @@ export default function UniversityIndex() {
       {deleteTargetId !== null && targetItemToDelete && (
         <div style={{
           position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh",
-          backgroundColor: "rgba(0, 0, 0, 0.8)", backdropFilter: "blur(4px)",
+          backgroundColor: "rgba(0, 0, 0, 0.4)", backdropFilter: "blur(4px)",
           display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999,
           animation: "fadeIn 0.15s ease-out"
         }}>
           <div style={{
             background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 16,
             padding: "32px 40px", maxWidth: 440, width: "90%", textAlign: "center",
-            boxShadow: "0 25px 50px rgba(0, 0, 0, 0.6)"
+            boxShadow: "0 25px 50px rgba(0, 0, 0, 0.15)"
           }}>
             {/* Warning Circular Icon */}
             <div style={{
@@ -800,8 +794,8 @@ export default function UniversityIndex() {
         <div style={{
           position: "fixed", bottom: 32, right: 32,
           background: toast.type === "success" ? SUCCESS : DANGER,
-          color: TEXT, padding: "14px 28px", borderRadius: 8,
-          boxShadow: "0 20px 40px rgba(0,0,0,0.6)", zIndex: 10000,
+          color: "#ffffff", padding: "14px 28px", borderRadius: 8,
+          boxShadow: "0 20px 40px rgba(0,0,0,0.15)", zIndex: 10000,
           fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
           fontSize: 12, letterSpacing: "0.15em", textTransform: "uppercase",
           animation: "slideUp 0.3s ease-out"
