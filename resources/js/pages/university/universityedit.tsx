@@ -507,8 +507,11 @@ export default function UniversityEditForm() {
     fontSize: 12, letterSpacing: "0.16em", textTransform: "uppercase", cursor: "pointer",
   };
 
+  // Registered route is Route::inertia('/universities/{id}', 'university/universityedit')
+  // — the id is simply the last path segment. (Kept the "edit" segment check
+  // as a harmless fallback in case a route alias with that shape is ever added.)
   const getRecordId = () => {
-    const pathParts = window.location.pathname.split("/");
+    const pathParts = window.location.pathname.split("/").filter(Boolean);
     const editIdx = pathParts.indexOf("edit");
     if (editIdx > 0) return pathParts[editIdx - 1];
     return pathParts[pathParts.length - 1];
