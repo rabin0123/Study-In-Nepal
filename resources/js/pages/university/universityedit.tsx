@@ -3,7 +3,7 @@ import type { CSSProperties, ReactNode } from "react";
 
 // ── Light / White-Blue Theme Colors ──────────────────────────────────────────
 const P = "#0066cc";           // Primary Blue
-const AMBER = "#d97706";       // Darkened Amber for contrast
+const AMBER = "#2f0893";       // Darkened Amber for contrast
 const BG = "#f0f4f8";          // Very light blue-gray background
 const SURFACE = "#ffffff";     // White cards
 const SURFACE2 = "#f8fafc";    // Off-white panel backgrounds
