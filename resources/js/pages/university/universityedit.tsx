@@ -1,18 +1,18 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
 // ── Light / White-Blue Theme Colors ──────────────────────────────────────────
-const P = "#0066cc";           // Primary Blue
-const AMBER = "#0066cc";       // Darkened Amber for contrast
-const BG = "#f0f4f8";          // Very light blue-gray background
-const SURFACE = "#ffffff";     // White cards
-const SURFACE2 = "#f8fafc";    // Off-white panel backgrounds
-const SURFACE3 = "#f1f5f9";    // Inner form blocks
+const P = "#0066cc";
+const AMBER = "#0066cc";
+const BG = "#f0f4f8";
+const SURFACE = "#ffffff";
+const SURFACE2 = "#f8fafc";
+const SURFACE3 = "#f1f5f9";
 const BORDER = "rgba(0, 15, 30, 0.12)";
-const TEXT = "#0f172a";        // Dark slate text
-const TEXT2 = "#334155";       // Medium slate text
-const TEXT3 = "#64748b";       // Light slate text (labels/hints)
-const SUCCESS = "#16a34a";     // Success green
+const TEXT = "#0f172a";
+const TEXT2 = "#334155";
+const TEXT3 = "#64748b";
+const SUCCESS = "#16a34a";
 
 const LEVELS = ["Undergraduate", "Postgraduate", "Both UG & PG", "Doctoral / PhD"];
 const STD_DOCS = [
@@ -79,8 +79,6 @@ const initial: FormState = {
   colleges: [defaultCollege],
 };
 
-// ── base styles ──────────────────────────────────────────────────────────────
-
 const inputBase = (focused: boolean): CSSProperties => ({
   width: "100%", boxSizing: "border-box",
   background: focused ? "#ffffff" : SURFACE2,
@@ -100,8 +98,6 @@ const selectBase = (focused: boolean): CSSProperties => ({
   paddingRight: 32, cursor: "pointer",
 });
 
-// ── small UI components ──────────────────────────────────────────────────────
-
 function InputF({ value, onChange, placeholder, type = "text" }: { value: string; onChange: (v: string) => void; placeholder?: string; type?: string; }) {
   const [f, setF] = useState(false);
   return <input type={type} value={value} placeholder={placeholder} style={inputBase(f)}
@@ -111,7 +107,6 @@ function InputF({ value, onChange, placeholder, type = "text" }: { value: string
 function SelectF({ value, onChange, options, placeholder }: { value: string; onChange: (v: string) => void; options: string[]; placeholder: string; }) {
   const [f, setF] = useState(false);
   const displayOptions = (value && !options.includes(value)) ? [...options, value] : options;
-  
   return (
     <select value={value} style={selectBase(f)} onChange={e => onChange(e.target.value)}
       onFocus={() => setF(true)} onBlur={() => setF(false)}>
@@ -266,8 +261,7 @@ function CircleArrow() {
 
 const g2: CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 };
 
-// ── Client-Side Reconstructive Parser ────────────────────────────────────────
-
+// ── Added the missing FlatDatabaseRow interface back ────────────────────────
 interface FlatDatabaseRow {
   id: number;
   University: string;
@@ -302,9 +296,10 @@ function reconstructFormState(rows: FlatDatabaseRow[]): FormState {
   rows.forEach(row => {
     const courseKey = `${row.Course.trim().toLowerCase()}_${row.stream.trim().toLowerCase()}`;
     if (!templatesMap.has(courseKey)) {
-      const rawDocs = row.requireddocuments ? row.requireddocuments.split(",").map(d => d.trim()).filter(Boolean) : [];
-      const docs = rawDocs.filter(d => STD_DOCS.includes(d));
-      const customDocs = rawDocs.filter(d => !STD_DOCS.includes(d)).join(", ");
+      // Explicitly typed (d: string) to fix the implicit "any" errors
+      const rawDocs = row.requireddocuments ? row.requireddocuments.split(",").map((d: string) => d.trim()).filter(Boolean) : [];
+      const docs = rawDocs.filter((d: string) => STD_DOCS.includes(d));
+      const customDocs = rawDocs.filter((d: string) => !STD_DOCS.includes(d)).join(", ");
 
       templatesMap.set(courseKey, {
         id: Math.random().toString(36).slice(2),
@@ -356,8 +351,6 @@ function reconstructFormState(rows: FlatDatabaseRow[]): FormState {
     colleges: Array.from(collegesMap.values())
   };
 }
-
-// ── Shared Course Form Card ──────────────────────────────────────────────────
 
 function SharedCourseCard({
   course, index, total, isOpen,
@@ -449,8 +442,6 @@ function SharedCourseCard({
   );
 }
 
-// ── main edit component ──────────────────────────────────────────────────────
-
 export default function UniversityEditForm() {
   const [form, setForm] = useState<FormState>(initial);
   const [openCourseId, setOpenCourseId] = useState<string>("");
@@ -460,14 +451,14 @@ export default function UniversityEditForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  // Generates upcoming 24 months in full year format (Format: Jan 2027)
+  // Generate upcoming 24 months in full year format (Format: Jan 2027)
   const UPCOMING_INTAKES = useMemo(() => {
     const months = [];
     const now = new Date();
     for (let i = 0; i < 24; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
       const m = d.toLocaleString('en-US', { month: 'short' });
-      const y = d.getFullYear(); // Full 4 digit year
+      const y = d.getFullYear(); 
       months.push(`${m} ${y}`);
     }
     return months;
@@ -496,13 +487,14 @@ export default function UniversityEditForm() {
     return pathParts[pathParts.length - 1];
   };
 
-  const id = getRecordId();
+  // USE REF keeps track of the ID without triggering unnecessary re-renders
+  const activeId = useRef<string>(getRecordId());
 
   useEffect(() => {
-    if (!id) return;
+    if (!activeId.current) return;
     setLoading(true);
 
-    fetch(`/api/universities/${id}`)
+    fetch(`/api/universities/${activeId.current}`)
       .then(res => {
         if (!res.ok) throw new Error("Could not find record");
         return res.json();
@@ -532,7 +524,7 @@ export default function UniversityEditForm() {
       .finally(() => {
         setLoading(false);
       });
-  }, [id]);
+  }, []);
 
   const openCourse = (id: string) => setOpenCourseId(prev => prev === id ? "" : id);
   const openCollege = (id: string) => setOpenCollegeId(prev => prev === id ? "" : id);
@@ -711,9 +703,10 @@ export default function UniversityEditForm() {
             stream: matchingTemplate?.stream ?? "",
             annualFee: cc.annualFee,
             scholarship: cc.scholarship,
+            // Added explicit typing here as well (s: string)
             allDocs: matchingTemplate ? [
               ...matchingTemplate.docs,
-              ...matchingTemplate.customDocs.split(",").map(s => s.trim()).filter(Boolean),
+              ...matchingTemplate.customDocs.split(",").map((s: string) => s.trim()).filter(Boolean),
             ] : [],
           };
         }),
@@ -721,15 +714,23 @@ export default function UniversityEditForm() {
     };
 
     try {
-      const res = await fetch(`/api/universities/${id}`, {
+      const res = await fetch(`/api/universities/${activeId.current}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
         body: JSON.stringify(payload),
       });
+      
+      const d = await res.json();
+      
       if (res.ok) {
+        if (d.new_id) {
+            // Update URL dynamically so Keep Editing doesn't query the deleted ID!
+            const newPath = window.location.pathname.replace(`/${activeId.current}`, `/${d.new_id}`);
+            window.history.replaceState(null, "", newPath);
+            activeId.current = d.new_id.toString(); // Update ref context!
+        }
         setSubmitted(true);
       } else {
-        const d = await res.json() as { message?: string };
         alert(d.message ?? "Failed to save edits.");
       }
     } catch {
@@ -765,7 +766,7 @@ export default function UniversityEditForm() {
   }
 
   // Combine existing DB intake values with our auto-generated ones to make sure old entries aren't hidden
-  const currentIntakeSet = form.intake ? form.intake.split(",").map(s => s.trim()).filter(Boolean) : [];
+  const currentIntakeSet = form.intake ? form.intake.split(",").map((s: string) => s.trim()).filter(Boolean) : [];
   const combinedIntakeDisplay = Array.from(new Set([...currentIntakeSet, ...UPCOMING_INTAKES]));
 
   return (
