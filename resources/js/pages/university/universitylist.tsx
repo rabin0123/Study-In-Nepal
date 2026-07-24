@@ -1,19 +1,19 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import type { CSSProperties } from "react";
 
-// ── Shared Theme Constants ───────────────────────────────────────────────────
-const P = "#008ce3";         
-const AMBER = "#d97706";     
-const BG = "#f8fafc";        
-const SURFACE = "#ffffff";   
-const SURFACE2 = "#f1f5f9";  
-const SURFACE3 = "#ffffff";  
-const BORDER = "#e2e8f0";    
-const TEXT = "#0f172a";      
-const TEXT2 = "#475569";     
-const TEXT3 = "#94a3b8";     
-const DANGER = "#ef4444";    
-const SUCCESS = "#16a34a";   
+// ── Shared Theme Constants (Updated for Light Mode) ─────────────────────────
+const P = "#008ce3";         // Primary Blue
+const AMBER = "#d97706";     // Darker amber for light mode contrast
+const BG = "#f8fafc";        // Light slate background
+const SURFACE = "#ffffff";   // White cards/panels
+const SURFACE2 = "#f1f5f9";  // Light grey for inputs/secondary areas
+const SURFACE3 = "#ffffff";  // White for popovers
+const BORDER = "#e2e8f0";    // Light grey border
+const TEXT = "#0f172a";      // Dark slate text
+const TEXT2 = "#475569";     // Muted slate text
+const TEXT3 = "#94a3b8";     // Lightest text (placeholders, icons)
+const DANGER = "#ef4444";    // Red
+const SUCCESS = "#16a34a";   // Green
 
 const INITIAL_PAGE_SIZE = 100;
 const NEXT_PAGE_SIZE = 40;
@@ -22,16 +22,16 @@ const SEARCH_DEBOUNCE_MS = 300;
 // ── Database Schema Mapping ──────────────────────────────────────────────────
 interface UniversityEntry {
   id: number;
-  University: string | null;
-  level: string | null;
-  Intake: string | null;
-  College: string | null;
-  Location: string | null;
-  Course: string | null;
-  stream: string | null;
+  University: string;
+  level: string;
+  Intake: string;
+  College: string;
+  Location: string;
+  Course: string;
+  stream: string;
   Amount: string | null;
   Scholarship: string | null;
-  requireddocuments: string | string[] | null; // Safely handle both array and string
+  requireddocuments: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -241,8 +241,7 @@ function MultiSelectDropdown({ label, options, selected, onChange }: MultiSelect
 }
 
 // ── Small UI Elements ────────────────────────────────────────────────────────
-function StatusPill({ label, color = P }: { label: string | null; color?: string }) {
-  if (!label) return null;
+function StatusPill({ label, color = P }: { label: string; color?: string }) {
   return (
     <span style={{
       display: "inline-block", padding: "3px 10px", borderRadius: 999,
@@ -257,17 +256,20 @@ function StatusPill({ label, color = P }: { label: string | null; color?: string
 
 // ── Main Index Page ──────────────────────────────────────────────────────────
 export default function UniversityIndex() {
+  // Pagination & Data states
   const [data, setData] = useState<UniversityEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0); 
+  const [refreshKey, setRefreshKey] = useState(0); // Used to force refresh after imports
 
+  // Search states
   const [rawSearch, setRawSearch] = useState("");
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
 
+  // Filters state
   const [filterOptions, setFilterOptions] = useState<FilterOptions>(EMPTY_FILTER_OPTIONS);
   const [selectedUniversities, setSelectedUniversities] = useState<string[]>([]);
   const [selectedColleges, setSelectedColleges] = useState<string[]>([]);
@@ -285,35 +287,31 @@ export default function UniversityIndex() {
   const abortRef = useRef<AbortController | null>(null);
   const requestIdRef = useRef(0);
 
-  // 1. Debounce Search
+  // 1. Debounce the search input
   useEffect(() => {
-    const t = setTimeout(() => setSearch(rawSearch || ""), SEARCH_DEBOUNCE_MS);
+    const t = setTimeout(() => setSearch(rawSearch), SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [rawSearch]);
 
-  // 2. Safely Fetch Filter Options
+  // 2. Fetch Base Filter Options once on mount
   useEffect(() => {
     fetch("/api/university/filter-options", { headers: { Accept: "application/json" } })
       .then(res => (res.ok ? res.json() : null))
       .then(json => {
         if (!json) return;
-        
-        // Strip out any accidental nulls returned by the backend 
-        // to prevent `.trim()` crashes in Dropdown mappings downstream.
-        const sanitizeArray = (arr: any[]) => (arr || []).filter(Boolean).map(String);
-
         setFilterOptions({
-          levels: sanitizeArray(json.levels),
-          streams: sanitizeArray(json.streams),
-          courses: sanitizeArray(json.courses),
-          universities: sanitizeArray(json.universities),
-          colleges: sanitizeArray(json.colleges),
-          locations: sanitizeArray(json.locations),
+          levels: json.levels || [],
+          streams: json.streams || [],
+          courses: json.courses || [],
+          universities: json.universities || [],
+          colleges: json.colleges || [],
+          locations: json.locations || [],
         });
       })
       .catch(err => console.error("Failed to load filter options", err));
   }, []);
 
+  // Query Builder helper
   const buildQueryParams = useCallback((limit: number, cursor?: string | null) => {
     const params = new URLSearchParams();
     params.set("limit", String(limit));
@@ -328,7 +326,7 @@ export default function UniversityIndex() {
     return params;
   }, [search, selectedLevels, selectedStreams, selectedCourses, selectedUniversities, selectedColleges, selectedLocations]);
 
-  // 3. Main Data Loading Trigger
+  // 3. Initial Load & Reaction to filter/search changes
   useEffect(() => {
     const myRequestId = ++requestIdRef.current;
     
@@ -363,7 +361,7 @@ export default function UniversityIndex() {
     return () => controller.abort();
   }, [buildQueryParams, refreshKey]);
 
-  // 4. Infinite Pagination Loader
+  // 4. Load More (Pagination logic via Scroll)
   const loadMore = useCallback(() => {
     if (loading || loadingMore || !hasMore || !nextCursor) return;
 
@@ -384,18 +382,23 @@ export default function UniversityIndex() {
       .finally(() => setLoadingMore(false));
   }, [loading, loadingMore, hasMore, nextCursor, buildQueryParams]);
 
+  // IntersectionObserver on Sentinel
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
+
     const observer = new IntersectionObserver(
-      (entries) => { if (entries[0].isIntersecting) loadMore(); },
+      (entries) => {
+        if (entries[0].isIntersecting) loadMore();
+      },
       { rootMargin: "400px" } 
     );
+
     observer.observe(el);
     return () => observer.disconnect();
   }, [loadMore]);
 
-  // Handlers
+  // Helpers / Handlers
   const triggerToast = (message: string, type: "success" | "error" = "success") => {
     setToast({ message, type });
     setTimeout(() => { setToast(null); }, 4000);
@@ -422,10 +425,14 @@ export default function UniversityIndex() {
     }
   };
 
-  const handleExport = () => window.location.href = "/api/university/export";
+  const handleExport = () => {
+    window.location.href = "/api/university/export";
+  };
 
   const handleImportClick = () => {
-    if (fileInputRef.current) fileInputRef.current.click();
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -445,7 +452,7 @@ export default function UniversityIndex() {
 
       if (res.ok && result.success) {
         triggerToast(result.message, "success");
-        setRefreshKey(prev => prev + 1); 
+        setRefreshKey(prev => prev + 1); // Trigger refresh
       } else {
         triggerToast(result.message || "Failed to import CSV dataset.", "error");
       }
@@ -482,7 +489,14 @@ export default function UniversityIndex() {
       `}</style>
       <link href="https://fonts.googleapis.com/css2?family=Castoro+Titling&family=Rajdhani:wght@600;700&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet" />
 
-      <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".csv, .xlsx, .xls" style={{ display: "none" }} />
+      {/* Hidden File Input for CSV Import */}
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handleFileChange} 
+        accept=".csv, .xlsx, .xls"
+        style={{ display: "none" }} 
+      />
 
       {/* Header */}
       <div style={{ padding: "48px 48px 36px", position: "relative", overflow: "hidden" }}>
@@ -503,12 +517,14 @@ export default function UniversityIndex() {
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
             <button style={btnGhost} onClick={handleExport} title="Export CSV Data">
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <ExportIcon /><span>Export</span>
+                <ExportIcon />
+                <span>Export</span>
               </div>
             </button>
             <button style={btnGhost} onClick={handleImportClick} title="Import CSV Data">
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <ImportIcon /><span>Import</span>
+                <ImportIcon />
+                <span>Import</span>
               </div>
             </button>
             <button style={btnPrimary()} onClick={() => window.location.href = '/universities'}>
@@ -526,7 +542,7 @@ export default function UniversityIndex() {
             <SearchIcon />
             <input 
               type="text" 
-              placeholder="Search by keyword (University, Course, Location, College)..."
+              placeholder="Fuzzy search by keyword (University, Course, Location, College)..."
               value={rawSearch}
               onChange={(e) => setRawSearch(e.target.value)}
               onFocus={() => setSearchFocused(true)}
@@ -568,21 +584,55 @@ export default function UniversityIndex() {
             </p>
             
             <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-              <MultiSelectDropdown label="Universities" options={filterOptions.universities} selected={selectedUniversities} onChange={setSelectedUniversities} />
-              <MultiSelectDropdown label="Colleges" options={filterOptions.colleges} selected={selectedColleges} onChange={setSelectedColleges} />
-              <MultiSelectDropdown label="Locations" options={filterOptions.locations} selected={selectedLocations} onChange={setSelectedLocations} />
-              <MultiSelectDropdown label="Courses" options={filterOptions.courses} selected={selectedCourses} onChange={setSelectedCourses} />
-              <MultiSelectDropdown label="Streams" options={filterOptions.streams} selected={selectedStreams} onChange={setSelectedStreams} />
-              <MultiSelectDropdown label="Levels" options={filterOptions.levels} selected={selectedLevels} onChange={setSelectedLevels} />
+              <MultiSelectDropdown 
+                label="Universities" 
+                options={filterOptions.universities} 
+                selected={selectedUniversities} 
+                onChange={setSelectedUniversities} 
+              />
+              <MultiSelectDropdown 
+                label="Colleges" 
+                options={filterOptions.colleges} 
+                selected={selectedColleges} 
+                onChange={setSelectedColleges} 
+              />
+              <MultiSelectDropdown 
+                label="Locations" 
+                options={filterOptions.locations} 
+                selected={selectedLocations} 
+                onChange={setSelectedLocations} 
+              />
+              <MultiSelectDropdown 
+                label="Courses" 
+                options={filterOptions.courses} 
+                selected={selectedCourses} 
+                onChange={setSelectedCourses} 
+              />
+              <MultiSelectDropdown 
+                label="Streams" 
+                options={filterOptions.streams} 
+                selected={selectedStreams} 
+                onChange={setSelectedStreams} 
+              />
+              <MultiSelectDropdown 
+                label="Levels" 
+                options={filterOptions.levels} 
+                selected={selectedLevels} 
+                onChange={setSelectedLevels} 
+              />
             </div>
 
+            {/* Clear Filters Panel Action */}
             {(filtersActive || search || rawSearch) && (
               <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
                 <button 
                   onClick={handleClearAll}
                   style={{
-                    background: "transparent", border: `1px dashed ${DANGER}44`, color: DANGER, padding: "8px 14px", borderRadius: 6,
-                    fontFamily: "'Rajdhani', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer", transition: "background 0.2s"
+                    background: "transparent", border: `1px dashed ${DANGER}44`,
+                    color: DANGER, padding: "8px 14px", borderRadius: 6,
+                    fontFamily: "'Rajdhani', sans-serif", fontSize: 11, fontWeight: 700,
+                    letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer",
+                    transition: "background 0.2s"
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.background = `${DANGER}11`}
                   onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
@@ -596,7 +646,13 @@ export default function UniversityIndex() {
 
         {/* Directory Row Headers */}
         {data.length > 0 && !loading && (
-          <div style={{ display: "grid", gridTemplateColumns: gridLayoutRatio, gap: "24px", padding: "12px 28px", marginBottom: "8px" }}>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: gridLayoutRatio,
+            gap: "24px",
+            padding: "12px 28px",
+            marginBottom: "8px",
+          }}>
             <div style={headerTextStyle}>Institution</div>
             <div style={headerTextStyle}>Program & Stream</div>
             <div style={headerTextStyle}>Level & Intake</div>
@@ -610,7 +666,8 @@ export default function UniversityIndex() {
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           {loading ? (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "48px", color: TEXT3, fontSize: 13 }}>
-              <SpinnerIcon /> Loading directory records...
+              <SpinnerIcon />
+              Loading directory records...
             </div>
           ) : data.length === 0 ? (
             <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "48px", textAlign: "center", color: TEXT3, fontSize: 13 }}>
@@ -622,30 +679,43 @@ export default function UniversityIndex() {
                 key={item.id} 
                 onClick={() => window.location.href = `/universities/${item.id}`}
                 style={{
-                  display: "grid", gridTemplateColumns: gridLayoutRatio, alignItems: "center", gap: "24px",
-                  background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "20px 28px",
-                  cursor: "pointer", transition: "border-color 0.2s, background 0.2s"
+                  display: "grid",
+                  gridTemplateColumns: gridLayoutRatio,
+                  alignItems: "center",
+                  gap: "24px",
+                  background: SURFACE,
+                  border: `1px solid ${BORDER}`,
+                  borderRadius: 12,
+                  padding: "20px 28px",
+                  cursor: "pointer",
+                  transition: "border-color 0.2s, background 0.2s"
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.background = SURFACE2; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = BORDER; e.currentTarget.style.background = SURFACE; }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#cbd5e1"; 
+                  e.currentTarget.style.background = SURFACE2;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = BORDER;
+                  e.currentTarget.style.background = SURFACE;
+                }}
               >
                 {/* 1. Institution */}
                 <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <div style={{ ...truncateStyle, fontSize: 14, color: TEXT, fontWeight: 600 }} title={item.University || "N/A"}>
-                    {item.University || "N/A"}
+                  <div style={{ ...truncateStyle, fontSize: 14, color: TEXT, fontWeight: 600 }} title={item.University}>
+                    {item.University}
                   </div>
-                  <div style={{ ...truncateStyle, fontSize: 11, color: TEXT3 }} title={`${item.College || 'N/A'} • ${item.Location || 'N/A'}`}>
-                    {item.College || 'N/A'} • {item.Location || 'N/A'}
+                  <div style={{ ...truncateStyle, fontSize: 11, color: TEXT3 }} title={`${item.College} • ${item.Location}`}>
+                    {item.College} • {item.Location}
                   </div>
                 </div>
 
                 {/* 2. Program & Stream */}
                 <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <div style={{ ...truncateStyle, fontSize: 14, color: TEXT, fontWeight: 500 }} title={item.Course || "N/A"}>
-                    {item.Course || "N/A"}
+                  <div style={{ ...truncateStyle, fontSize: 14, color: TEXT, fontWeight: 500 }} title={item.Course}>
+                    {item.Course}
                   </div>
-                  <div style={{ ...truncateStyle, fontSize: 11, color: P }} title={item.stream || "N/A"}>
-                    {item.stream || "N/A"}
+                  <div style={{ ...truncateStyle, fontSize: 11, color: P }} title={item.stream}>
+                    {item.stream}
                   </div>
                 </div>
 
@@ -672,46 +742,39 @@ export default function UniversityIndex() {
                   )}
                 </div>
 
-                {/* 5. Required Documents (Safeguarded against ALL null/array crashes) */}
+                {/* 5. Required Documents */}
                 <div>
                   {item.requireddocuments ? (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", maxWidth: "240px", maxHeight: "80px", overflow: "hidden" }}>
-                      {(typeof item.requireddocuments === 'string' 
-                          ? item.requireddocuments.split(",") 
-                          : Array.isArray(item.requireddocuments) ? item.requireddocuments : []
-                      ).map((doc: any, i: number) => {
-                        
-                        // Strict validation prevents `.trim()` from ever receiving `null`
-                        const safeDoc = (doc && typeof doc === 'string') 
-                                        ? doc.trim() 
-                                        : (doc ? String(doc).trim() : "");
-                                        
-                        if (!safeDoc) return null;
-
-                        return (
-                          <span key={i} style={{ 
-                            fontSize: 10, color: TEXT2, background: SURFACE2, padding: "3px 8px", borderRadius: 4, 
-                            border: `1px solid ${BORDER}`, fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, whiteSpace: "nowrap"
-                          }} title={safeDoc}>
-                            {safeDoc}
-                          </span>
-                        );
-                      })}
+                      {item.requireddocuments.split(",").map((doc, i) => (
+                        <span key={i} style={{ 
+                          fontSize: 10, color: TEXT2, background: SURFACE2, 
+                          padding: "3px 8px", borderRadius: 4, border: `1px solid ${BORDER}`,
+                          fontFamily: "'Rajdhani', sans-serif", fontWeight: 600,
+                          whiteSpace: "nowrap"
+                        }} title={doc.trim()}>
+                          {doc.trim()}
+                        </span>
+                      ))}
                     </div>
                   ) : (
                     <span style={{ fontSize: 11, color: TEXT3 }}>None specified</span>
                   )}
                 </div>
 
-                {/* 6. Actions */}
+                {/* 6. Actions (Only Delete Button) */}
                 <div style={{ display: "flex", justifyContent: "flex-end", width: "42px", marginLeft: "auto" }}>
                   <button 
                     style={{
                       display: "flex", alignItems: "center", justifyContent: "center",
                       width: "32px", height: "32px", borderRadius: 6, background: "transparent",
-                      border: "1px solid rgba(248,113,113,0.25)", color: DANGER, cursor: "pointer", transition: "all 0.2s"
+                      border: "1px solid rgba(248,113,113,0.25)", color: DANGER, cursor: "pointer",
+                      transition: "all 0.2s"
                     }}
-                    onClick={(e) => { e.stopPropagation(); setDeleteTargetId(item.id); }}
+                    onClick={(e) => {
+                      e.stopPropagation(); 
+                      setDeleteTargetId(item.id); 
+                    }}
                     title="Delete Entry"
                   >
                     <TrashIcon />
@@ -729,34 +792,49 @@ export default function UniversityIndex() {
             </div>
           )}
         </div>
+
       </div>
 
       {/* ── CUSTOM DELETE CONFIRMATION POPUP MODAL ─────────────────────────── */}
       {deleteTargetId !== null && targetItemToDelete && (
         <div style={{
-          position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", backgroundColor: "rgba(0, 0, 0, 0.4)", backdropFilter: "blur(4px)",
-          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, animation: "fadeIn 0.15s ease-out"
+          position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh",
+          backgroundColor: "rgba(0, 0, 0, 0.4)", backdropFilter: "blur(4px)",
+          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999,
+          animation: "fadeIn 0.15s ease-out"
         }}>
           <div style={{
-            background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 16, padding: "32px 40px", maxWidth: 440, width: "90%", textAlign: "center",
+            background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 16,
+            padding: "32px 40px", maxWidth: 440, width: "90%", textAlign: "center",
             boxShadow: "0 25px 50px rgba(0, 0, 0, 0.15)"
           }}>
+            {/* Warning Circular Icon */}
             <div style={{
-              width: 56, height: 56, borderRadius: "50%", background: "rgba(248,113,113,0.1)", border: `1.5px solid ${DANGER}`, 
-              display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", fontSize: 22, color: DANGER
-            }}>⚠</div>
+              width: 56, height: 56, borderRadius: "50%", background: "rgba(248,113,113,0.1)",
+              border: `1.5px solid ${DANGER}`, display: "flex", alignItems: "center", justifyContent: "center",
+              margin: "0 auto 20px", fontSize: 22, color: DANGER
+            }}>
+              ⚠
+            </div>
 
-            <h3 style={{ fontFamily: "'Castoro Titling', serif", fontSize: 20, fontWeight: 400, textTransform: "uppercase", letterSpacing: "0.08em", color: TEXT, margin: "0 0 10px" }}>
+            <h3 style={{
+              fontFamily: "'Castoro Titling', serif", fontSize: 20, fontWeight: 400,
+              textTransform: "uppercase", letterSpacing: "0.08em", color: TEXT, margin: "0 0 10px"
+            }}>
               Confirm Deletion
             </h3>
 
             <p style={{ color: TEXT2, fontSize: 13, lineHeight: 1.6, marginBottom: 24, fontFamily: "'Manrope', sans-serif" }}>
-              Are you sure you want to permanently delete <strong style={{ color: TEXT }}>{targetItemToDelete.Course || 'this entry'}</strong>? This action cannot be undone.
+              Are you sure you want to permanently delete <strong style={{ color: TEXT }}>{targetItemToDelete.Course}</strong> at <strong style={{ color: TEXT }}>{targetItemToDelete.University}</strong>? This action cannot be undone.
             </p>
 
             <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-              <button onClick={() => setDeleteTargetId(null)} style={btnGhost}>Cancel</button>
-              <button onClick={() => executeDelete(targetItemToDelete.id)} style={btnDanger()}>Delete Entry</button>
+              <button onClick={() => setDeleteTargetId(null)} style={btnGhost}>
+                Cancel
+              </button>
+              <button onClick={() => executeDelete(targetItemToDelete.id)} style={btnDanger()}>
+                Delete Entry
+              </button>
             </div>
           </div>
         </div>
@@ -765,9 +843,13 @@ export default function UniversityIndex() {
       {/* ── ALERTS / TOAST FEEDBACK PANEL ────────────────────────────────── */}
       {toast && (
         <div style={{
-          position: "fixed", bottom: 32, right: 32, background: toast.type === "success" ? SUCCESS : DANGER, color: "#ffffff", padding: "14px 28px", 
-          borderRadius: 8, boxShadow: "0 20px 40px rgba(0,0,0,0.15)", zIndex: 10000, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
-          fontSize: 12, letterSpacing: "0.15em", textTransform: "uppercase", animation: "slideUp 0.3s ease-out"
+          position: "fixed", bottom: 32, right: 32,
+          background: toast.type === "success" ? SUCCESS : DANGER,
+          color: "#ffffff", padding: "14px 28px", borderRadius: 8,
+          boxShadow: "0 20px 40px rgba(0,0,0,0.15)", zIndex: 10000,
+          fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
+          fontSize: 12, letterSpacing: "0.15em", textTransform: "uppercase",
+          animation: "slideUp 0.3s ease-out"
         }}>
           {toast.message}
         </div>
