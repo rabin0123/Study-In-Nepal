@@ -1,17 +1,18 @@
 import { useState, useEffect } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
-const P = "#008ce3";
-const AMBER = "#fbbf24";
-const BG = "#0a0a0a";
-const SURFACE = "#111111";
-const SURFACE2 = "#1a1a1a";
-const SURFACE3 = "#141414";
-const BORDER = "rgba(255,255,255,0.10)";
-const TEXT = "#ffffff";
-const TEXT2 = "rgba(255,255,255,0.70)";
-const TEXT3 = "rgba(255,255,255,0.40)";
-const SUCCESS = "#22c55e";
+// ── Light / White-Blue Theme Colors ──────────────────────────────────────────
+const P = "#0066cc";           // Primary Blue
+const AMBER = "#d97706";       // Darkened Amber for contrast
+const BG = "#f0f4f8";          // Very light blue-gray background
+const SURFACE = "#ffffff";     // White cards
+const SURFACE2 = "#f8fafc";    // Off-white panel backgrounds
+const SURFACE3 = "#f1f5f9";    // Inner form blocks
+const BORDER = "rgba(0, 15, 30, 0.12)";
+const TEXT = "#0f172a";        // Dark slate text
+const TEXT2 = "#334155";       // Medium slate text
+const TEXT3 = "#64748b";       // Light slate text (labels/hints)
+const SUCCESS = "#16a34a";     // Success green
 
 const LEVELS = ["Undergraduate", "Postgraduate", "Both UG & PG", "Doctoral / PhD"];
 const STD_DOCS = [
@@ -38,11 +39,13 @@ interface CollegeEntry {
   id: string;
   name: string;
   location: string;
+  collegeLogoUrl: string; // Added field
   collegeCourses: CollegeCourseMapping[];
 }
 
 interface FormState {
   universityName: string;
+  universityLogoUrl: string; // Added field
   level: string;
   intake: string;
   courses: CourseTemplate[];
@@ -58,7 +61,7 @@ const makeCourseTemplate = (id?: string): CourseTemplate => ({
 
 const makeCollegeEntry = (firstCourseTemplateId = "", id?: string): CollegeEntry => ({
   id: id ?? Math.random().toString(36).slice(2),
-  name: "", location: "",
+  name: "", location: "", collegeLogoUrl: "",
   collegeCourses: [{
     courseTemplateId: firstCourseTemplateId,
     annualFee: "", scholarship: "",
@@ -69,6 +72,7 @@ const defaultCourse = makeCourseTemplate();
 const defaultCollege = makeCollegeEntry(defaultCourse.id);
 const initial: FormState = {
   universityName: "",
+  universityLogoUrl: "",
   level: "",
   intake: "",
   courses: [defaultCourse],
@@ -79,18 +83,19 @@ const initial: FormState = {
 
 const inputBase = (focused: boolean): CSSProperties => ({
   width: "100%", boxSizing: "border-box",
-  background: focused ? "#1e1e1e" : SURFACE2,
+  background: focused ? "#ffffff" : SURFACE2,
   border: `1px solid ${focused ? P : BORDER}`,
   borderRadius: 6, padding: "11px 14px",
   fontSize: 13, color: TEXT, fontFamily: "'Manrope', sans-serif",
-  outline: "none", transition: "border-color .15s, background .15s",
-  letterSpacing: "0.02em", colorScheme: "dark",
+  outline: "none", transition: "border-color .15s, background .15s, box-shadow .15s",
+  boxShadow: focused ? `0 0 0 3px ${P}22` : "none",
+  letterSpacing: "0.02em", colorScheme: "light",
 });
 
 const selectBase = (focused: boolean): CSSProperties => ({
   ...inputBase(focused),
   appearance: "none", WebkitAppearance: "none",
-  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='6' viewBox='0 0 11 6'%3E%3Cpath d='M1 1l4.5 4L10 1' stroke='%23666' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
+  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='6' viewBox='0 0 11 6'%3E%3Cpath d='M1 1l4.5 4L10 1' stroke='%23475569' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
   backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center",
   paddingRight: 32, cursor: "pointer",
 });
@@ -109,7 +114,7 @@ function SelectF({ value, onChange, options, placeholder }: { value: string; onC
     <select value={value} style={selectBase(f)} onChange={e => onChange(e.target.value)}
       onFocus={() => setF(true)} onBlur={() => setF(false)}>
       <option value="">{placeholder}</option>
-      {options.map(o => <option key={o} value={o} style={{ background: "#1a1a1a" }}>{o}</option>)}
+      {options.map(o => <option key={o} value={o} style={{ background: "#ffffff", color: TEXT }}>{o}</option>)}
     </select>
   );
 }
@@ -140,12 +145,12 @@ function Field({ label, required, hint, children }: { label: string; required?: 
 }
 
 function ErrMsg({ msg }: { msg?: string; }) {
-  return msg ? <span style={{ fontSize: 11, color: "#f87171", marginTop: 4, fontFamily: "'Manrope', sans-serif" }}>{msg}</span> : null;
+  return msg ? <span style={{ fontSize: 11, color: "#ef4444", marginTop: 4, fontFamily: "'Manrope', sans-serif", fontWeight: 500 }}>{msg}</span> : null;
 }
 
 function SectionCard({ number, title, subtitle, children }: { number: number; title: string; subtitle: string; children: ReactNode; }) {
   return (
-    <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, overflow: "hidden", marginBottom: 20 }}>
+    <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, overflow: "hidden", marginBottom: 20, boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
       <div style={{ borderBottom: `1px solid ${BORDER}`, padding: "20px 28px", display: "flex", alignItems: "center", gap: 16 }}>
         <span style={{ fontFamily: "'Castoro Titling', 'Georgia', serif", fontSize: 28, fontWeight: 400, color: AMBER, lineHeight: 1 }}>
           {String(number).padStart(2, "0")}
@@ -177,7 +182,7 @@ function DocPill({ label, selected, onToggle }: { label: string; selected: boole
     <button onClick={onToggle} style={{
       padding: "5px 12px", borderRadius: 999, cursor: "pointer",
       border: `1px solid ${selected ? P : BORDER}`,
-      background: selected ? `${P}22` : "transparent",
+      background: selected ? `${P}11` : SURFACE,
       color: selected ? P : TEXT3,
       fontSize: 11, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
       letterSpacing: "0.12em", textTransform: "uppercase", transition: "all .15s",
@@ -203,9 +208,11 @@ const g2: CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap
 interface FlatDatabaseRow {
   id: number;
   University: string;
+  university_logo_url: string | null;
   level: string;
   Intake: string;
   College: string;
+  college_logo_url: string | null;
   Location: string;
   Course: string;
   stream: string;
@@ -266,6 +273,7 @@ function reconstructFormState(rows: FlatDatabaseRow[]): FormState {
         id: Math.random().toString(36).slice(2),
         name: row.College,
         location: row.Location,
+        collegeLogoUrl: row.college_logo_url || "",
         collegeCourses: [mapping]
       });
     }
@@ -273,6 +281,7 @@ function reconstructFormState(rows: FlatDatabaseRow[]): FormState {
 
   return {
     universityName: firstRow.University,
+    universityLogoUrl: firstRow.university_logo_url || "",
     level: firstRow.level,
     intake: firstRow.Intake,
     courses,
@@ -318,12 +327,12 @@ function SharedCourseCard({
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span style={{
             fontSize: 10, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
-            color: isOpen ? P : TEXT3, background: isOpen ? `${P}18` : "rgba(255,255,255,0.06)",
+            color: isOpen ? P : TEXT3, background: isOpen ? `${P}18` : "rgba(0,0,0,0.06)",
             padding: "3px 10px", borderRadius: 999,
           }}>
             Prog {index + 1}
           </span>
-          <span style={{ fontSize: 13, color: course.courseName ? TEXT : TEXT3, fontFamily: "'Manrope', sans-serif", fontWeight: 500 }}>
+          <span style={{ fontSize: 13, color: course.courseName ? TEXT : TEXT3, fontFamily: "'Manrope', sans-serif", fontWeight: 600 }}>
             {headerLabel}
           </span>
         </div>
@@ -333,8 +342,8 @@ function SharedCourseCard({
               onClick={e => { e.stopPropagation(); onRemove(); }}
               style={{
                 padding: "3px 10px", borderRadius: 6, cursor: "pointer",
-                border: "1px solid rgba(248,113,113,0.25)", background: "transparent",
-                color: "#f87171", fontSize: 11, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
+                border: "1px solid rgba(239, 68, 68, 0.25)", background: "transparent",
+                color: "#ef4444", fontSize: 11, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
               }}
             >
               Remove
@@ -355,7 +364,7 @@ function SharedCourseCard({
             </Field>
           </div>
 
-          <SubPanel title="Shared Course Requirements" accent="#a78bfa">
+          <SubPanel title="Shared Course Requirements" accent="#6366f1">
             <Label>Required Documents</Label>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 14, marginTop: 4 }}>
               {STD_DOCS.map(doc => (
@@ -387,7 +396,7 @@ export default function UniversityEditForm() {
   const btnPrimary = (extra: CSSProperties = {}): CSSProperties => ({
     display: "flex", alignItems: "center", gap: 10,
     padding: "11px 26px", borderRadius: 999,
-    background: submitting ? "#0060a0" : P, border: "none", color: TEXT,
+    background: submitting ? "#94a3b8" : P, border: "none", color: "#ffffff",
     fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
     fontSize: 12, letterSpacing: "0.18em", textTransform: "uppercase",
     cursor: submitting ? "default" : "pointer", ...extra,
@@ -400,7 +409,6 @@ export default function UniversityEditForm() {
     fontSize: 12, letterSpacing: "0.16em", textTransform: "uppercase", cursor: "pointer",
   };
 
-  // Extract ID dynamically from browser pathname URL /universities/{id}/edit
   const getRecordId = () => {
     const pathParts = window.location.pathname.split("/");
     const editIdx = pathParts.indexOf("edit");
@@ -420,7 +428,6 @@ export default function UniversityEditForm() {
         return res.json();
       })
       .then(payload => {
-        // Handle versatile payloads: nested, single row, or multiple flat rows
         let structuredState: FormState;
         if (payload && payload.universityName && Array.isArray(payload.colleges)) {
           structuredState = payload;
@@ -455,7 +462,6 @@ export default function UniversityEditForm() {
     });
   };
 
-  // State manipulation (Pure deep copies)
   const addCourseTemplate = () => {
     const nextId = Math.random().toString(36).slice(2);
     setForm(f => {
@@ -505,7 +511,7 @@ export default function UniversityEditForm() {
     }
   };
 
-  const updateCollege = (colIdx: number, field: "name" | "location", value: string) => {
+  const updateCollege = (colIdx: number, field: "name" | "location" | "collegeLogoUrl", value: string) => {
     setForm(f => {
       const nextColleges = f.colleges.map((col, idx) => {
         if (idx !== colIdx) return col;
@@ -608,11 +614,13 @@ export default function UniversityEditForm() {
 
     const payload = {
       universityName: form.universityName,
+      university_logo_url: form.universityLogoUrl,
       level: form.level,
       intake: form.intake,
       colleges: form.colleges.map(col => ({
         name: col.name,
         location: col.location,
+        college_logo_url: col.collegeLogoUrl,
         courses: col.collegeCourses.map(cc => {
           const matchingTemplate = form.courses.find(t => t.id === cc.courseTemplateId);
           return {
@@ -666,7 +674,7 @@ export default function UniversityEditForm() {
       <div style={{ background: BG, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: TEXT }}>
         <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&display=swap" rel="stylesheet" />
         <div style={{ textAlign: "center", fontFamily: "'Manrope', sans-serif" }}>
-          <p style={{ color: "#f87171", fontSize: 14, marginBottom: 16 }}>{errors.general}</p>
+          <p style={{ color: "#ef4444", fontSize: 14, marginBottom: 16 }}>{errors.general}</p>
           <button onClick={() => window.location.href = "/universities"} style={btnPrimary()}>Back to Directory</button>
         </div>
       </div>
@@ -675,10 +683,10 @@ export default function UniversityEditForm() {
 
   return (
     <div style={{ background: BG, minHeight: "100vh", color: TEXT, fontFamily: "'Manrope', sans-serif", position: "relative" }}>
-      <link href="https://fonts.googleapis.com/css2?family=Castoro+Titling&family=Rajdhani:wght@600;700&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Castoro+Titling&family=Rajdhani:wght@600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
       {/* Header */}
-      <div style={{ borderBottom: `1px solid ${BORDER}`, padding: "48px 48px 36px", position: "relative", overflow: "hidden" }}>
+      <div style={{ borderBottom: `1px solid ${BORDER}`, background: SURFACE, padding: "48px 48px 36px", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: -80, right: -80, width: 320, height: 320, borderRadius: "50%", background: `${P}08`, pointerEvents: "none" }} />
         <div style={{ maxWidth: 960, margin: "0 auto", position: "relative" }}>
           <p style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, fontSize: 10, letterSpacing: "0.25em", textTransform: "uppercase", color: AMBER, margin: "0 0 14px" }}>
@@ -697,19 +705,19 @@ export default function UniversityEditForm() {
 
         {/* Validation summary */}
         {hasErrors && (
-          <div style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: 8, padding: "14px 20px", marginBottom: 20 }}>
-            <p style={{ fontSize: 12, color: "#f87171", fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", margin: "0 0 8px" }}>
+          <div style={{ background: "#fef2f2", border: "1px solid rgba(239, 68, 68, 0.3)", borderRadius: 8, padding: "14px 20px", marginBottom: 20 }}>
+            <p style={{ fontSize: 12, color: "#b91c1c", fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", margin: "0 0 8px" }}>
               Please correct the validation errors below
             </p>
             {Object.values(errors).map((msg, i) => (
-              <p key={i} style={{ fontSize: 12, color: "#fca5a5", fontFamily: "'Manrope', sans-serif", margin: "2px 0" }}>• {msg}</p>
+              <p key={i} style={{ fontSize: 12, color: "#ef4444", fontFamily: "'Manrope', sans-serif", margin: "2px 0" }}>• {msg}</p>
             ))}
           </div>
         )}
 
         {/* 01 Institution & Global Courses */}
         <SectionCard number={1} title="Central University Registrations" subtitle="Primary settings and shared course configurations">
-          <div style={{ marginBottom: 20 }}>
+          <div style={{ ...g2, marginBottom: 20 }}>
             <Field label="University Name" required>
               <InputF
                 value={form.universityName}
@@ -717,6 +725,13 @@ export default function UniversityEditForm() {
                 placeholder="e.g. Tribhuvan University"
               />
               <ErrMsg msg={errors.universityName} />
+            </Field>
+            <Field label="University Logo URL">
+              <InputF
+                value={form.universityLogoUrl}
+                onChange={v => setForm(f => ({ ...f, universityLogoUrl: v }))}
+                placeholder="https://example.com/logo.png"
+              />
             </Field>
           </div>
 
@@ -741,7 +756,7 @@ export default function UniversityEditForm() {
           </div>
 
           {/* SHARED COURSES DEFINITION */}
-          <SubPanel title="Shared Course Registry (Define templates here first)" accent="#a78bfa">
+          <SubPanel title="Shared Course Registry (Define templates here first)" accent="#6366f1">
             <p style={{ fontSize: 11, color: TEXT3, margin: "0 0 14px", lineHeight: 1.5 }}>
               Modify templates here. Updates apply automatically across colleges mapping to these programs.
             </p>
@@ -764,10 +779,10 @@ export default function UniversityEditForm() {
 
             <button onClick={addCourseTemplate} style={{
               width: "100%", padding: "11px", borderRadius: 8, cursor: "pointer",
-              border: `1px dashed ${P}44`, background: `${P}05`,
+              border: `1px dashed ${P}44`, background: `${P}0A`,
               color: P, fontSize: 11, fontFamily: "'Rajdhani', sans-serif",
               fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase",
-              marginTop: 6
+              marginTop: 6, transition: "background .2s"
             }}>
               + Define Another Shared Course
             </button>
@@ -785,7 +800,7 @@ export default function UniversityEditForm() {
             return (
               <div key={college.id} style={{
                 background: SURFACE,
-                border: `1px solid ${isColOpen ? `${AMBER}55` : BORDER}`,
+                border: `1px solid ${isColOpen ? `${AMBER}88` : BORDER}`,
                 borderRadius: 10,
                 overflow: "hidden",
                 marginBottom: 16,
@@ -796,7 +811,7 @@ export default function UniversityEditForm() {
                   style={{
                     display: "flex", alignItems: "center", justifyContent: "space-between",
                     padding: "16px 24px", cursor: "pointer",
-                    background: isColOpen ? `${AMBER}08` : "transparent",
+                    background: isColOpen ? `${AMBER}11` : "transparent",
                     borderBottom: isColOpen ? `1px solid ${BORDER}` : "none",
                   }}
                 >
@@ -804,12 +819,12 @@ export default function UniversityEditForm() {
                     <span style={{
                       fontSize: 10, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
                       color: isColOpen ? AMBER : TEXT3,
-                      background: isColOpen ? `${AMBER}18` : "rgba(255,255,255,0.06)",
+                      background: isColOpen ? `${AMBER}22` : "rgba(0,0,0,0.06)",
                       padding: "3px 10px", borderRadius: 999,
                     }}>
                       College {colIdx + 1}
                     </span>
-                    <span style={{ fontSize: 13, color: college.name ? TEXT : TEXT3, fontFamily: "'Manrope', sans-serif", fontWeight: 500 }}>
+                    <span style={{ fontSize: 13, color: college.name ? TEXT : TEXT3, fontFamily: "'Manrope', sans-serif", fontWeight: 600 }}>
                       {colHeaderLabel} {college.location ? `· ${college.location}` : ""}
                     </span>
                     {!isColOpen && (
@@ -828,8 +843,8 @@ export default function UniversityEditForm() {
                         }}
                         style={{
                           padding: "3px 10px", borderRadius: 6, cursor: "pointer",
-                          border: "1px solid rgba(248,113,113,0.25)", background: "transparent",
-                          color: "#f87171", fontSize: 11, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
+                          border: "1px solid rgba(239, 68, 68, 0.25)", background: "transparent",
+                          color: "#ef4444", fontSize: 11, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
                         }}
                       >
                         Remove
@@ -864,12 +879,22 @@ export default function UniversityEditForm() {
                       </Field>
                     </div>
 
+                    <div style={{ marginBottom: 20 }}>
+                      <Field label="College Logo URL">
+                        <InputF
+                          value={college.collegeLogoUrl}
+                          onChange={v => updateCollege(colIdx, "collegeLogoUrl", v)}
+                          placeholder="https://example.com/college-logo.png"
+                        />
+                      </Field>
+                    </div>
+
                     <div style={{ marginTop: 24, borderTop: `1px solid ${BORDER}`, paddingTop: 20 }}>
                       <div style={{ fontSize: 10, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: TEXT3, marginBottom: 12 }}>
                         Offered Courses & Fees Mapping
                       </div>
 
-                      {errors[`col_${colIdx}_empty`] && <div style={{ color: "#f87171", fontSize: 12, marginBottom: 10 }}>{errors[`col_${colIdx}_empty`]}</div>}
+                      {errors[`col_${colIdx}_empty`] && <div style={{ color: "#ef4444", fontSize: 12, marginBottom: 10, fontWeight: 500 }}>{errors[`col_${colIdx}_empty`]}</div>}
 
                       {college.collegeCourses.map((cc, ccIdx) => (
                         <div key={ccIdx} style={{
@@ -895,7 +920,7 @@ export default function UniversityEditForm() {
                             >
                               <option value="">-- Choose Course --</option>
                               {form.courses.map((t, tIdx) => (
-                                <option key={t.id} value={t.id} style={{ background: "#1a1a1a" }}>
+                                <option key={t.id} value={t.id} style={{ background: "#ffffff", color: TEXT }}>
                                   {t.courseName.trim() || `Program Template ${tIdx + 1}`}
                                 </option>
                               ))}
@@ -926,8 +951,8 @@ export default function UniversityEditForm() {
                               onClick={() => removeCollegeCoursePrice(colIdx, ccIdx)}
                               style={{
                                 height: 41, padding: "0 14px", borderRadius: 6, cursor: "pointer",
-                                border: "1px solid rgba(248,113,113,0.25)", background: "transparent",
-                                color: "#f87171", fontSize: 14, marginTop: 22
+                                border: "1px solid rgba(239, 68, 68, 0.25)", background: "transparent",
+                                color: "#ef4444", fontSize: 14, marginTop: 22
                               }}
                             >
                               ✕
@@ -940,7 +965,7 @@ export default function UniversityEditForm() {
 
                       <button onClick={() => addCollegeCoursePrice(colIdx)} style={{
                         width: "100%", padding: "11px", borderRadius: 8, cursor: "pointer",
-                        border: `1px dashed ${P}44`, background: `${P}05`,
+                        border: `1px dashed ${P}44`, background: `${P}0A`,
                         color: P, fontSize: 11, fontFamily: "'Rajdhani', sans-serif",
                         fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase",
                         marginTop: 6, transition: "all .15s"
@@ -956,17 +981,17 @@ export default function UniversityEditForm() {
 
           <button onClick={addCollege} style={{
             width: "100%", padding: "14px", borderRadius: 8, cursor: "pointer",
-            border: `1px dashed ${AMBER}66`, background: `${AMBER}08`,
+            border: `1px dashed ${AMBER}66`, background: `${AMBER}0A`,
             color: AMBER, fontSize: 12, fontFamily: "'Rajdhani', sans-serif",
             fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase",
-            marginTop: 10,
+            marginTop: 10, transition: "background .2s"
           }}>
             + Add Another Affiliated College
           </button>
         </SectionCard>
 
         {/* Action Panel */}
-        <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "20px 28px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "20px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: "0 4px 20px rgba(0,0,0,0.03)" }}>
           <div>
             <p style={{ fontSize: 11, color: TEXT3, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", margin: 0 }}>
               <span style={{ color: P }}>*</span> Required fields must be completed
@@ -988,14 +1013,14 @@ export default function UniversityEditForm() {
       {submitted && (
         <div style={{
           position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh",
-          backgroundColor: "rgba(0, 0, 0, 0.8)", backdropFilter: "blur(4px)",
+          backgroundColor: "rgba(0, 0, 0, 0.4)", backdropFilter: "blur(4px)",
           display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999,
           animation: "fadeIn 0.2s ease-out"
         }}>
           <div style={{
             background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 16,
             padding: "40px", maxWidth: 480, width: "90%", textAlign: "center",
-            boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)", position: "relative"
+            boxShadow: "0 20px 40px rgba(0, 0, 0, 0.15)", position: "relative"
           }}>
             <div style={{
               width: 64, height: 64, borderRadius: "50%", border: `1.5px solid ${SUCCESS}`,
