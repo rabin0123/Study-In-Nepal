@@ -278,24 +278,34 @@ interface FlatDatabaseRow {
   requireddocuments: string | string[] | null;
 }
 
-function reconstructFormState(rows: FlatDatabaseRow[]): FormState {
+// Normalize legacy level labels to the canonical dropdown values
+function normalizeLevel(raw: string | null | undefined): string {
+  const normalized = raw ? String(raw).trim() : "";
+  const l = normalized.toLowerCase();
+  if (l === "bachelor" || l === "bachelors") return "Undergraduate";
+  if (l === "master" || l === "masters") return "Postgraduate";
+  return normalized;
+}
+
+function reconstructFormState(rows: FlatDatabaseRow[], levelFilter?: string | null): FormState {
   if (!rows || rows.length === 0) return initial;
 
-  const firstRow = rows[0];
-
-  // Safe level parsing
-  let normalizedLevel = firstRow.level ? String(firstRow.level).trim() : "";
-  const l = normalizedLevel.toLowerCase();
-  if (l === "bachelor" || l === "bachelors") {
-    normalizedLevel = "Undergraduate";
-  } else if (l === "master" || l === "masters") {
-    normalizedLevel = "Postgraduate";
+  // Scope to a single level if one was requested (e.g. from the index page's
+  // "Bachelor" / "Master" pill). Falls back to all rows if nothing matches,
+  // so a stale or unexpected level param never leaves the form empty.
+  let scopedRows = rows;
+  if (levelFilter) {
+    const targetLevel = normalizeLevel(levelFilter);
+    const filtered = rows.filter(r => normalizeLevel(r.level) === targetLevel);
+    if (filtered.length > 0) scopedRows = filtered;
   }
+
+  const firstRow = scopedRows[0];
+  const normalizedLevel = normalizeLevel(firstRow.level);
 
   const templatesMap = new Map<string, CourseTemplate>();
   
-  rows.forEach(row => {
-    // 💥 THIS WAS THE FIX: Safely fallback to an empty string before calling trim() 
+  scopedRows.forEach(row => {
     const safeCourse = row.Course ? String(row.Course).trim() : "";
     const safeStream = row.stream ? String(row.stream).trim() : "";
 
@@ -326,8 +336,7 @@ function reconstructFormState(rows: FlatDatabaseRow[]): FormState {
   const courses = Array.from(templatesMap.values());
   const collegesMap = new Map<string, CollegeEntry>();
 
-  rows.forEach(row => {
-    // 💥 THIS WAS THE FIX: Also fallback safely for college keys
+  scopedRows.forEach(row => {
     const safeCollege = row.College ? String(row.College).trim() : "";
     const safeLocation = row.Location ? String(row.Location).trim() : "";
     const safeCourse = row.Course ? String(row.Course).trim() : "";
@@ -505,7 +514,16 @@ export default function UniversityEditForm() {
     return pathParts[pathParts.length - 1];
   };
 
+  // The level this edit session is scoped to, e.g. "Undergraduate" — read from
+  // ?level=... on the URL (set by the index page's level pills). If absent,
+  // the form behaves as before and loads every level for the university.
+  const getLevelParam = () => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("level");
+  };
+
   const activeId = useRef<string>(getRecordId());
+  const activeLevel = useRef<string | null>(getLevelParam());
 
   useEffect(() => {
     if (!activeId.current) return;
@@ -519,16 +537,22 @@ export default function UniversityEditForm() {
       .then(payload => {
         let structuredState: FormState;
         if (payload && payload.universityName && Array.isArray(payload.colleges)) {
+          // Already-structured payload (no per-row level scoping available here)
           structuredState = payload;
-          const l = (structuredState.level || "").toLowerCase();
-          if (l === "bachelor" || l === "bachelors") structuredState.level = "Undergraduate";
-          else if (l === "master" || l === "masters") structuredState.level = "Postgraduate";
+          structuredState.level = normalizeLevel(structuredState.level);
         } else if (Array.isArray(payload)) {
-          structuredState = reconstructFormState(payload);
+          structuredState = reconstructFormState(payload, activeLevel.current);
         } else if (payload && typeof payload === "object") {
-          structuredState = reconstructFormState([payload]);
+          structuredState = reconstructFormState([payload], activeLevel.current);
         } else {
           throw new Error("Invalid payload format");
+        }
+
+        // If a level was requested via the URL but the record's own level
+        // differs (e.g. stale link), still lock the form to the requested
+        // level so a save doesn't silently write to the wrong bucket.
+        if (activeLevel.current) {
+          structuredState.level = normalizeLevel(activeLevel.current);
         }
 
         setForm(structuredState);
@@ -709,6 +733,10 @@ export default function UniversityEditForm() {
       university_logo_url: form.universityLogoUrl,
       level: form.level,
       intake: form.intake,
+      // Scope the write to just this level so other levels under the same
+      // university (e.g. Postgraduate rows while editing Undergraduate) are
+      // left untouched by the backend's delete-and-recreate.
+      scopeLevel: activeLevel.current ? normalizeLevel(activeLevel.current) : undefined,
       colleges: form.colleges.map(col => ({
         name: col.name,
         location: col.location,
@@ -741,7 +769,7 @@ export default function UniversityEditForm() {
       if (res.ok) {
         if (d.new_id) {
             const newPath = window.location.pathname.replace(`/${activeId.current}`, `/${d.new_id}`);
-            window.history.replaceState(null, "", newPath);
+            window.history.replaceState(null, "", newPath + window.location.search);
             activeId.current = d.new_id.toString(); 
         }
         setSubmitted(true);
@@ -793,12 +821,15 @@ export default function UniversityEditForm() {
         <div style={{ maxWidth: 960, margin: "0 auto", position: "relative" }}>
           <p style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, fontSize: 10, letterSpacing: "0.25em", textTransform: "uppercase", color: AMBER, margin: "0 0 14px" }}>
             Edit Mode — Active Record Update
+            {activeLevel.current ? ` · Scoped to ${normalizeLevel(activeLevel.current)}` : ""}
           </p>
           <h1 style={{ fontFamily: "'Castoro Titling', serif", fontSize: 40, fontWeight: 400, textTransform: "uppercase", letterSpacing: "0.08em", color: TEXT, margin: "0 0 12px", lineHeight: 1.15 }}>
             Modify <span style={{ color: P }}>University</span>
           </h1>
           <p style={{ fontSize: 13, color: TEXT2, maxWidth: 580, lineHeight: 1.7, margin: 0 }}>
-            Adjust the shared program templates and assign updated fees and scholarships for affiliated colleges.
+            {activeLevel.current
+              ? `Adjust the ${normalizeLevel(activeLevel.current)} programs and colleges for this university. Other levels are not affected.`
+              : "Adjust the shared program templates and assign updated fees and scholarships for affiliated colleges."}
           </p>
         </div>
       </div>
@@ -836,13 +867,22 @@ export default function UniversityEditForm() {
           </div>
 
           <div style={{ ...g2, marginBottom: 28, paddingBottom: 20, borderBottom: `1px solid ${BORDER}` }}>
-            <Field label="Study Level" required>
-              <SelectF
-                value={form.level}
-                onChange={v => { setForm(f => ({ ...f, level: v })); clearError("level"); }}
-                options={LEVELS}
-                placeholder="Select level"
-              />
+            <Field label="Study Level" required hint={activeLevel.current ? "Locked to the level selected from the directory." : undefined}>
+              {activeLevel.current ? (
+                <div style={{
+                  ...inputBase(false), display: "flex", alignItems: "center",
+                  color: TEXT, fontWeight: 600, cursor: "not-allowed", opacity: 0.85,
+                }}>
+                  {normalizeLevel(activeLevel.current)}
+                </div>
+              ) : (
+                <SelectF
+                  value={form.level}
+                  onChange={v => { setForm(f => ({ ...f, level: v })); clearError("level"); }}
+                  options={LEVELS}
+                  placeholder="Select level"
+                />
+              )}
               <ErrMsg msg={errors.level} />
             </Field>
             
