@@ -357,6 +357,7 @@ class UniversityApiControler extends Controller
                 $record = University::updateOrCreate(
                     [
                         'University' => trim($data['University']),
+                        'College'     => trim($data['College']),
                         'Course'     => trim($data['Course']),
                     ],
                     [
