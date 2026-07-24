@@ -932,3 +932,12 @@ export default function UniversityIndex() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
