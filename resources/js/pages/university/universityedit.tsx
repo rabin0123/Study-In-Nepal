@@ -364,7 +364,7 @@ function SharedCourseCard({
             </Field>
           </div>
 
-          <SubPanel title="Shared Course Requirements" accent="#6366f1">
+          <SubPanel title="Shared Course Requirements" accent="#0066cc">
             <Label>Required Documents</Label>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 14, marginTop: 4 }}>
               {STD_DOCS.map(doc => (
@@ -756,7 +756,7 @@ export default function UniversityEditForm() {
           </div>
 
           {/* SHARED COURSES DEFINITION */}
-          <SubPanel title="Shared Course Registry (Define templates here first)" accent="#6366f1">
+          <SubPanel title="Shared Course Registry (Define templates here first)" accent="#0066cc">
             <p style={{ fontSize: 11, color: TEXT3, margin: "0 0 14px", lineHeight: 1.5 }}>
               Modify templates here. Updates apply automatically across colleges mapping to these programs.
             </p>
