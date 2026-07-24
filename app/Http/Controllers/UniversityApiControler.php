@@ -29,11 +29,6 @@ class UniversityApiControler extends Controller
         |--------------------------------------------------------------------------
         | Search — partial, as-you-type matching on any relevant field
         |--------------------------------------------------------------------------
-        | Using LIKE '%term%' here on purpose, not FULLTEXT. FULLTEXT only matches
-        | whole indexed tokens (subject to min token length + stopword rules), so
-        | "Ace" would never match "Ace International College" until the full word
-        | boundary lines up. With ~1,300 rows, LIKE is fast enough and gives true
-        | substring matching (Ace -> Ace International, anywhere in the string).
         */
         if ($search = trim((string) $request->query('search', ''))) {
             $query->where(function ($q) use ($search) {
@@ -102,12 +97,6 @@ class UniversityApiControler extends Controller
 
     /**
      * GET /api/university/filter-options
-     *
-     * Powers the dropdown filter lists without shipping all 5000+ rows to
-     * the browser just to compute distinct values client-side. Cached for
-     * 60s — data changes frequently, but the *set of distinct values*
-     * (which universities/colleges/streams exist at all) changes much less
-     * often than individual rows, so a short TTL is safe.
      */
     public function filterOptions(): JsonResponse
     {
@@ -130,7 +119,7 @@ class UniversityApiControler extends Controller
         $validated = $request->validate([
             'universityName'                  => 'required|string|max:255',
             'level'                           => 'required|string|max:255',
-            'intake'                          => 'required|string|max:20',
+            'intake'                          => 'required|string|max:255', // Increased to 255 to allow multiple comma-separated months
             'colleges'                        => 'required|array|min:1',
             'colleges.*.name'                 => 'required|string|max:255',
             'universityLogoUrl'               => 'nullable|url|max:500',
@@ -190,7 +179,7 @@ class UniversityApiControler extends Controller
         $validated = $request->validate([
             'universityName'                  => 'required|string|max:255',
             'level'                           => 'required|string|max:255',
-            'intake'                          => 'required|string|max:20',
+            'intake'                          => 'required|string|max:255', // Increased to 255 to allow multiple comma-separated months
             'colleges'                        => 'required|array|min:1',
             'colleges.*.name'                 => 'required|string|max:255',
             'colleges.*.location'             => 'required|string|max:255',
